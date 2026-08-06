@@ -125,7 +125,7 @@ export interface PlatformSettings {
 }
 
 const DEFAULTS: PlatformSettings = {
-  siteName: 'SRT HUB FREE',
+  siteName: 'SRT HUB EASY',
   publicHost: null,
   defaultLatencyMs: 120,
   requirePassphrase: false,

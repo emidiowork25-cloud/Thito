@@ -2,7 +2,7 @@
   "name": "thito",
   "version": "0.1.0",
   "private": true,
-  "description": "SRT HUB FREE — receive, monitor and re-transmit live video signals over SRT and OMT",
+  "description": "SRT HUB EASY — receive, monitor and re-transmit live video signals over SRT and OMT",
   "workspaces": [
     "server",
     "web"

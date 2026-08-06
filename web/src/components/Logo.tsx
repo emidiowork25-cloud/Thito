@@ -34,7 +34,7 @@ export function LogoMark({ size = 34, mono = false, className }: MarkProps): JSX
       fill="none"
       className={className}
       role="img"
-      aria-label="SRT HUB FREE"
+      aria-label="SRT HUB EASY"
     >
       {/* Signal in */}
       <path d="M2 24h8.5" stroke={rays} strokeWidth="3.4" strokeLinecap="round" />
@@ -61,7 +61,7 @@ export function LogoBadge({ size = 32, className }: { size?: number; className?:
       fill="none"
       className={className}
       role="img"
-      aria-label="SRT HUB FREE"
+      aria-label="SRT HUB EASY"
     >
       <rect x="1" y="1" width="46" height="46" rx="13.5" fill={SKY} />
       <path d="M20 24C26 24 26 13 32 13" stroke={GROUND} strokeWidth="3.1" strokeLinecap="round" />
@@ -75,6 +75,8 @@ export function LogoBadge({ size = 32, className }: { size?: number; className?:
   );
 }
 
+export const BRAND_NAME = 'SRT HUB EASY';
+
 interface LogoProps {
   /** `sm` for the app header, `lg` for the landing and login screens. */
   size?: 'sm' | 'lg';
@@ -86,42 +88,23 @@ interface LogoProps {
   className?: string;
 }
 
+/**
+ * The wordmark is set as one uninterrupted phrase. "Easy" is part of the name,
+ * not a qualifier attached to it, so nothing sets it apart typographically.
+ */
 export function Logo({ size = 'sm', siteName, className }: LogoProps): JSX.Element {
   const large = size === 'lg';
-
-  // "Free" is the promise, not part of the name — it reads as a seal beside the
-  // wordmark rather than a third word inside it.
-  const custom = siteName && siteName.toUpperCase() !== 'SRT HUB FREE' ? siteName : null;
 
   return (
     <span className={`inline-flex items-center ${large ? 'gap-3.5' : 'gap-2.5'} ${className ?? ''}`}>
       <LogoMark size={large ? 52 : 32} />
-      {custom ? (
-        <span
-          className={`font-display font-bold uppercase leading-none tracking-[.02em] text-paper ${
-            large ? 'text-4xl' : 'text-xl'
-          }`}
-        >
-          {custom}
-        </span>
-      ) : (
-        <>
-          <span
-            className={`font-display font-bold uppercase leading-none tracking-[.02em] text-paper ${
-              large ? 'text-4xl' : 'text-xl'
-            }`}
-          >
-            SRT Hub
-          </span>
-          <span
-            className={`rounded bg-sky font-display font-bold uppercase leading-none tracking-[.12em] text-ink-950 ${
-              large ? 'px-2 py-1 text-sm' : 'px-1.5 py-1 text-[11px]'
-            }`}
-          >
-            Free
-          </span>
-        </>
-      )}
+      <span
+        className={`font-display font-bold uppercase leading-none tracking-[.02em] text-paper ${
+          large ? 'text-4xl' : 'text-xl'
+        }`}
+      >
+        {siteName?.trim() || BRAND_NAME}
+      </span>
     </span>
   );
 }

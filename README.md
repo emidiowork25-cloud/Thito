@@ -1,4 +1,4 @@
-# SRT HUB FREE
+# SRT HUB EASY
 
 Hub de recepção e retransmissão de vídeo ao vivo. Recebe sinais **SRT**,
 monitora em tempo real e reenvia para quantos destinos você precisar — em
@@ -9,7 +9,7 @@ destino exige conversão (RTMP e OMT).
 
 ```
                           ┌─────────────────────┐
-  encoder remoto ──SRT──▶ │    SRT HUB FREE     │ ──▶ SRT   (contribuição)
+  encoder remoto ──SRT──▶ │    SRT HUB EASY     │ ──▶ SRT   (contribuição)
                           │                     │ ──▶ UDP   (rede local)
                           │  monitor + preview  │ ──▶ RTMP  (plataformas)
                           └─────────────────────┘ ──▶ OMT   (switcher na LAN)
@@ -174,7 +174,7 @@ SMTP_HOST=smtp.suaempresa.com
 SMTP_PORT=587
 SMTP_USER=no-reply@suaempresa.com
 SMTP_PASS=...
-SMTP_FROM="SRT HUB FREE <no-reply@suaempresa.com>"
+SMTP_FROM="SRT HUB EASY <no-reply@suaempresa.com>"
 THITO_PUBLIC_URL=https://hub.suaempresa.com
 ```
 
