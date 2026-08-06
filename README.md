@@ -135,9 +135,6 @@ interface quando ausente, em vez de falhar na hora do ar.
 
 Para habilitar, veja [`docker/ffmpeg-omt.md`](docker/ffmpeg-omt.md).
 
-## Licença
-
-MIT.
 
 ## Cadastro e aprovação de usuários
 
@@ -210,3 +207,7 @@ recebeu; o administrador vê a plataforma inteira.
 ```sh
 scripts/traffic-check.sh   # injeta 3000 kbps e confere o que foi contabilizado
 ```
+
+## Licença
+
+MIT.
