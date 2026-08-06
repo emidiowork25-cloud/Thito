@@ -2,9 +2,10 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { accessRepo, sessionRepo, userRepo } from './auth.js';
 import { ingestRepo } from './db.js';
-import { requireAdmin } from './guards.js';
-import { ALL_PERMISSIONS, isPermission, type Permission } from './permissions.js';
+import { requireAdmin, requireUser, visibleIngestIds } from './guards.js';
+import { ALL_PERMISSIONS, isAdmin, isPermission, type Permission } from './permissions.js';
 import { presetRepo, settingsRepo } from './presets.js';
+import { perIngestTotals, summarize, type Bucket } from './traffic.js';
 
 const permissionList = z
   .array(z.string())
@@ -205,6 +206,34 @@ export async function registerAdminRoutes(app: FastifyInstance): Promise<void> {
     const { id } = req.params as { id: string };
     if (!presetRepo.remove(id)) return reply.code(404).send({ error: 'Preset não encontrado' });
     return reply.code(204).send();
+  });
+
+  // ---------------------------------------------------------------- dashboard
+
+  /**
+   * Bandwidth carried by the platform, bucketed.
+   *
+   * Scoped like everything else: an operator sees only the feeds they were
+   * granted, so their totals are their own. Admins see the whole platform.
+   */
+  app.get('/api/traffic', async (req, reply) => {
+    const user = requireUser(req, reply);
+    if (!user) return;
+
+    const raw = (req.query as { bucket?: string } | undefined)?.bucket;
+    const bucket: Bucket =
+      raw === 'hour' || raw === 'day' || raw === 'week' || raw === 'month' ? raw : 'hour';
+
+    // undefined means "no filter"; an empty array means "nothing visible".
+    const scope = isAdmin(user) ? undefined : visibleIngestIds(user);
+
+    const names = new Map(ingestRepo.list().map((i) => [i.id, i.name]));
+    const perIngest = perIngestTotals(bucket, scope).map((row) => ({
+      ...row,
+      name: names.get(row.ingestId) ?? 'Recepção removida',
+    }));
+
+    return { ...summarize(bucket, scope), perIngest };
   });
 
   // ----------------------------------------------------------------- settings

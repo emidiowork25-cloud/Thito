@@ -11,11 +11,34 @@ declare module 'fastify' {
 }
 
 /** Endpoints reachable without a session. */
-const PUBLIC_PATHS = new Set(['/api/auth/login', '/api/auth/session', '/api/branding']);
+const PUBLIC_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/session',
+  '/api/branding',
+  '/api/signup',
+  '/api/signup/username-preview',
+]);
 
 export function isPublicPath(url: string): boolean {
   const path = url.split('?')[0] ?? url;
   return PUBLIC_PATHS.has(path);
+}
+
+/**
+ * The only endpoints an account with provisional credentials may reach. Any
+ * wider allowance would let a four-digit password do real work, which is
+ * exactly what the forced change exists to prevent.
+ */
+const PROVISIONAL_PATHS = new Set([
+  '/api/auth/session',
+  '/api/auth/password',
+  '/api/auth/logout',
+  '/api/branding',
+]);
+
+export function isProvisionalPath(url: string): boolean {
+  const path = url.split('?')[0] ?? url;
+  return PROVISIONAL_PATHS.has(path);
 }
 
 /**

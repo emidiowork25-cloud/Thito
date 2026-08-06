@@ -36,6 +36,11 @@ export interface User {
   role: Role;
   permissions: Permission[];
   enabled: boolean;
+  email: string | null;
+  phone: string | null;
+  jobTitle: string | null;
+  /** Set on provisional credentials; blocks everything until cleared. */
+  mustChangePassword: boolean;
   createdAt: string;
   lastLoginAt: string | null;
 }

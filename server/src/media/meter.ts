@@ -16,6 +16,8 @@ const WINDOW_MS = 1_000;
 export class BitrateMeter {
   private socket: Socket | null = null;
   private bytes = 0;
+  /** Never reset while the meter lives — the traffic recorder reads deltas. */
+  private total = 0;
   private windowStart = Date.now();
   private kbps: number | null = null;
   private lastPacketAt = 0;
@@ -29,6 +31,7 @@ export class BitrateMeter {
 
     socket.on('message', (msg) => {
       this.bytes += msg.length;
+      this.total += msg.length;
       this.lastPacketAt = Date.now();
       this.roll();
     });
@@ -61,6 +64,11 @@ export class BitrateMeter {
   /** True when packets arrived recently enough to call the feed live. */
   get flowing(): boolean {
     return Date.now() - this.lastPacketAt < 3 * WINDOW_MS;
+  }
+
+  /** Monotonic byte count since this meter was created. */
+  get totalBytes(): number {
+    return this.total;
   }
 
   private roll(): void {

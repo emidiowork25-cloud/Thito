@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { config } from '../config.js';
 import { ingestRepo, outputRepo } from '../db.js';
 import type { Ingest, IngestStatus, Output, Telemetry } from '../types.js';
+import { trafficRecorder } from '../traffic.js';
 import { cachedCapabilities } from './capabilities.js';
 import { BitrateMeter } from './meter.js';
 import { Supervisor } from './supervisor.js';
@@ -48,15 +49,37 @@ export class Engine extends EventEmitter {
 
   // ---------------------------------------------------------------- lifecycle
 
+  private sampler: NodeJS.Timeout | null = null;
+
   /** Brings up every ingest marked enabled. Called once at boot. */
   bootstrap(): void {
     for (const ingest of ingestRepo.list()) {
       if (ingest.enabled) this.startIngest(ingest.id);
     }
+
+    // Feed byte counters to the traffic recorder faster than it flushes, so a
+    // pipeline that stops between flushes still contributes what it carried.
+    trafficRecorder.start();
+    this.sampler = setInterval(() => this.sampleTraffic(), 10_000);
+    this.sampler.unref();
   }
 
   shutdown(): void {
+    if (this.sampler) clearInterval(this.sampler);
+    this.sampler = null;
+    this.sampleTraffic();
+    trafficRecorder.stop();
     for (const id of [...this.runtimes.keys()]) this.stopIngest(id);
+  }
+
+  private sampleTraffic(): void {
+    for (const [ingestId, runtime] of this.runtimes) {
+      trafficRecorder.observeIngest(ingestId, runtime.meter.totalBytes);
+      for (const [outputId, entry] of runtime.outputs) {
+        const written = entry.supervisor.writtenBytes;
+        if (written !== null) trafficRecorder.observeOutput(ingestId, outputId, written);
+      }
+    }
   }
 
   // ------------------------------------------------------------------ ingests
@@ -99,6 +122,9 @@ export class Engine extends EventEmitter {
   stopIngest(ingestId: string): void {
     const runtime = this.runtimes.get(ingestId);
     if (!runtime) return;
+    // Bank whatever this pipeline carried before its counters go away.
+    this.sampleTraffic();
+    trafficRecorder.forget(ingestId);
     for (const out of runtime.outputs.values()) out.supervisor.stop();
     runtime.preview?.stop();
     runtime.relay.stop();

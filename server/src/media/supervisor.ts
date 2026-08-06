@@ -73,6 +73,15 @@ export class Supervisor extends EventEmitter {
     return [...this.logs];
   }
 
+  /**
+   * Bytes this process has written, as last reported. Resets to null when the
+   * process restarts — the traffic recorder treats that as a fresh run rather
+   * than a negative delta.
+   */
+  get writtenBytes(): number | null {
+    return this.lastTotalSize;
+  }
+
   get isRunning(): boolean {
     return this.proc !== null;
   }

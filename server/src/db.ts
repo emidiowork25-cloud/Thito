@@ -96,7 +96,76 @@ db.exec(`
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  -- Self-service signups wait here until an administrator decides. No user row
+  -- exists until approval, so a pending request can never authenticate.
+  CREATE TABLE IF NOT EXISTS signup_requests (
+    id           TEXT PRIMARY KEY,
+    first_name   TEXT NOT NULL,
+    last_name    TEXT NOT NULL,
+    job_title    TEXT NOT NULL,
+    phone        TEXT NOT NULL,
+    email        TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'pending'
+                 CHECK (status IN ('pending','approved','rejected')),
+    reviewed_by  TEXT,
+    reviewed_at  TEXT,
+    reject_note  TEXT,
+    created_user_id TEXT,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS signup_status_idx ON signup_requests(status, created_at);
+
+  -- Every outbound message is persisted before any delivery attempt. Without
+  -- this an SMTP outage silently loses the credentials mail and the account
+  -- becomes unreachable with no record of why.
+  CREATE TABLE IF NOT EXISTS mail_outbox (
+    id          TEXT PRIMARY KEY,
+    to_address  TEXT NOT NULL,
+    subject     TEXT NOT NULL,
+    body_text   TEXT NOT NULL,
+    body_html   TEXT NOT NULL,
+    kind        TEXT NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'queued'
+                CHECK (status IN ('queued','sent','failed')),
+    error       TEXT,
+    attempts    INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    sent_at     TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS mail_status_idx ON mail_outbox(status, created_at);
+
+  -- One row per ingest per minute. Aggregated on read into hour/day/week/month;
+  -- storing pre-rolled buckets instead would lock the reporting periods to
+  -- whatever was decided here.
+  CREATE TABLE IF NOT EXISTS traffic_minutes (
+    ingest_id  TEXT NOT NULL,
+    minute_ts  INTEGER NOT NULL,
+    bytes_in   INTEGER NOT NULL DEFAULT 0,
+    bytes_out  INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (ingest_id, minute_ts)
+  );
+
+  CREATE INDEX IF NOT EXISTS traffic_ts_idx ON traffic_minutes(minute_ts);
 `);
+
+/**
+ * Adds a column when an older database predates it. SQLite has no
+ * ADD COLUMN IF NOT EXISTS, and blindly running it throws on second boot.
+ */
+function addColumn(table: string, column: string, definition: string): void {
+  const existing = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  if (existing.some((c) => c.name === column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+addColumn('users', 'email', 'TEXT');
+addColumn('users', 'phone', 'TEXT');
+addColumn('users', 'job_title', 'TEXT');
+// Credentials handed out by an administrator are provisional by definition.
+addColumn('users', 'must_change_password', 'INTEGER NOT NULL DEFAULT 0');
 
 interface IngestRow {
   id: string;

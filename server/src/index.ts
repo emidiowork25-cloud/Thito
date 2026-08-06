@@ -7,11 +7,14 @@ import websocket from '@fastify/websocket';
 import Fastify from 'fastify';
 import { ensureBootstrapAdmin, sessionRepo } from './auth.js';
 import { config } from './config.js';
-import { canSeeIngest, isPublicPath, resolveUser } from './guards.js';
+import { canSeeIngest, isProvisionalPath, isPublicPath, resolveUser } from './guards.js';
 import { probeCapabilities } from './media/capabilities.js';
 import { engine } from './media/engine.js';
+import { flushOutbox, mailStatus } from './mailer.js';
+import { pruneOldTraffic } from './traffic.js';
 import { registerAdminRoutes } from './routes-admin.js';
 import { registerAuthRoutes } from './routes-auth.js';
+import { registerSignupRoutes } from './routes-signup.js';
 import { registerRoutes } from './routes.js';
 import { registerRealtime } from './ws.js';
 
@@ -40,6 +43,15 @@ app.addHook('onRequest', async (req, reply) => {
   if (!req.url.startsWith('/api/')) return;
   if (isPublicPath(req.url)) return;
   if (!req.user) return reply.code(401).send({ error: 'Sessão expirada ou inexistente' });
+
+  // An account still holding provisional credentials can do exactly one thing:
+  // replace them.
+  if (req.user.mustChangePassword && !isProvisionalPath(req.url)) {
+    return reply.code(403).send({
+      error: 'Defina uma nova senha antes de continuar',
+      code: 'PASSWORD_CHANGE_REQUIRED',
+    });
+  }
 });
 
 /**
@@ -60,6 +72,7 @@ app.addHook('onRequest', async (req, reply) => {
 });
 
 await registerAuthRoutes(app);
+await registerSignupRoutes(app);
 await registerRoutes(app);
 await registerAdminRoutes(app);
 await registerRealtime(app);
@@ -112,7 +125,21 @@ try {
 }
 
 sessionRepo.purgeExpired();
+pruneOldTraffic();
 engine.bootstrap();
+
+const mail = mailStatus();
+if (!mail.configured) {
+  app.log.warn(
+    'SMTP is not configured (set SMTP_HOST). Signup mail will be queued and ' +
+      'visible to administrators under /api/mail, but not delivered.',
+  );
+}
+
+// Retry queued mail: an SMTP outage at approval time must not strand an
+// account whose credentials were never delivered.
+const mailTimer = setInterval(() => void flushOutbox(), 60_000);
+mailTimer.unref();
 
 const shutdown = async (signal: string): Promise<void> => {
   app.log.info(`${signal} received, stopping media pipelines`);

@@ -43,6 +43,10 @@ interface UserRow {
   password_hash: string;
   permissions: string;
   enabled: number;
+  email: string | null;
+  phone: string | null;
+  job_title: string | null;
+  must_change_password: number;
   created_at: string;
   last_login_at: string | null;
 }
@@ -64,6 +68,10 @@ function toUser(row: UserRow): User {
     role: row.role as Role,
     permissions,
     enabled: row.enabled === 1,
+    email: row.email,
+    phone: row.phone,
+    jobTitle: row.job_title,
+    mustChangePassword: row.must_change_password === 1,
     createdAt: row.created_at,
     lastLoginAt: row.last_login_at,
   };
@@ -130,18 +138,41 @@ export const userRepo = {
   update(
     id: string,
     patch: Partial<{
+      username: string;
       displayName: string;
       role: Role;
       permissions: Permission[];
       enabled: boolean;
       password: string;
+      email: string | null;
+      phone: string | null;
+      jobTitle: string | null;
+      mustChangePassword: boolean;
     }>,
   ): User | null {
     const current = this.get(id);
     if (!current) return null;
 
+    if (patch.username !== undefined) {
+      db.prepare('UPDATE users SET username = ? WHERE id = ?').run(patch.username, id);
+    }
     if (patch.displayName !== undefined) {
       db.prepare('UPDATE users SET display_name = ? WHERE id = ?').run(patch.displayName, id);
+    }
+    if (patch.email !== undefined) {
+      db.prepare('UPDATE users SET email = ? WHERE id = ?').run(patch.email, id);
+    }
+    if (patch.phone !== undefined) {
+      db.prepare('UPDATE users SET phone = ? WHERE id = ?').run(patch.phone, id);
+    }
+    if (patch.jobTitle !== undefined) {
+      db.prepare('UPDATE users SET job_title = ? WHERE id = ?').run(patch.jobTitle, id);
+    }
+    if (patch.mustChangePassword !== undefined) {
+      db.prepare('UPDATE users SET must_change_password = ? WHERE id = ?').run(
+        patch.mustChangePassword ? 1 : 0,
+        id,
+      );
     }
     if (patch.role !== undefined) {
       db.prepare('UPDATE users SET role = ? WHERE id = ?').run(patch.role, id);
