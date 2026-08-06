@@ -43,6 +43,59 @@ db.exec(`
   -- always wins the race.
   CREATE UNIQUE INDEX IF NOT EXISTS ingests_listener_port_idx
     ON ingests(port) WHERE mode = 'listener';
+
+  CREATE TABLE IF NOT EXISTS users (
+    id            TEXT PRIMARY KEY,
+    username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    display_name  TEXT NOT NULL,
+    role          TEXT NOT NULL CHECK (role IN ('admin','operator')),
+    -- scrypt digest, stored as salt:hash
+    password_hash TEXT NOT NULL,
+    -- JSON array of permission keys; ignored for admins, who hold all of them
+    permissions   TEXT NOT NULL DEFAULT '[]',
+    enabled       INTEGER NOT NULL DEFAULT 1,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    last_login_at TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    token      TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL,
+    expires_at INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS sessions_user_idx ON sessions(user_id);
+
+  -- Which ingests a non-admin may see at all. Absence of a row means the
+  -- ingest is invisible to that user, not merely read-only.
+  CREATE TABLE IF NOT EXISTS ingest_access (
+    user_id   TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    ingest_id TEXT NOT NULL REFERENCES ingests(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, ingest_id)
+  );
+
+  -- Admin-defined destination templates, so operators can re-transmit to a
+  -- vetted endpoint without being handed raw host/port control.
+  CREATE TABLE IF NOT EXISTS presets (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    protocol   TEXT NOT NULL,
+    host       TEXT NOT NULL,
+    port       INTEGER,
+    mode       TEXT NOT NULL DEFAULT 'caller',
+    stream_id  TEXT,
+    passphrase TEXT,
+    latency_us INTEGER NOT NULL DEFAULT 120000,
+    -- When set, operators may use this preset but not edit its parameters.
+    locked     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 `);
 
 interface IngestRow {
