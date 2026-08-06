@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Badge density of the brand mark: the open version's strokes merge at
+       tab size, so the tab icon uses the solid one. -->
+  <rect x="1" y="1" width="46" height="46" rx="13.5" fill="#90C2E7"/>
+  <path d="M20 24C26 24 26 13 32 13" stroke="#08262C" stroke-width="3.1" stroke-linecap="round"/>
+  <path d="M20 24h12" stroke="#08262C" stroke-width="3.1" stroke-linecap="round"/>
+  <path d="M20 24C26 24 26 35 32 35" stroke="#08262C" stroke-width="3.1" stroke-linecap="round"/>
+  <circle cx="16" cy="24" r="5" fill="#08262C"/>
+  <circle cx="34.5" cy="13" r="2.9" fill="#08262C"/>
+  <circle cx="34.5" cy="24" r="2.9" fill="#08262C"/>
+  <circle cx="34.5" cy="35" r="2.9" fill="#08262C"/>
+</svg>
