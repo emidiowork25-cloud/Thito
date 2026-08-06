@@ -1,0 +1,29 @@
+services:
+  thito:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    # SRT is UDP and the hub binds listener ports directly, so bridge-mode port
+    # publishing works but adds a NAT hop that hurts latency measurement.
+    # host networking is the better default for a contribution hub; switch to
+    # the `ports:` block below if you need isolation.
+    network_mode: host
+    # ports:
+    #   - "8080:8080"
+    #   - "9000-9099:9000-9099/udp"
+    environment:
+      PORT: 8080
+      # Hostname senders will use. Set this — auto-detection behind NAT lies.
+      THITO_PUBLIC_HOST: ${THITO_PUBLIC_HOST:-localhost}
+      THITO_SRT_PORT_MIN: 9000
+      THITO_SRT_PORT_MAX: 9099
+      # Outputs per ingest = THITO_BUS_SLOTS - 1 (slot 0 is the preview).
+      THITO_BUS_SLOTS: 9
+      # Leave unset only on a trusted network — it gates the whole API.
+      THITO_ADMIN_TOKEN: ${THITO_ADMIN_TOKEN:-}
+    volumes:
+      - thito-data:/data
+
+volumes:
+  thito-data:

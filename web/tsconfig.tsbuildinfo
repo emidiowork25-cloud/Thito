@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/components/CopyField.tsx","./src/components/IngestForm.tsx","./src/components/OutputForm.tsx","./src/components/OutputList.tsx","./src/components/Preview.tsx","./src/components/StateBadge.tsx","./src/lib/api.ts","./src/lib/types.ts","./src/lib/useLive.ts","./vite.config.ts"],"version":"5.9.3"}
