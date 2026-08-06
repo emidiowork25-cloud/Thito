@@ -1,3 +1,51 @@
+/*
+ * Fonts are vendored under public/fonts by scripts/fetch-fonts.mjs rather than
+ * linked from a CDN — a control room is exactly where an outbound font request
+ * fails and the whole interface silently falls back to a system serif.
+ */
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/Montserrat-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/Montserrat-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/Montserrat-700.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Montserrat';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/Montserrat-800.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/BarlowCondensed-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/BarlowCondensed-700.woff2') format('woff2');
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,40 +58,72 @@
   }
 
   body {
-    @apply bg-ink-900 text-slate-200 antialiased;
-    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    @apply bg-ink-900 font-sans font-semibold text-paper antialiased;
+    /* #08262C lifting toward #124A59, the way the reference sets it. A flat
+       fill loses the depth the palette was chosen for. */
+    background-image:
+      radial-gradient(120% 80% at 50% 0%, #10404c 0%, transparent 60%),
+      linear-gradient(180deg, #08262c 0%, #05181b 100%);
+    background-attachment: fixed;
+  }
+
+  /* Headings run in the condensed display face, uppercase. Condensed faces
+     carry their own tightness — the negative tracking a wide grotesque wants
+     would close the counters here. */
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-bold uppercase tracking-[.005em];
+    text-wrap: balance;
+  }
+
+  /* Long-form copy drops out of bold. Everything set heavy means nothing
+     reads as emphasised, and running text in bold is tiring. */
+  p {
+    @apply font-medium;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-sky ring-offset-2 ring-offset-ink-900;
   }
 }
 
 @layer components {
   .card {
-    @apply rounded-xl border border-ink-600 bg-ink-800;
+    @apply rounded-xl border border-ink-600 bg-gradient-to-b from-ink-700 to-ink-800 shadow-panel;
   }
 
   .btn {
-    @apply inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium
-           transition-colors disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 font-display text-sm
+           font-bold uppercase tracking-wide transition-colors
+           disabled:cursor-not-allowed disabled:opacity-40;
   }
 
   .btn-primary {
-    @apply btn bg-sky-600 text-white hover:bg-sky-500;
+    @apply btn bg-sky text-ink-950 hover:brightness-110;
   }
 
   .btn-ghost {
-    @apply btn border border-ink-500 text-slate-300 hover:bg-ink-700 hover:text-white;
+    @apply btn border border-ink-500 text-mist hover:bg-ink-700 hover:text-paper;
   }
 
   .btn-danger {
-    @apply btn border border-rose-900/60 text-rose-300 hover:bg-rose-950/60;
+    @apply btn border border-signal-fault/40 text-signal-fault hover:bg-signal-fault/10;
   }
 
   .field {
-    @apply w-full rounded-lg border border-ink-500 bg-ink-900 px-3 py-2 text-sm
-           text-slate-100 placeholder:text-slate-600
-           focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500;
+    @apply w-full rounded-lg border border-ink-500 bg-ink-900 px-3 py-2 font-mono text-sm
+           text-paper placeholder:text-faint/60
+           focus:border-sky focus:outline-none focus:ring-1 focus:ring-sky;
   }
 
   .label {
-    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500;
+    @apply mb-1.5 block font-display text-xs font-bold uppercase tracking-[.09em] text-faint;
+  }
+
+  /* Numeric readouts: condensed bold with aligned digits, the way broadcast
+     graphics set them. */
+  .readout {
+    @apply font-display text-2xl font-bold leading-none tabular-nums;
   }
 }
