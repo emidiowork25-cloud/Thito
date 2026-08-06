@@ -125,7 +125,7 @@ export interface PlatformSettings {
 }
 
 const DEFAULTS: PlatformSettings = {
-  siteName: 'Thito',
+  siteName: 'SRT HUB FREE',
   publicHost: null,
   defaultLatencyMs: 120,
   requirePassphrase: false,

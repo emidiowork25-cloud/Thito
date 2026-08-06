@@ -85,7 +85,7 @@ export default function App(): JSX.Element {
             location.reload();
           }}
         >
-          <h1 className="text-lg font-semibold text-white">Thito</h1>
+          <h1 className="text-lg font-semibold text-white">SRT HUB FREE</h1>
           <p className="text-sm text-slate-400">
             Este hub exige um token de acesso.
           </p>
@@ -110,9 +110,11 @@ export default function App(): JSX.Element {
   return (
     <div className="mx-auto max-w-6xl p-4 sm:p-6">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-white">Thito</h1>
-          <p className="text-sm text-slate-500">Hub de recepção e retransmissão SRT / OMT</p>
+        <div className="flex items-center gap-2.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_3px_rgba(52,211,153,0.16)]" />
+          <h1 className="text-lg font-bold tracking-tight text-white">
+            {system?.siteName ?? 'SRT HUB'}
+          </h1>
         </div>
         <div className="flex items-center gap-3 text-xs text-slate-500">
           <span className="inline-flex items-center gap-1.5">

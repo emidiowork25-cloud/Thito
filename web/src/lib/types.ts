@@ -66,9 +66,29 @@ export interface Capabilities {
   rtmp: boolean;
 }
 
+export type Permission =
+  | 'ingest.create'
+  | 'ingest.configure'
+  | 'ingest.monitor'
+  | 'output.manage'
+  | 'output.omt'
+  | 'ingest.viewAll';
+
+export interface Me {
+  id: string;
+  username: string;
+  displayName: string;
+  role: 'admin' | 'operator';
+  permissions: Permission[];
+}
+
 export interface SystemInfo {
   capabilities: Capabilities;
   publicHost: string;
   srtPortRange: [number, number];
   maxOutputsPerIngest: number;
+  siteName: string;
+  defaultLatencyMs: number;
+  requirePassphrase: boolean;
+  me: Me;
 }
