@@ -136,6 +136,23 @@ interface quando ausente, em vez de falhar na hora do ar.
 Para habilitar, veja [`docker/ffmpeg-omt.md`](docker/ffmpeg-omt.md).
 
 
+## Página pública e acesso administrativo
+
+A raiz (`/`) é uma página de venda: o que a plataforma faz, prints do produto
+em funcionamento, e duas portas — **entrar** e **criar conta**.
+
+O acesso administrativo **não aparece nela**. Fica em `/admin`, um endereço
+próprio que só quem precisa conhece.
+
+Isso não é segurança por obscuridade — a autenticação é a mesma e um operador
+que descubra o endereço continua sem conseguir nada além do que suas permissões
+permitem. É higiene de produto: a página pública fala com quem vai usar a
+plataforma, e um botão de administrador ali só gera cliques de gente que não
+tem o que fazer do outro lado.
+
+Fontes: **Barlow Condensed** nos títulos, rótulos, botões e números;
+**Montserrat** no restante da interface, com texto corrido em Medium.
+
 ## Cadastro e aprovação de usuários
 
 A página inicial oferece três portas: entrar, entrar como administrador e
