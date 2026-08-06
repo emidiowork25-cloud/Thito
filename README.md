@@ -138,3 +138,75 @@ Para habilitar, veja [`docker/ffmpeg-omt.md`](docker/ffmpeg-omt.md).
 ## Licença
 
 MIT.
+
+## Cadastro e aprovação de usuários
+
+A página inicial oferece três portas: entrar, entrar como administrador e
+solicitar acesso. O cadastro é público e pede nome, sobrenome, função, celular
+com DDD e e-mail.
+
+```
+usuário envia ──▶ e-mail "em análise"
+                        │
+              administrador aprova ──▶ e-mail com link, usuário e senha
+                        │
+              primeiro login ──▶ troca de senha obrigatória
+```
+
+Nenhum registro de usuário existe antes da aprovação — uma solicitação pendente
+não consegue autenticar de forma alguma.
+
+### Credenciais iniciais
+
+Conforme especificado, o usuário vem de `nome.sobrenome` e a senha são os
+**4 últimos dígitos do celular**.
+
+Isso são 10.000 combinações contra um número que costuma ser conhecido. Duas
+proteções sustentam o esquema e **nenhuma das duas é opcional**:
+
+- a conta nasce marcada como provisória e não alcança nada além do endpoint de
+  troca de senha até trocá-la;
+- o login é limitado a 8 tentativas por endereço a cada 10 minutos.
+
+Se você remover qualquer uma delas, troque também a senha inicial.
+
+### E-mail
+
+```sh
+SMTP_HOST=smtp.suaempresa.com
+SMTP_PORT=587
+SMTP_USER=no-reply@suaempresa.com
+SMTP_PASS=...
+SMTP_FROM="SRT HUB FREE <no-reply@suaempresa.com>"
+THITO_PUBLIC_URL=https://hub.suaempresa.com
+```
+
+Toda mensagem é gravada em uma caixa de saída **antes** de qualquer tentativa de
+envio. Se o SMTP falhar na hora da aprovação, as credenciais continuam legíveis
+para o administrador em `/api/mail` e o envio é retentado a cada minuto. O
+caminho inverso — gravar só depois de enviar — destruiria uma credencial que não
+existe em nenhum outro lugar.
+
+Sem `SMTP_HOST` a plataforma funciona normalmente: os e-mails ficam na fila e o
+administrador repassa as credenciais manualmente.
+
+Para testar sem um servidor real:
+
+```sh
+node scripts/smtp-sink.mjs 2525 ./smtp-out    # em um terminal
+SMTP_HOST=127.0.0.1 SMTP_PORT=2525 npm run dev
+scripts/signup-flow.sh
+```
+
+## Dashboard de banda
+
+O tráfego é gravado como uma linha por recepção por minuto e agregado na
+leitura em hora, dia, semana e mês. Guardar baldes pré-agregados congelaria os
+períodos de relatório no que foi decidido na hora da escrita.
+
+O escopo vale aqui também: o operador vê o consumo apenas das recepções que
+recebeu; o administrador vê a plataforma inteira.
+
+```sh
+scripts/traffic-check.sh   # injeta 3000 kbps e confere o que foi contabilizado
+```
