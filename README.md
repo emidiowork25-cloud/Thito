@@ -204,6 +204,31 @@ Na ordem em que costuma doer:
    que reencodam.
 6. **RAM.** Praticamente nunca é o limite.
 
+### Escolhendo o provedor
+
+O critério aqui não é CPU nem RAM — os dois são baratos e fáceis de acertar. É
+**franquia de tráfego de saída**, que multiplica pelo número de destinos e cujo
+preço por terabyte varia em duas ordens de grandeza entre provedores.
+
+```sh
+scripts/traffic.py 5 6 2 8     # 5 sinais, 6 Mb/s cada, 2 saídas, 8 h/dia
+```
+
+Três perguntas, nesta ordem:
+
+1. **Quanto de saída por mês?** Rode o comando acima com os seus números.
+2. **Quanto custa o TB acima da franquia?** É onde a conta explode. Vale de
+   US$ 1 a US$ 150 por TB dependendo do provedor — e o mesmo tráfego custa
+   150× mais em um do que em outro.
+3. **A latência importa para a sua operação?** SRT absorve distância com o
+   buffer de latência: 250 ms cobrem uma travessia até a América do Norte. Se o
+   sinal só vai de A para B, distância custa pouco. Se há retorno ou
+   comunicação com quem está em campo, cada salto pesa.
+
+Tráfego em datacenters brasileiros custa de 5 a 10 vezes mais que na Europa ou
+nos Estados Unidos, e as franquias são bem menores. Vale a pena pagar por isso
+quando a latência é requisito de operação — não por padrão.
+
 ### Duas instâncias no mesmo servidor
 
 Cada instância aloca portas SRT a partir de 9000 e portas de barramento a partir
