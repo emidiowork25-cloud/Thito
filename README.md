@@ -150,6 +150,60 @@ Para medir na sua própria carga, com o hub vazio:
 scripts/sizing.sh http://localhost:8080 admin sua-senha 6000
 ```
 
+### Rodando em máquina própria
+
+Funciona, mas o gargalo muda de lugar: numa VPS o limite costuma ser CPU, em
+casa é quase sempre a internet.
+
+**Hardware.** Quatro núcleos e 8 GB dão conta de dez sinais. Qualquer mini PC ou
+desktop dos últimos anos serve. Duas exigências que não são negociáveis:
+
+- **SSD, nunca cartão SD.** Medido com `scripts/disk-wear.sh`: cada preview
+  ativo escreve ~**11,8 GB por dia** (4,3 TB por ano). Dez previews chegam a
+  43 TB/ano — dentro do que um SSD de consumo aguenta (100–600 TBW), e muito
+  além do que um cartão SD sobrevive. Num Raspberry Pi com SD, ligue os previews
+  só quando for olhar.
+- **Nobreak.** É o que separa "servidor" de "computador ligado".
+
+**Rede.** Aqui mora o problema real:
+
+- **Upload, não download.** Cada saída multiplica. Um sinal de 6 Mb/s com três
+  destinos consome 18 Mb/s de subida. Links residenciais brasileiros são
+  assimétricos — 300 Mb/s de descida com 100 de subida é comum, e é a subida que
+  conta.
+- **IP público sem CGNAT.** Se a operadora usa CGNAT, conexões de entrada não
+  chegam e o modo listener simplesmente não funciona. Peça IP público (costuma
+  ser plano empresarial) ou opere só em modo caller, com o hub buscando os
+  sinais.
+- **Redirecionamento de portas** UDP 9000–9099 e TCP 443 para a máquina.
+- **IP fixo ou DDNS**, alimentando `THITO_PUBLIC_HOST`.
+
+Quantos sinais cabem na sua subida:
+
+| Upload disponível | Sinais de 6 Mb/s com 2 saídas |
+| ----------------- | ----------------------------- |
+| 35 Mb/s | 2 |
+| 100 Mb/s | 5 |
+| 300 Mb/s | 16 |
+| 1 Gb/s | 55 |
+
+Deixe folga de 30%: SRT retransmite pacotes perdidos, e um link saturado entra
+em espiral — perde, retransmite, satura mais.
+
+### Onde aperta primeiro
+
+Na ordem em que costuma doer:
+
+1. **Upload da internet.** Multiplica por saída e é o teto mais baixo.
+2. **CGNAT.** Não é gradual: ou você tem IP público, ou o modo listener não
+   existe para você.
+3. **Preview.** Mais de 3× o custo de CPU do resto. Desligue nos sinais que
+   ninguém está olhando.
+4. **Disco, se for cartão SD.** Ver acima.
+5. **CPU.** Só depois de tudo isso, e apenas com muitos previews ou saídas OMT,
+   que reencodam.
+6. **RAM.** Praticamente nunca é o limite.
+
 ### Duas instâncias no mesmo servidor
 
 Cada instância aloca portas SRT a partir de 9000 e portas de barramento a partir
