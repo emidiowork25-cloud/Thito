@@ -3,17 +3,16 @@ import { streamUrl } from './api';
 import type { IngestStatus } from './types';
 
 /**
- * Live telemetry over the hub websocket, with reconnect. The server pushes a
- * full snapshot every second, so there is no incremental state to reconcile —
- * a dropped connection costs at most one tick.
+ * Live telemetry over the hub websocket, with reconnect.
+ *
+ * The server pushes a complete snapshot every second, so there is no
+ * incremental state to reconcile and a dropped connection costs at most one
+ * tick. That is also why the reducer just replaces the map wholesale.
  */
-export function useLive(): {
-  statuses: Record<string, IngestStatus>;
-  connected: boolean;
-} {
+export function useLive(): { statuses: Record<string, IngestStatus>; connected: boolean } {
   const [statuses, setStatuses] = useState<Record<string, IngestStatus>>({});
   const [connected, setConnected] = useState(false);
-  const retryRef = useRef(0);
+  const attemptRef = useRef(0);
 
   useEffect(() => {
     let socket: WebSocket | null = null;
@@ -25,7 +24,7 @@ export function useLive(): {
       socket = new WebSocket(streamUrl());
 
       socket.onopen = () => {
-        retryRef.current = 0;
+        attemptRef.current = 0;
         setConnected(true);
       };
 
@@ -35,21 +34,20 @@ export function useLive(): {
             type: string;
             statuses?: IngestStatus[];
           };
-          if (payload.type === 'snapshot' && payload.statuses) {
-            const next: Record<string, IngestStatus> = {};
-            for (const status of payload.statuses) next[status.ingestId] = status;
-            setStatuses(next);
-          }
+          if (payload.type !== 'snapshot' || !payload.statuses) return;
+          const next: Record<string, IngestStatus> = {};
+          for (const status of payload.statuses) next[status.ingestId] = status;
+          setStatuses(next);
         } catch {
-          /* ignore malformed frame */
+          // A malformed frame is not worth tearing the socket down over.
         }
       };
 
       socket.onclose = () => {
         setConnected(false);
         if (disposed) return;
-        retryRef.current = Math.min(retryRef.current + 1, 5);
-        timer = setTimeout(connect, 500 * 2 ** (retryRef.current - 1));
+        attemptRef.current = Math.min(attemptRef.current + 1, 5);
+        timer = setTimeout(connect, 500 * 2 ** (attemptRef.current - 1));
       };
 
       socket.onerror = () => socket?.close();

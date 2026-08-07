@@ -1,13 +1,15 @@
-import { useState } from 'react';
-import { api, ApiError } from '../lib/api';
-import type { OutputProtocol, SrtMode, SystemInfo } from '../lib/types';
+import { useEffect, useState } from 'react';
+import { api } from '../lib/api';
+import { errorMessage, useSession } from '../lib/session';
+import type { OutputProtocol, Preset, SrtMode, SystemInfo } from '../lib/types';
+import { Alert, Card, Field, Input, Select } from './ui';
 
 const PROTOCOLS: { value: OutputProtocol; label: string; hint: string }[] = [
-  { value: 'srt', label: 'SRT', hint: 'Passthrough. Ideal para contribuição via internet.' },
-  { value: 'udp', label: 'UDP/TS', hint: 'Passthrough. Rede local ou link dedicado.' },
-  { value: 'rtp', label: 'RTP/TS', hint: 'Passthrough em rtp_mpegts.' },
+  { value: 'srt', label: 'SRT', hint: 'Passthrough. Ideal para contribuição pela internet.' },
+  { value: 'udp', label: 'UDP', hint: 'Passthrough. Rede local ou link dedicado.' },
+  { value: 'rtp', label: 'RTP', hint: 'Passthrough em rtp_mpegts.' },
   { value: 'rtmp', label: 'RTMP', hint: 'Remux para FLV. Exige origem H.264 + AAC.' },
-  { value: 'omt', label: 'OMT', hint: 'Open Media Transport. Re-encoda em VMX; use só na LAN.' },
+  { value: 'omt', label: 'OMT', hint: 'Re-encoda em VMX. Só funciona na rede local.' },
 ];
 
 export function OutputForm({
@@ -21,6 +23,10 @@ export function OutputForm({
   onCreated: () => void;
   onCancel: () => void;
 }): JSX.Element {
+  const { can, isAdmin } = useSession();
+
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetId, setPresetId] = useState('');
   const [name, setName] = useState('');
   const [protocol, setProtocol] = useState<OutputProtocol>('srt');
   const [host, setHost] = useState('');
@@ -28,12 +34,17 @@ export function OutputForm({
   const [mode, setMode] = useState<SrtMode>('caller');
   const [streamId, setStreamId] = useState('');
   const [passphrase, setPassphrase] = useState('');
-  const [latencyMs, setLatencyMs] = useState('120');
+  const [latencyMs, setLatencyMs] = useState(String(system.defaultLatencyMs));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    void api.presets().then(setPresets).catch(() => undefined);
+  }, []);
+
   const omtAvailable = system.capabilities.omtMuxer !== null;
-  const isOmt = protocol === 'omt';
+  const usingPreset = presetId !== '';
+  const selectedPreset = presets.find((p) => p.id === presetId) ?? null;
   const needsPort = protocol !== 'omt' && protocol !== 'rtmp';
 
   const submit = async (event: React.FormEvent): Promise<void> => {
@@ -41,20 +52,24 @@ export function OutputForm({
     setBusy(true);
     setError(null);
     try {
+      // With a preset the server substitutes the whole destination, so the
+      // fields below are not sent at all — an operator cannot smuggle a host
+      // past a vetted endpoint.
       await api.createOutput(ingestId, {
-        name,
-        protocol,
-        host,
-        port: needsPort ? Number(port) : port ? Number(port) : null,
+        name: name.trim(),
+        presetId: presetId || null,
+        protocol: usingPreset ? (selectedPreset?.protocol ?? protocol) : protocol,
+        host: usingPreset ? (selectedPreset?.host ?? '') : host.trim(),
+        port: usingPreset ? selectedPreset?.port ?? null : needsPort ? Number(port) : null,
         mode,
-        streamId: streamId || null,
+        streamId: streamId.trim() || null,
         passphrase: passphrase || null,
         latencyUs: Number(latencyMs) * 1000,
         enabled: true,
       });
       onCreated();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Falha ao criar a saída');
+      setError(errorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -63,172 +78,183 @@ export function OutputForm({
   const selected = PROTOCOLS.find((p) => p.value === protocol);
 
   return (
-    <form onSubmit={(e) => void submit(e)} className="card space-y-4 p-5">
-      <h3 className="text-sm font-semibold text-white">Nova saída</h3>
+    <Card>
+      <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-4">
+        <h3 className="text-xl">Nova saída</h3>
 
-      <div>
-        <span className="label">Protocolo</span>
-        <div className="flex flex-wrap gap-2">
-          {PROTOCOLS.map((option) => {
-            const disabled = option.value === 'omt' && !omtAvailable;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                disabled={disabled}
-                title={disabled ? 'Este build do ffmpeg não tem suporte a OMT' : option.hint}
-                onClick={() => setProtocol(option.value)}
-                className={
-                  protocol === option.value
-                    ? 'btn bg-sky-600 text-white'
-                    : 'btn border border-ink-500 text-slate-400 hover:text-white disabled:opacity-30'
-                }
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-        {selected && <p className="mt-2 text-xs text-slate-500">{selected.hint}</p>}
-        {!omtAvailable && (
-          <p className="mt-1 text-xs text-amber-500/80">
-            OMT indisponível neste build do ffmpeg — veja docker/Dockerfile para habilitar.
-          </p>
-        )}
-      </div>
+        {error && <Alert>{error}</Alert>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="label" htmlFor="out-name">
-            Nome
-          </label>
-          <input
-            id="out-name"
-            className="field"
+        <Field label="Nome">
+          <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Master control"
+            placeholder="Master Control"
+            autoFocus
             required
           />
-        </div>
+        </Field>
 
-        <div>
-          <label className="label" htmlFor="out-host">
-            {isOmt ? 'Nome do sender OMT' : protocol === 'rtmp' ? 'URL RTMP completa' : 'Host de destino'}
-          </label>
-          <input
-            id="out-host"
-            className="field"
-            value={host}
-            onChange={(e) => setHost(e.target.value)}
-            placeholder={
-              isOmt
-                ? 'THITO (Programa)'
-                : protocol === 'rtmp'
-                  ? 'rtmp://servidor/app/chave'
-                  : '200.100.50.10'
-            }
-            required
-          />
-        </div>
-
-        {needsPort && (
-          <div>
-            <label className="label" htmlFor="out-port">
-              Porta
-            </label>
-            <input
-              id="out-port"
-              className="field"
-              type="number"
-              value={port}
-              onChange={(e) => setPort(e.target.value)}
-              placeholder="9010"
-              required
-            />
-          </div>
+        {presets.length > 0 && (
+          <Field
+            label="Destino pré-configurado"
+            hint="Escolhido pelo administrador. Você não precisa saber o endereço nem a senha."
+          >
+            <Select value={presetId} onChange={(e) => setPresetId(e.target.value)}>
+              <option value="">Configurar manualmente</option>
+              {presets.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name} · {preset.protocol.toUpperCase()}
+                  {preset.hasPassphrase ? ' · criptografado' : ''}
+                </option>
+              ))}
+            </Select>
+          </Field>
         )}
 
-        {protocol === 'srt' && (
+        {!usingPreset && (
           <>
             <div>
-              <span className="label">Modo SRT</span>
-              <div className="flex gap-2">
-                {(['caller', 'listener'] as const).map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setMode(option)}
-                    className={
-                      mode === option
-                        ? 'btn bg-sky-600 text-white'
-                        : 'btn border border-ink-500 text-slate-400 hover:text-white'
-                    }
-                  >
-                    {option === 'caller' ? 'Envia (caller)' : 'Espera (listener)'}
-                  </button>
-                ))}
+              <span className="label">Protocolo</span>
+              <div className="flex flex-wrap gap-2">
+                {PROTOCOLS.map((option) => {
+                  const blocked =
+                    option.value === 'omt' && (!omtAvailable || !can('output.omt'));
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      disabled={blocked}
+                      title={
+                        blocked
+                          ? !omtAvailable
+                            ? 'Este build do ffmpeg não tem suporte a OMT'
+                            : 'Você não tem permissão para transmitir por OMT'
+                          : option.hint
+                      }
+                      onClick={() => setProtocol(option.value)}
+                      className={protocol === option.value ? 'btn-primary' : 'btn-ghost'}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
               </div>
+              {selected && <p className="mt-2 text-xs text-faint">{selected.hint}</p>}
+              {!omtAvailable && (
+                <p className="mt-1 text-xs text-signal-warn">
+                  OMT indisponível neste build do ffmpeg.
+                </p>
+              )}
             </div>
 
-            <div>
-              <label className="label" htmlFor="out-latency">
-                Latência SRT (ms)
-              </label>
-              <input
-                id="out-latency"
-                className="field"
-                type="number"
-                min={20}
-                max={8000}
-                value={latencyMs}
-                onChange={(e) => setLatencyMs(e.target.value)}
-              />
-            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                label={
+                  protocol === 'omt'
+                    ? 'Nome do sender OMT'
+                    : protocol === 'rtmp'
+                      ? 'URL RTMP completa'
+                      : 'Host de destino'
+                }
+              >
+                <Input
+                  value={host}
+                  onChange={(e) => setHost(e.target.value)}
+                  placeholder={
+                    protocol === 'omt'
+                      ? 'SRT HUB EASY (Programa)'
+                      : protocol === 'rtmp'
+                        ? 'rtmp://servidor/app/chave'
+                        : '200.100.50.10'
+                  }
+                  required
+                />
+              </Field>
 
-            <div>
-              <label className="label" htmlFor="out-streamid">
-                Stream ID (opcional)
-              </label>
-              <input
-                id="out-streamid"
-                className="field"
-                value={streamId}
-                onChange={(e) => setStreamId(e.target.value)}
-              />
-            </div>
+              {needsPort && (
+                <Field label="Porta">
+                  <Input
+                    type="number"
+                    value={port}
+                    onChange={(e) => setPort(e.target.value)}
+                    placeholder="9010"
+                    min={1}
+                    max={65535}
+                    required
+                  />
+                </Field>
+              )}
 
-            <div>
-              <label className="label" htmlFor="out-pass">
-                Passphrase (opcional)
-              </label>
-              <input
-                id="out-pass"
-                className="field"
-                type="password"
-                value={passphrase}
-                onChange={(e) => setPassphrase(e.target.value)}
-                placeholder="mínimo 10 caracteres"
-              />
+              {protocol === 'srt' && (
+                <>
+                  <div>
+                    <span className="label">Modo SRT</span>
+                    <div className="flex gap-2">
+                      {(['caller', 'listener'] as const).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setMode(option)}
+                          className={mode === option ? 'btn-primary' : 'btn-ghost'}
+                        >
+                          {option === 'caller' ? 'Envia' : 'Espera'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Field label="Latência SRT (ms)">
+                    <Input
+                      type="number"
+                      value={latencyMs}
+                      onChange={(e) => setLatencyMs(e.target.value)}
+                      min={20}
+                      max={8000}
+                    />
+                  </Field>
+
+                  <Field label="Stream ID (opcional)">
+                    <Input value={streamId} onChange={(e) => setStreamId(e.target.value)} />
+                  </Field>
+
+                  <Field label="Passphrase (opcional)" hint="Mínimo de 10 caracteres.">
+                    <Input
+                      type="password"
+                      value={passphrase}
+                      onChange={(e) => setPassphrase(e.target.value)}
+                      minLength={10}
+                    />
+                  </Field>
+                </>
+              )}
             </div>
           </>
         )}
-      </div>
 
-      {error && (
-        <p className="rounded-lg border border-rose-900/60 bg-rose-950/40 px-3 py-2 text-sm text-rose-300">
-          {error}
-        </p>
-      )}
+        {usingPreset && selectedPreset && (
+          <div className="rounded-lg border border-dashed border-ink-500 bg-ink-900 p-4 text-sm">
+            <span className="label">Destino</span>
+            <code className="block font-mono text-xs text-sky">
+              {selectedPreset.protocol === 'omt'
+                ? selectedPreset.host
+                : isAdmin
+                  ? `${selectedPreset.protocol}://${selectedPreset.host}${
+                      selectedPreset.port ? `:${selectedPreset.port}` : ''
+                    }`
+                  : 'destino oculto'}
+            </code>
+          </div>
+        )}
 
-      <div className="flex gap-2">
-        <button type="submit" className="btn-primary" disabled={busy}>
-          {busy ? 'Criando…' : 'Adicionar saída'}
-        </button>
-        <button type="button" className="btn-ghost" onClick={onCancel}>
-          Cancelar
-        </button>
-      </div>
-    </form>
+        <div className="flex gap-2">
+          <button type="submit" className="btn-primary" disabled={busy}>
+            {busy ? 'Criando…' : 'Adicionar saída'}
+          </button>
+          <button type="button" className="btn-ghost" onClick={onCancel}>
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </Card>
   );
 }

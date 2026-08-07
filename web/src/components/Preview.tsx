@@ -2,9 +2,11 @@ import Hls from 'hls.js';
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Browsers cannot play SRT, so the hub transcodes a low-bitrate HLS rendition
- * for monitoring. Expect a couple of seconds of delay — this is a confidence
- * monitor, not the program feed.
+ * Confidence monitor.
+ *
+ * Browsers cannot play SRT, so the hub transcodes a small HLS rendition just
+ * for this. Expect a few seconds of delay — it answers "is the picture there
+ * and is it the right picture", not "is the timing correct".
  */
 export function Preview({
   ingestId,
@@ -40,7 +42,7 @@ export function Preview({
     const hls = new Hls({
       lowLatencyMode: true,
       liveSyncDurationCount: 2,
-      manifestLoadingMaxRetry: 20,
+      manifestLoadingMaxRetry: 30,
       manifestLoadingRetryDelay: 1000,
     });
     hls.loadSource(src);
@@ -48,8 +50,8 @@ export function Preview({
 
     hls.on(Hls.Events.ERROR, (_event, data) => {
       if (!data.fatal) return;
-      // The playlist only appears once the first segment is written, so a 404
-      // right after start is expected rather than an error worth surfacing.
+      // The playlist only exists once the first segment is written, so a 404
+      // right after start is the normal case, not a failure worth showing.
       if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
         hls.startLoad();
         return;
@@ -66,8 +68,8 @@ export function Preview({
 
   if (!enabled) {
     return (
-      <div className="flex aspect-video items-center justify-center rounded-lg border border-dashed border-ink-500 bg-ink-900 text-sm text-slate-500">
-        Preview desativado neste ingest
+      <div className="flex aspect-video items-center justify-center rounded-lg border border-dashed border-ink-500 bg-ink-900 font-display text-sm uppercase tracking-wider text-faint">
+        Preview desativado
       </div>
     );
   }
@@ -83,7 +85,7 @@ export function Preview({
         controls
       />
       {error && (
-        <div className="absolute inset-x-0 bottom-0 rounded-b-lg bg-rose-950/90 px-3 py-2 text-xs text-rose-200">
+        <div className="absolute inset-x-0 bottom-0 rounded-b-lg bg-signal-fault/90 px-3 py-2 text-xs text-ink-950">
           {error}
         </div>
       )}

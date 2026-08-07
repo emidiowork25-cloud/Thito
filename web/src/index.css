@@ -121,6 +121,15 @@
     @apply mb-1.5 block font-display text-xs font-bold uppercase tracking-[.09em] text-faint;
   }
 
+  /*
+   * Same typography as .label, minus the `block`. Applying .label to a <th>
+   * overrides its table-cell display and collapses the header row into a
+   * stack — which is exactly what it did before this existed.
+   */
+  .th {
+    @apply font-display text-xs font-bold uppercase tracking-[.09em] text-faint;
+  }
+
   /* Numeric readouts: condensed bold with aligned digits, the way broadcast
      graphics set them. */
   .readout {
