@@ -119,6 +119,37 @@ docker compose up -d --build
 - **OMT.** Exige um build próprio do ffmpeg. Sem ele as saídas OMT ficam
   desabilitadas na interface.
 
+### Dimensionamento do servidor
+
+Medido neste repositório com `scripts/sizing.sh`, contra sinais de **1080p30 a
+6 Mb/s com duas saídas cada**, contando apenas a árvore de processos do hub:
+
+| Por sinal | CPU | Memória |
+| --------- | --- | ------- |
+| Só repasse (preview desligado) | ~9% de um núcleo | ~100 MB |
+| Com preview no navegador | ~30% de um núcleo | ~188 MB |
+
+O preview custa **mais de três vezes** o resto junto, porque é a única parte que
+transcodifica. Desligá-lo nos sinais que ninguém está olhando é o ajuste de
+maior efeito que existe aqui.
+
+Extrapolando para dez sinais simultâneos:
+
+| Cenário | vCPU | RAM | Rede |
+| ------- | ---- | --- | ---- |
+| 10 sinais, sem preview | 2 | 4 GB | ~180 Mb/s |
+| 10 sinais, todos com preview | 4 | 8 GB | ~180 Mb/s |
+
+A conta de rede costuma apertar antes da de CPU: cada sinal de 6 Mb/s com duas
+saídas move 18 Mb/s. Confira o limite de tráfego mensal do provedor antes do
+número de núcleos.
+
+Para medir na sua própria carga, com o hub vazio:
+
+```sh
+scripts/sizing.sh http://localhost:8080 admin sua-senha 6000
+```
+
 ### Duas instâncias no mesmo servidor
 
 Cada instância aloca portas SRT a partir de 9000 e portas de barramento a partir
