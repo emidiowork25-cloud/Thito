@@ -67,20 +67,67 @@ conseguir sondar a existência de sinais que não lhe pertencem. O preview HLS
 passa pela mesma checagem: é vídeo de verdade, e sem isso seria um buraco
 aberto contornando a API.
 
-## Subir com Docker
+## Colocar para rodar
+
+### O mínimo, na sua máquina
+
+```sh
+npm install
+node scripts/fetch-fonts.mjs     # baixa as fontes para dentro do repositório
+npm run build
+THITO_ADMIN_PASSWORD=uma-senha-forte npm start
+```
+
+Abra `http://localhost:8080`. Requer **Node 20+** e **ffmpeg com libsrt**
+(`ffmpeg -protocols | grep srt`); no Debian e no Ubuntu o pacote padrão já vem
+com ele.
+
+Para ver a interface povoada, com sinal ao vivo e preview funcionando:
+
+```sh
+scripts/demo.sh http://localhost:8080 admin uma-senha-forte
+```
+
+Cria três recepções, liga sinal de teste em cada uma, cadastra um destino e
+deixa uma solicitação de acesso pendente. Ctrl+C encerra os sinais.
+
+### Em um servidor, com Docker
 
 ```sh
 cd docker
-THITO_PUBLIC_HOST=hub.suaempresa.com docker compose up -d --build
-docker compose logs | grep -A3 "administrator created"
+THITO_PUBLIC_HOST=hub.suaempresa.com \
+THITO_ADMIN_PASSWORD=uma-senha-forte \
+docker compose up -d --build
 ```
 
-A senha do primeiro administrador é gerada e impressa **uma única vez** no log.
-Não é recuperável — troque-a após o primeiro login.
+### O que é obrigatório
 
-`network_mode: host` é o padrão. SRT é UDP e o hub abre as portas de escuta
-diretamente; publicar portas em modo bridge funciona, mas adiciona um salto de
-NAT que atrapalha a medição de latência.
+| Item | Por quê |
+| ---- | ------- |
+| **`THITO_PUBLIC_HOST`** | É o host que aparece no link entregue ao encoder. A detecção automática usa o cabeçalho `Host`, que atrás de NAT quase sempre mente. |
+| **UDP liberado na faixa 9000–9099** | SRT é UDP. Sem isso o encoder nunca conecta, e o sintoma no painel é uma recepção presa em "conectando". |
+| **`network_mode: host` ou publicar o range UDP** | Publicar porta a porta em modo bridge funciona, mas adiciona um salto de NAT. |
+| **Senha do administrador** | Sem `THITO_ADMIN_PASSWORD` uma é gerada e impressa **uma única vez** no log do primeiro boot. Se você perder, não há recuperação — só apagar o banco. |
+
+### O que é opcional
+
+- **HTTPS.** Funciona sem, mas com TLS o cookie de sessão passa a ser `secure`.
+  Atrás de um proxy reverso, encaminhe `X-Forwarded-Proto` — o servidor confia
+  nesse cabeçalho para decidir.
+- **SMTP.** Sem ele a plataforma funciona: os e-mails ficam na fila e as
+  credenciais aparecem para o administrador na tela de aprovação.
+- **OMT.** Exige um build próprio do ffmpeg. Sem ele as saídas OMT ficam
+  desabilitadas na interface.
+
+### Duas instâncias no mesmo servidor
+
+Cada instância aloca portas SRT a partir de 9000 e portas de barramento a partir
+de 21000. Rodando duas com o padrão, elas colidem. Dê faixas diferentes à
+segunda:
+
+```sh
+THITO_SRT_PORT_MIN=9100 THITO_SRT_PORT_MAX=9199 THITO_BUS_PORT_BASE=22000
+```
 
 ## Desenvolvimento
 

@@ -21,12 +21,17 @@ export class BitrateMeter {
   private windowStart = Date.now();
   private kbps: number | null = null;
   private lastPacketAt = 0;
+  private bindError: string | null = null;
 
   constructor(private readonly port: number) {}
 
   start(): void {
     if (this.socket) return;
-    const socket = createSocket({ type: 'udp4', reuseAddr: true });
+    // Deliberately NOT reuseAddr. With it, a second hub on the same host binds
+    // the same loopback bus port and both meters receive both streams — the
+    // dead instance then reports the live one's bitrate, which is worse than
+    // reporting nothing. Without it the bind fails loudly instead.
+    const socket = createSocket({ type: 'udp4' });
     this.socket = socket;
 
     socket.on('message', (msg) => {
@@ -36,9 +41,13 @@ export class BitrateMeter {
       this.roll();
     });
 
-    // A meter must never take the hub down; a bind failure just means no
-    // reading for this ingest.
-    socket.on('error', () => this.stop());
+    // A meter must never take the hub down, but a bind failure has to be
+    // visible: it means another process owns this port, and every reading from
+    // here on would be somebody else's traffic.
+    socket.on('error', (err) => {
+      this.bindError = err.message;
+      this.stop();
+    });
     socket.bind(this.port, '127.0.0.1');
   }
 
@@ -69,6 +78,14 @@ export class BitrateMeter {
   /** Monotonic byte count since this meter was created. */
   get totalBytes(): number {
     return this.total;
+  }
+
+  /**
+   * Why this meter is not reading, when it is not. Surfaced so an operator sees
+   * "port busy" rather than a blank bitrate they would blame on the feed.
+   */
+  get error(): string | null {
+    return this.bindError;
   }
 
   private roll(): void {

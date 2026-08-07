@@ -206,11 +206,18 @@ export class Engine extends EventEmitter {
     }
 
     const base = runtime?.relay.status ?? IDLE_TELEMETRY;
+    const meterError = runtime?.meter.error ?? null;
     return {
       ...base,
       // The relay runs through `tee`, which reports no byte counts, so the
       // ingest rate comes from the wire meter rather than from ffmpeg.
       bitrateKbps: runtime?.meter.bitrateKbps ?? null,
+      // A meter that could not bind means another process owns the loopback
+      // bus port. Say so — a silent blank reads as "the feed is down".
+      lastError: meterError
+        ? `Medidor de bitrate indisponível (${meterError}). ` +
+          'Outra instância pode estar usando a mesma faixa de portas — veja THITO_BUS_PORT_BASE.'
+        : base.lastError,
       ingestId,
       connectUrl: ingestConnectUrl(ingest, publicHost),
       outputs,
