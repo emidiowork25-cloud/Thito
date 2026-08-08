@@ -1,0 +1,24 @@
+{
+  "name": "THITO — Hub Pessoal",
+  "short_name": "THITO",
+  "description": "Agenda, finanças, compras, mapas mentais, reuniões, apresentações, copywriter e teleprompter, com o JARBAS dentro.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#05080f",
+  "theme_color": "#05080f",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "assets/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icone-mascara.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Agenda", "url": "./index.html#/agenda" },
+    { "name": "Finanças", "url": "./index.html#/financas" },
+    { "name": "Teleprompter", "url": "./index.html#/teleprompter" }
+  ]
+}

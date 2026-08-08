@@ -55,6 +55,11 @@ if defined CHROME (
 rem --- 3) Sobe o servidor (segura esta janela; fechar ela derruba o hub) ------
 echo   Servidor rodando. Feche esta janela para desligar o THITO.
 echo.
+echo   [dica] Instale o THITO como aplicativo: no menu (tres pontinhos) do Chrome,
+echo          "Transmitir, salvar e compartilhar" ^> "Instalar pagina como app".
+echo          Depois disso ele ganha icone no menu Iniciar e abre sozinho,
+echo          sem esta janela e sem servidor. Veja o README.
+echo.
 
 if "%ENGINE%"=="python" python -m http.server %PORT% --bind 127.0.0.1
 if "%ENGINE%"=="py"     py -m http.server %PORT% --bind 127.0.0.1

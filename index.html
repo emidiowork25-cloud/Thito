@@ -6,6 +6,10 @@
 <title>THITO — Hub Pessoal</title>
 <link rel="stylesheet" href="styles/base.css">
 <link rel="stylesheet" href="styles/views.css">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#05080f">
+<meta name="application-name" content="THITO">
+<link rel="apple-touch-icon" href="assets/icone-192.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='%2300e5ff' stroke-width='8'/><circle cx='50' cy='50' r='12' fill='%2300e5ff'/></svg>">
 </head>
 <body>
@@ -88,5 +92,15 @@
   <div id="toast-root" class="toast-root"></div>
 
   <script type="module" src="app/main.js"></script>
+
+  <script>
+    // Registra o service worker: é ele que faz o THITO abrir instalado, com o
+    // servidor local desligado. Em file:// não existe, e tudo bem — o hub roda igual.
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => { /* sem cache offline */ });
+      });
+    }
+  </script>
 </body>
 </html>

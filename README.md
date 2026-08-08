@@ -24,10 +24,45 @@ computador e fecha ao desligar.
 > como arquivo (`file://`). O `start.bat` resolve isso servindo em `http://localhost`.
 > Esse endereço também é o único em que o Chrome libera o microfone sem HTTPS.
 
+---
+
+## Instalar como aplicativo de verdade
+
+O `start.bat` já abre numa janela limpa, mas continua sendo um navegador com um servidor
+atrás. Dá para instalar o THITO como programa do Windows — **ícone no menu Iniciar, janela
+própria, sem barra de endereço, e abrindo com o servidor desligado.**
+
+**Uma vez só:**
+
+1. Rode o `start.bat` normalmente.
+2. No Chrome, menu **⋮** → **Transmitir, salvar e compartilhar** → **Instalar página como app**.
+   (No Edge: **⋯** → **Aplicativos** → **Instalar este site como um aplicativo**.)
+   Se aparecer um ícone de instalar na barra de endereço, ele faz o mesmo.
+3. Confirme o nome **THITO**.
+
+Pronto. Ele vira um aplicativo: aparece no menu Iniciar, dá para fixar na barra de tarefas,
+e abre em janela própria. Clique com o botão direito no ícone e você acha atalhos diretos
+para Agenda, Finanças e Teleprompter.
+
+**A partir daí você não precisa mais do `start.bat`.** Um service worker guarda o programa
+inteiro no navegador, então o app abre com o servidor desligado e sem internet — testado
+com o servidor derrubado: as dez telas carregam normalmente.
+
+> **Quando o `start.bat` ainda é necessário:** depois de atualizar os arquivos do THITO.
+> Suba o servidor uma vez e abra o app — ele pega a versão nova e volta a dispensar o
+> servidor. O endereço fica gravado como `http://localhost:7331`, então não mude a porta
+> no `start.bat` depois de instalar; se mudar, é só instalar de novo.
+
+O microfone continua funcionando: `localhost` conta como origem segura, e a permissão que
+você deu uma vez vale para o aplicativo instalado.
+
 ### Abrir junto com o Windows
 
 Dois cliques em **`instalar-inicializacao.bat`** e confirme.
 Para desfazer, rode o mesmo arquivo de novo — ele detecta e oferece remover.
+
+Se você instalou o THITO como aplicativo, prefira colocar o **atalho do app instalado** na
+pasta de inicialização (`Win+R` → `shell:startup`): abre mais rápido e sem a janela preta.
 
 ---
 
