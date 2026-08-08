@@ -20,7 +20,7 @@ export function render(root, params = {}) {
 
   root.append(el('div', { class: 'toolbar' },
     el('button', { class: 'btn sm', text: '‹', onclick: () => { cursor = addMonths(cursor, -1); emit('nav:refresh'); } }),
-    el('strong', { style: 'min-width:170px;text-align:center;text-transform:capitalize', text: tituloMes() }),
+    el('strong', { style: 'min-width:170px;text-align:center', text: tituloMes() }),
     el('button', { class: 'btn sm', text: '›', onclick: () => { cursor = addMonths(cursor, 1); emit('nav:refresh'); } }),
     el('button', { class: 'btn sm', text: 'Hoje', onclick: () => { cursor = today(); selected = today(); emit('nav:refresh'); } }),
     el('div', { class: 'spacer' }),
@@ -36,7 +36,9 @@ export function render(root, params = {}) {
 
 const tituloMes = () => {
   const d = parseDate(cursor);
-  return `${monthName(d.getMonth())} de ${d.getFullYear()}`;
+  const m = monthName(d.getMonth());
+  // só a inicial do mês sobe: 'capitalize' no CSS viraria "Agosto De 2026".
+  return `${m[0].toUpperCase()}${m.slice(1)} de ${d.getFullYear()}`;
 };
 
 /* ---------- calendário ---------- */

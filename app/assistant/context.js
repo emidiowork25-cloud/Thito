@@ -180,7 +180,7 @@ export function briefing() {
   if (atrasadas.length) bits.push(`${atrasadas.length} tarefa${atrasadas.length > 1 ? 's estão atrasadas' : ' está atrasada'}.`);
   else if (tarefas.length) bits.push(`${tarefas.length} tarefa${tarefas.length > 1 ? 's' : ''} em aberto.`);
   if (resumo.net < 0) bits.push(`No mês você está negativo em ${money(Math.abs(resumo.net))}.`);
-  if (compras) bits.push(`${compras} item${compras > 1 ? 'ns' : ''} nas listas de compras.`);
+  if (compras) bits.push(`${compras} ${compras > 1 ? 'itens' : 'item'} nas listas de compras.`);
 
   return bits.join(' ');
 }

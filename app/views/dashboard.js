@@ -53,7 +53,9 @@ function tileAgenda(t) {
   return statTile({
     label: 'Hoje na agenda',
     value: String(hoje.length),
-    sub: proximo ? `próximo: ${truncate(proximo.title, 26)}${proximo.time ? ` ${fmtTime(proximo.time)}` : ''}` : 'nada marcado',
+    sub: proximo
+      ? `próximo: ${truncate(proximo.title, 26)}${proximo.time ? ` ${fmtTime(proximo.time)}` : ''}`
+      : hoje.length ? 'tudo já passou' : 'nada marcado',
   });
 }
 

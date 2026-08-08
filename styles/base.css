@@ -223,7 +223,7 @@ input[type=password], input[type=email], input[type=color], input[type=range], s
 input:focus, select:focus, textarea:focus { border-color: var(--cy); box-shadow: var(--glow); }
 textarea { resize: vertical; font-family: inherit; }
 input[type=checkbox] { width: 15px; height: 15px; accent-color: var(--cy); }
-input[type=range] { padding: 0; }
+input[type=range] { padding: 0; accent-color: var(--cy); background: transparent; border: 0; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 .row > * { flex: 1; min-width: 130px; }
 

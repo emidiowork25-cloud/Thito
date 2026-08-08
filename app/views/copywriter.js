@@ -335,6 +335,14 @@ function cartaoMetricas(conjunto) {
   const { colunas, linhas } = conjunto;
   const numericas = colunas.filter((col) => linhas.some((l) => typeof l[col] === 'number'));
 
+  // Casas decimais por coluna, não por célula: se um valor da coluna tem centavos,
+  // a coluna inteira mostra centavos — senão "1.250,90" e "410" ficam lado a lado.
+  const casas = {};
+  for (const col of numericas) {
+    const valores = linhas.map((l) => l[col]).filter((v) => typeof v === 'number');
+    casas[col] = valores.some((v) => !Number.isInteger(v)) ? 2 : 0;
+  }
+
   const totais = el('div', { class: 'grid dash-stats', style: 'margin-bottom:14px' });
   for (const col of numericas.slice(0, 5)) {
     const valores = linhas.map((l) => l[col]).filter((v) => typeof v === 'number');
@@ -344,8 +352,8 @@ function cartaoMetricas(conjunto) {
     const ehTaxa = /(taxa|ctr|cpc|cpm|cpa|custo|%|média|medio|médio)/i.test(col);
     totais.append(statTile({
       label: truncate(col, 26),
-      value: ehTaxa ? num(media, 2) : num(total),
-      sub: ehTaxa ? `média de ${valores.length} linhas` : `média ${num(media, 1)}`,
+      value: ehTaxa ? num(media, 2) : num(total, casas[col]),
+      sub: ehTaxa ? `média de ${valores.length} linhas` : `média ${num(media, Math.max(casas[col], 1))}`,
     }));
   }
 
@@ -355,7 +363,7 @@ function cartaoMetricas(conjunto) {
   for (const l of linhas.slice(0, 12)) {
     tabela.append(el('div', { class: 'cw-tr' },
       ...colunas.slice(0, 6).map((c) => el('span', {
-        text: typeof l[c] === 'number' ? num(l[c], Number.isInteger(l[c]) ? 0 : 2) : truncate(String(l[c] ?? ''), 28),
+        text: typeof l[c] === 'number' ? num(l[c], casas[c] ?? 0) : truncate(String(l[c] ?? ''), 28),
       }))));
   }
   if (linhas.length > 12) tabela.append(el('div', { class: 'tiny dim', style: 'padding:8px 4px', text: `… e mais ${linhas.length - 12} linhas` }));
