@@ -83,6 +83,82 @@ Confere que a chave correta conecta, que a ausência de chave é recusada, que u
 chave errada é recusada, e que após a rotação a antiga para de funcionar
 enquanto a nova passa a funcionar.
 
+## Diagnóstico de perda de pacote
+
+Quando a imagem trava, quem está monitorando precisa saber **o que** está
+errado e **o que fazer agora** — não que existe "perda de pacote". A tela da
+recepção mostra balões com o problema medido em números e a correção junto:
+
+```
+[ATENÇÃO] 7 pacote(s) chegaram tarde demais no último minuto e foram descartados.
+          O atraso máximo foi de 5 ms além do que o buffer de 120 ms consegue segurar.
+       -> Aumente a latência SRT desta recepção de 120 ms para 180 ms — isso daria
+          tempo de o SRT retransmitir o que se perdeu. O preço é 60 ms a mais de
+          atraso no sinal.
+```
+
+```
+[CRÍTICO] Chegando 2,4 Mb/s, abaixo dos 6,0 Mb/s configurados. A subida da
+          origem não está dando conta.
+       -> Reduza o bitrate no encoder para cerca de 1,9 Mb/s. É 80% do que o link
+          vem entregando — o resto precisa ficar livre para o SRT retransmitir o
+          que se perder.
+```
+
+Nas listas e no multiview o balão vira um contador; o texto completo fica na
+tela da recepção.
+
+### O que é detectado
+
+| Código               | Dispara quando                                              | A dica traz                                  |
+| -------------------- | ----------------------------------------------------------- | -------------------------------------------- |
+| `srt.late-packets`   | 3+ pacotes descartados por atraso no último minuto           | A latência exata que teria salvado o pacote   |
+| `link.insufficient`  | Entrada abaixo de 85% do esperado                            | O bitrate sob o qual a transmissão fica estável |
+| `link.unstable`      | Bitrate oscilando mais de 35%                                | Causa provável (wi-fi, link compartilhado, 4G) |
+| `ts.corrupt`         | Quebras no transport stream **sem** atraso no SRT            | Que a falha é anterior ao SRT, não da rede    |
+| `ingest.reconnecting`| 3+ reconexões na sessão                                      | Onde olhar antes de suspeitar da plataforma   |
+| `ingest.waiting`     | Porta aberta, nenhum sinal ainda                             | Endereço, chave e firewall                    |
+| `output.failing`     | Alguma saída parada com a recepção no ar                     | Que só aquela entrega caiu                    |
+| `ingest.unprotected` | Recepção sem chave                                           | Como fechar a porta                           |
+
+### De onde saem os números
+
+Do que o ffmpeg realmente emite sob perda, não do que seria plausível. Sob 8%
+de perda ele produz três coisas distintas:
+
+```
+SRT.br: RCV-DROPPED 1 packet(s). Packet seqno %1595675646 delayed for 9.551 ms
+[mpegts] Packet corrupt (stream = 0, dts = 126000)
+[h264] error while decoding MB 10 2
+```
+
+Só a primeira carrega um número acionável: **o quanto o pacote atrasou**. Isso
+converte direto na latência que o teria recuperado — e é a diferença entre
+"você tem perda de pacote" e "suba a latência para 180 ms".
+
+A recomendação de bitrate estável é 80% do que o link vem entregando de fato. O
+quinto restante não é margem de segurança arbitrária: é a banda que o SRT
+precisa ter livre para retransmitir o que se perdeu.
+
+Declarar o bitrate do encoder ao criar a recepção (campo opcional) faz a falta
+de banda ser medida contra a intenção. Sem isso, a referência passa a ser o
+maior valor que aquela recepção já sustentou.
+
+### Verificação
+
+`tc`/netem não está disponível em todo ambiente, então a perda é forçada por um
+relay UDP que descarta datagramas nos dois sentidos — inclusive ACK e NAK, para
+que o SRT enxergue uma rede genuinamente ruim:
+
+```sh
+scripts/diagnostics-test.sh            # 8% de perda, padrão
+scripts/diagnostics-test.sh http://127.0.0.1:8080 admin senha 20
+```
+
+Cria uma recepção, injeta sinal através do relay com perda, e lê de volta os
+balões que a plataforma produziu. Um diagnóstico que só funciona na teoria é
+pior que nenhum — vai ser acreditado e vai ficar calado.
+
 ## Usuários e permissões
 
 Dois eixos independentes:

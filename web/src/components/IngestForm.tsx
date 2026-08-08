@@ -19,6 +19,7 @@ export function IngestForm({
   const [port, setPort] = useState('');
   const [streamId, setStreamId] = useState('');
   const [latencyMs, setLatencyMs] = useState(String(system.defaultLatencyMs));
+  const [nominalMbps, setNominalMbps] = useState('');
   const [previewEnabled, setPreviewEnabled] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +42,7 @@ export function IngestForm({
         // passphrase is how ports end up unprotected.
         passphrase: null,
         latencyUs: Number(latencyMs) * 1000,
+        nominalKbps: nominalMbps ? Math.round(Number(nominalMbps) * 1000) : null,
         previewEnabled,
         enabled: true,
       });
@@ -133,6 +135,20 @@ export function IngestForm({
               value={streamId}
               onChange={(e) => setStreamId(e.target.value)}
               placeholder="camera1"
+            />
+          </Field>
+
+          <Field
+            label="Bitrate do encoder (Mb/s, opcional)"
+            hint="Informe e a plataforma avisa quando o sinal chegar abaixo disso."
+          >
+            <Input
+              type="number"
+              step="0.5"
+              min={0.1}
+              value={nominalMbps}
+              onChange={(e) => setNominalMbps(e.target.value)}
+              placeholder="6"
             />
           </Field>
 

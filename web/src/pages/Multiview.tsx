@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { DiagnosticsBadge } from '../components/Diagnostics';
 import { Preview } from '../components/Preview';
 import { Empty, SectionHead, StateBadge } from '../components/ui';
 import { api } from '../lib/api';
@@ -90,7 +91,10 @@ export function Multiview(): JSX.Element {
 
                 <div className="flex items-center justify-between gap-2 px-3 pt-2.5">
                   <span className="truncate text-sm">{ingest.name}</span>
-                  <StateBadge state={state} compact />
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <DiagnosticsBadge items={status?.diagnostics ?? []} />
+                    <StateBadge state={state} compact />
+                  </span>
                 </div>
                 <div className="flex justify-between px-3 pb-2.5 pt-1 font-mono text-[11px] text-faint">
                   <span>

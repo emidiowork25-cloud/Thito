@@ -28,6 +28,11 @@ export interface Ingest {
   passphrase: string | null;
   /** SRT receiver buffer in microseconds. 120000 (120 ms) is a sane default. */
   latencyUs: number;
+  /**
+   * What the encoder is configured to send, when the operator told us. Lets a
+   * shortfall be measured against intent rather than against past behaviour.
+   */
+  nominalKbps: number | null;
   /** Generate a browser-playable HLS preview. Costs a transcode. */
   previewEnabled: boolean;
   /** Auto-start with the server and auto-restart on failure. */
@@ -70,10 +75,19 @@ export interface Telemetry {
   updatedAt: number;
 }
 
+export interface Diagnostic {
+  code: string;
+  severity: 'critical' | 'warning' | 'info';
+  title: string;
+  advice: string;
+}
+
 export interface IngestStatus extends Telemetry {
   ingestId: string;
   /** Ready-to-paste URL for whoever is sending to this ingest. */
   connectUrl: string | null;
+  /** Problems worth telling the operator about, worst first. */
+  diagnostics: Diagnostic[];
   outputs: Record<string, Telemetry>;
 }
 

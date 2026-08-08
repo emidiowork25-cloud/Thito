@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events';
 import type { Readable } from 'node:stream';
 import { config } from '../config.js';
 import type { RunState, Telemetry } from '../types.js';
+import { PipelineDiagnostics } from './diagnostics.js';
 
 const LOG_LINES = 200;
 
@@ -42,6 +43,8 @@ export class Supervisor extends EventEmitter {
   private pendingTotalSize: number | null = null;
   private lastTotalSize: number | null = null;
   private lastSizeAt = 0;
+  /** Collects the signals ffmpeg emits about link trouble. */
+  readonly diagnostics = new PipelineDiagnostics();
 
   private telemetry: Telemetry = {
     state: 'stopped',
@@ -140,6 +143,7 @@ export class Supervisor extends EventEmitter {
     this.pendingTotalSize = null;
     this.lastTotalSize = null;
     this.lastSizeAt = 0;
+    this.diagnostics.reset();
     this.patch({ state: 'connecting', lastError: null });
 
     const proc: MediaProcess = spawn(config.ffmpegPath, args, {
@@ -164,6 +168,7 @@ export class Supervisor extends EventEmitter {
         const trimmed = line.trim();
         if (!trimmed) continue;
         this.appendLog(trimmed);
+        this.diagnostics.observe(trimmed);
         this.options.onLine?.(trimmed);
         if (/error|failed|no route|refused|timeout|invalid/i.test(trimmed)) {
           this.patch({ lastError: trimmed });

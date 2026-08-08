@@ -59,9 +59,19 @@ export interface Telemetry {
   updatedAt: number;
 }
 
+export interface Diagnostic {
+  code: string;
+  severity: 'critical' | 'warning' | 'info';
+  /** What is happening, with the numbers in it. */
+  title: string;
+  /** What to do about it. */
+  advice: string;
+}
+
 export interface IngestStatus extends Telemetry {
   ingestId: string;
   connectUrl: string | null;
+  diagnostics: Diagnostic[];
   outputs: Record<string, Telemetry>;
 }
 
@@ -108,6 +118,7 @@ export interface Ingest {
   streamId: string | null;
   passphrase: string | null;
   latencyUs: number;
+  nominalKbps: number | null;
   previewEnabled: boolean;
   enabled: boolean;
   createdAt: string;

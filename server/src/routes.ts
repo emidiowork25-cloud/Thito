@@ -45,6 +45,11 @@ const ingestInput = z.object({
     .nullable()
     .default(null),
   latencyUs: z.number().int().min(20_000).max(8_000_000).default(120_000),
+  /**
+   * What the encoder is configured to send. Optional — without it a shortfall
+   * is measured against what the link has demonstrated instead of intent.
+   */
+  nominalKbps: z.number().int().min(100).max(200_000).nullable().default(null),
   previewEnabled: z.boolean().default(true),
   enabled: z.boolean().default(true),
   /**
@@ -228,6 +233,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       streamId: body.streamId,
       passphrase: streamKey,
       latencyUs: body.latencyUs,
+      nominalKbps: body.nominalKbps,
       previewEnabled: body.previewEnabled,
       enabled: body.enabled,
       createdAt: new Date().toISOString(),

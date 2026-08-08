@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Diagnostics } from '../components/Diagnostics';
 import { StreamKeyPanel } from '../components/StreamKey';
 import { OutputForm } from '../components/OutputForm';
 import { Preview } from '../components/Preview';
@@ -113,6 +114,10 @@ export function IngestDetail(): JSX.Element {
       </Link>
 
       {error && <Alert>{error}</Alert>}
+
+      {/* Above the fold on purpose: a problem nobody scrolls to is a problem
+          nobody fixes. */}
+      <Diagnostics items={status?.diagnostics ?? []} />
 
       <Card>
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

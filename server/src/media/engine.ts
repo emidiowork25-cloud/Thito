@@ -6,6 +6,7 @@ import { ingestRepo, outputRepo } from '../db.js';
 import type { Ingest, IngestStatus, Output, Telemetry } from '../types.js';
 import { trafficRecorder } from '../traffic.js';
 import { cachedCapabilities } from './capabilities.js';
+import { analyse } from './diagnostics.js';
 import { BitrateMeter } from './meter.js';
 import { Supervisor } from './supervisor.js';
 import { busUrl, ingestConnectUrl, ingestInputUrl, outputUrl } from './uri.js';
@@ -207,6 +208,29 @@ export class Engine extends EventEmitter {
 
     const base = runtime?.relay.status ?? IDLE_TELEMETRY;
     const meterError = runtime?.meter.error ?? null;
+
+    // Only legs the operator asked to be running count as failing. One they
+    // stopped on purpose is not a problem to report back at them.
+    const failingOutputs = runtime
+      ? [...runtime.outputs.values()]
+          .filter((o) => o.output.enabled && o.supervisor.status.state !== 'running')
+          .map((o) => o.output.name)
+      : [];
+
+    const diagnostics = runtime
+      ? analyse({
+          state: base.state,
+          bitrateKbps: runtime.meter.bitrateKbps,
+          sustainedKbps: runtime.meter.sustainedKbps,
+          nominalKbps: ingest.nominalKbps,
+          volatility: runtime.meter.volatility,
+          latencyMs: ingest.latencyUs / 1000,
+          restarts: base.restarts,
+          diagnostics: runtime.relay.diagnostics,
+          failingOutputs,
+          hasKey: ingest.passphrase !== null,
+        })
+      : [];
     return {
       ...base,
       // The relay runs through `tee`, which reports no byte counts, so the
@@ -220,6 +244,7 @@ export class Engine extends EventEmitter {
         : base.lastError,
       ingestId,
       connectUrl: ingestConnectUrl(ingest, publicHost),
+      diagnostics,
       outputs,
     };
   }

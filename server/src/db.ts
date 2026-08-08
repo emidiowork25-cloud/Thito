@@ -161,6 +161,7 @@ function addColumn(table: string, column: string, definition: string): void {
   db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
+addColumn('ingests', 'nominal_kbps', 'INTEGER');
 addColumn('users', 'email', 'TEXT');
 addColumn('users', 'phone', 'TEXT');
 addColumn('users', 'job_title', 'TEXT');
@@ -176,6 +177,7 @@ interface IngestRow {
   stream_id: string | null;
   passphrase: string | null;
   latency_us: number;
+  nominal_kbps: number | null;
   preview_enabled: number;
   enabled: number;
   created_at: string;
@@ -206,6 +208,7 @@ function toIngest(row: IngestRow): Ingest {
     streamId: row.stream_id,
     passphrase: row.passphrase,
     latencyUs: row.latency_us,
+    nominalKbps: row.nominal_kbps,
     previewEnabled: row.preview_enabled === 1,
     enabled: row.enabled === 1,
     createdAt: row.created_at,
@@ -255,8 +258,8 @@ export const ingestRepo = {
     db.prepare(
       `INSERT INTO ingests
          (id, name, mode, port, host, stream_id, passphrase, latency_us,
-          preview_enabled, enabled, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          nominal_kbps, preview_enabled, enabled, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       i.id,
       i.name,
@@ -266,6 +269,7 @@ export const ingestRepo = {
       i.streamId,
       i.passphrase,
       i.latencyUs,
+      i.nominalKbps,
       i.previewEnabled ? 1 : 0,
       i.enabled ? 1 : 0,
       i.createdAt,
@@ -280,7 +284,7 @@ export const ingestRepo = {
     db.prepare(
       `UPDATE ingests SET
          name = ?, mode = ?, port = ?, host = ?, stream_id = ?, passphrase = ?,
-         latency_us = ?, preview_enabled = ?, enabled = ?
+         latency_us = ?, nominal_kbps = ?, preview_enabled = ?, enabled = ?
        WHERE id = ?`,
     ).run(
       next.name,
@@ -290,6 +294,7 @@ export const ingestRepo = {
       next.streamId,
       next.passphrase,
       next.latencyUs,
+      next.nominalKbps,
       next.previewEnabled ? 1 : 0,
       next.enabled ? 1 : 0,
       id,

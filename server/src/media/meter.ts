@@ -22,6 +22,8 @@ export class BitrateMeter {
   private kbps: number | null = null;
   private lastPacketAt = 0;
   private bindError: string | null = null;
+  /** Per-second readings, newest last. Bounded so it cannot grow unattended. */
+  private history: number[] = [];
 
   constructor(private readonly port: number) {}
 
@@ -55,6 +57,7 @@ export class BitrateMeter {
     const socket = this.socket;
     this.socket = null;
     this.kbps = null;
+    this.history = [];
     try {
       socket?.close();
     } catch {
@@ -81,6 +84,33 @@ export class BitrateMeter {
   }
 
   /**
+   * The highest rate this link actually sustained, ignoring the ramp-up at the
+   * start. It is the honest answer to "what can this connection do", which is
+   * what a shortfall has to be measured against.
+   */
+  get sustainedKbps(): number | null {
+    if (this.history.length < 10) return null;
+    const sorted = [...this.history].sort((a, b) => b - a);
+    // 90th percentile rather than the maximum: one lucky second is not a
+    // capacity, and a single spike would set an unreachable expectation.
+    return sorted[Math.floor(sorted.length * 0.1)] ?? null;
+  }
+
+  /**
+   * How much the rate swings, as a share of its own mean. A steady link sits
+   * near zero; wi-fi and 4G do not.
+   */
+  get volatility(): number | null {
+    const recent = this.history.slice(-20);
+    if (recent.length < 10) return null;
+    const mean = recent.reduce((a, b) => a + b, 0) / recent.length;
+    if (mean < 100) return null;
+    const variance =
+      recent.reduce((sum, v) => sum + (v - mean) ** 2, 0) / recent.length;
+    return Math.sqrt(variance) / mean;
+  }
+
+  /**
    * Why this meter is not reading, when it is not. Surfaced so an operator sees
    * "port busy" rather than a blank bitrate they would blame on the feed.
    */
@@ -95,5 +125,8 @@ export class BitrateMeter {
     this.kbps = Math.round((this.bytes * 8) / elapsed);
     this.bytes = 0;
     this.windowStart = now;
+
+    this.history.push(this.kbps);
+    if (this.history.length > 120) this.history.shift();
   }
 }

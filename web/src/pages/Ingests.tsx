@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { DiagnosticsBadge } from '../components/Diagnostics';
 import { IngestForm } from '../components/IngestForm';
 import { Alert, Empty, SectionHead, StateBadge, StatCell, StatStrip } from '../components/ui';
 import { api } from '../lib/api';
@@ -137,7 +138,10 @@ export function Ingests(): JSX.Element {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="min-w-0 truncate text-lg">{ingest.name}</h3>
-                    <StateBadge state={state} />
+                    <span className="flex shrink-0 items-center gap-2">
+                      <DiagnosticsBadge items={status?.diagnostics ?? []} />
+                      <StateBadge state={state} />
+                    </span>
                   </div>
 
                   <div className="mt-2 flex justify-between font-mono text-xs text-faint">
