@@ -13,8 +13,9 @@ import {
 import { probeCapabilities } from './media/capabilities.js';
 import { allocateListenerPort, engine, maxOutputsPerIngest } from './media/engine.js';
 import { outputUrl } from './media/uri.js';
-import { effectivePermissions, isAdmin } from './permissions.js';
+import { can, effectivePermissions, isAdmin, type User } from './permissions.js';
 import { presetRepo, settingsRepo } from './presets.js';
+import { generateStreamKey, maskStreamKey } from './streamkey.js';
 import type { Ingest, Output } from './types.js';
 
 /**
@@ -39,13 +40,18 @@ const ingestInput = z.object({
   streamId: z.string().max(512).nullable().default(null),
   passphrase: z
     .string()
-    .min(10, 'O SRT exige uma passphrase de no mínimo 10 caracteres')
+    .min(10, 'A chave de transmissão precisa de no mínimo 10 caracteres')
     .max(79)
     .nullable()
     .default(null),
   latencyUs: z.number().int().min(20_000).max(8_000_000).default(120_000),
   previewEnabled: z.boolean().default(true),
   enabled: z.boolean().default(true),
+  /**
+   * Opt out of the generated key, leaving the port open to anyone who finds it.
+   * Explicit because it has to be a decision, not an omission.
+   */
+  unprotected: z.boolean().default(false),
 });
 
 const outputInput = z.object({
@@ -62,10 +68,51 @@ const outputInput = z.object({
   presetId: z.string().nullable().default(null),
 });
 
-/** Strips secrets an operator has no business reading back. */
-function publicIngest(ingest: Ingest, viewer: { role: string }): Ingest {
-  if (viewer.role === 'admin') return ingest;
-  return { ...ingest, passphrase: ingest.passphrase ? '••••••••' : null };
+/**
+ * Whoever hands the key to a sender needs to read it. Whoever only watches the
+ * picture does not — a monitor-only account should not be able to issue
+ * credentials for a feed.
+ */
+function canSeeKey(viewer: User): boolean {
+  return isAdmin(viewer) || can(viewer, 'ingest.configure');
+}
+
+function publicIngest(ingest: Ingest, viewer: User): Ingest {
+  if (canSeeKey(viewer)) return ingest;
+  return {
+    ...ingest,
+    passphrase: ingest.passphrase ? maskStreamKey(ingest.passphrase) : null,
+  };
+}
+
+/**
+ * The sender-facing details, split the way encoders ask for them: a server
+ * address in one field and a key in another. The assembled URL is offered too,
+ * for software that takes the whole thing at once.
+ */
+function connectDetails(ingest: Ingest, host: string, viewer: User) {
+  if (ingest.mode !== 'listener') return null;
+
+  const key = ingest.passphrase;
+  const visibleKey = key ? (canSeeKey(viewer) ? key : maskStreamKey(key)) : null;
+
+  const query: string[] = ['mode=caller', `latency=${ingest.latencyUs}`];
+  if (ingest.streamId) query.push(`streamid=${encodeURIComponent(ingest.streamId)}`);
+
+  return {
+    host,
+    port: ingest.port,
+    streamId: ingest.streamId,
+    streamKey: visibleKey,
+    hasKey: key !== null,
+    latencyMs: ingest.latencyUs / 1000,
+    /** Address without the secret — safe to show on a shared screen. */
+    serverUrl: `srt://${host}:${ingest.port}?${query.join('&')}`,
+    /** Everything in one string, for encoders that accept a single URL. */
+    fullUrl: canSeeKey(viewer) && key
+      ? `srt://${host}:${ingest.port}?${query.join('&')}&passphrase=${encodeURIComponent(key)}`
+      : null,
+  };
 }
 
 function publicOutput(output: Output, viewer: { role: string }): Output {
@@ -114,6 +161,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       .filter((ingest) => visible.has(ingest.id))
       .map((ingest) => ({
         ...publicIngest(ingest, user),
+        connect: connectDetails(ingest, host, user),
         outputs: outputRepo.listByIngest(ingest.id).map((o) => publicOutput(o, user)),
         status: engine.status(ingest.id, host),
       }));
@@ -129,6 +177,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
 
     return {
       ...publicIngest(ingest, user),
+      connect: connectDetails(ingest, publicHostFor(req), user),
       outputs: outputRepo.listByIngest(id).map((o) => publicOutput(o, user)),
       status: engine.status(id, publicHostFor(req)),
     };
@@ -150,10 +199,17 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     if (body.mode === 'caller' && !body.port) {
       return reply.code(400).send({ error: 'O modo caller precisa de uma porta remota' });
     }
-    if (settingsRepo.read().requirePassphrase && !body.passphrase) {
+    // A listener with no key accepts anyone who knows the port: ffmpeg does not
+    // validate streamid, so the passphrase is the only thing that turns a
+    // stranger away. Generate one unless the caller explicitly opted out.
+    let streamKey = body.passphrase;
+    if (!streamKey && body.mode === 'listener' && !body.unprotected) {
+      streamKey = generateStreamKey();
+    }
+    if (settingsRepo.read().requirePassphrase && !streamKey) {
       return reply
         .code(400)
-        .send({ error: 'Esta plataforma exige passphrase em todas as recepções' });
+        .send({ error: 'Esta plataforma exige chave de transmissão em todas as recepções' });
     }
 
     let port: number;
@@ -170,7 +226,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
       port,
       host: body.host,
       streamId: body.streamId,
-      passphrase: body.passphrase,
+      passphrase: streamKey,
       latencyUs: body.latencyUs,
       previewEnabled: body.previewEnabled,
       enabled: body.enabled,
@@ -193,6 +249,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     if (ingest.enabled) engine.startIngest(ingest.id);
     return reply.code(201).send({
       ...publicIngest(ingest, user),
+      connect: connectDetails(ingest, publicHostFor(req), user),
       outputs: [],
       status: engine.status(ingest.id, publicHostFor(req)),
     });
@@ -214,6 +271,7 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     engine.reloadIngest(id);
     return {
       ...publicIngest(updated, user),
+      connect: connectDetails(updated, publicHostFor(req), user),
       outputs: outputRepo.listByIngest(id).map((o) => publicOutput(o, user)),
       status: engine.status(id, publicHostFor(req)),
     };
@@ -247,6 +305,63 @@ export async function registerRoutes(app: FastifyInstance): Promise<void> {
     ingestRepo.update(id, { enabled: false });
     engine.stopIngest(id);
     return engine.status(id, publicHostFor(req));
+  });
+
+  /**
+   * Issues a new stream key and invalidates the old one.
+   *
+   * The pipeline restarts, which drops whoever is currently connected — that is
+   * the point of revoking a key, not a side effect of it. Callers get told so
+   * they can warn the operator before pulling the trigger mid-event.
+   */
+  app.post('/api/ingests/:id/rotate-key', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const user = requireIngestAccess(req, reply, id, 'ingest.configure');
+    if (!user) return;
+
+    const ingest = ingestRepo.get(id);
+    if (!ingest) return reply.code(404).send({ error: 'Recepção não encontrada' });
+    if (ingest.mode !== 'listener') {
+      return reply
+        .code(409)
+        .send({ error: 'Só faz sentido gerar chave para recepções que aguardam conexão' });
+    }
+
+    const updated = ingestRepo.update(id, { passphrase: generateStreamKey() });
+    if (!updated) return reply.code(404).send({ error: 'Recepção não encontrada' });
+
+    engine.reloadIngest(id);
+
+    return {
+      ...publicIngest(updated, user),
+      connect: connectDetails(updated, publicHostFor(req), user),
+      outputs: outputRepo.listByIngest(id).map((o) => publicOutput(o, user)),
+      status: engine.status(id, publicHostFor(req)),
+    };
+  });
+
+  /** Removes the key entirely, leaving the port open. Deliberately explicit. */
+  app.post('/api/ingests/:id/clear-key', async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const user = requireIngestAccess(req, reply, id, 'ingest.configure');
+    if (!user) return;
+
+    if (settingsRepo.read().requirePassphrase) {
+      return reply
+        .code(409)
+        .send({ error: 'Esta plataforma exige chave de transmissão em todas as recepções' });
+    }
+
+    const updated = ingestRepo.update(id, { passphrase: null });
+    if (!updated) return reply.code(404).send({ error: 'Recepção não encontrada' });
+
+    engine.reloadIngest(id);
+    return {
+      ...publicIngest(updated, user),
+      connect: connectDetails(updated, publicHostFor(req), user),
+      outputs: outputRepo.listByIngest(id).map((o) => publicOutput(o, user)),
+      status: engine.status(id, publicHostFor(req)),
+    };
   });
 
   app.get('/api/ingests/:id/logs', async (req, reply) => {

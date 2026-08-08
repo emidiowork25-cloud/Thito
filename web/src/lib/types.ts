@@ -80,6 +80,25 @@ export interface Output {
   createdAt: string;
 }
 
+/**
+ * Sender-facing credentials, split the way encoders ask for them. The key is
+ * the SRT passphrase — the only field that actually authenticates, since
+ * ffmpeg's listener ignores streamid.
+ */
+export interface ConnectDetails {
+  host: string;
+  port: number;
+  streamId: string | null;
+  /** Masked for viewers who may not issue credentials. */
+  streamKey: string | null;
+  hasKey: boolean;
+  latencyMs: number;
+  /** Safe to show on a shared screen — carries no secret. */
+  serverUrl: string;
+  /** Everything in one string; null when the viewer may not read the key. */
+  fullUrl: string | null;
+}
+
 export interface Ingest {
   id: string;
   name: string;
@@ -94,6 +113,7 @@ export interface Ingest {
   createdAt: string;
   outputs: Output[];
   status: IngestStatus | null;
+  connect: ConnectDetails | null;
 }
 
 export interface Capabilities {

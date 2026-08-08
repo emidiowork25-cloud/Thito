@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { CopyField } from '../components/CopyField';
+import { StreamKeyPanel } from '../components/StreamKey';
 import { OutputForm } from '../components/OutputForm';
 import { Preview } from '../components/Preview';
 import {
@@ -44,6 +44,7 @@ export function IngestDetail(): JSX.Element {
   const [logs, setLogs] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [keyBusy, setKeyBusy] = useState(false);
 
   const refresh = useCallback(async (): Promise<void> => {
     try {
@@ -142,8 +143,32 @@ export function IngestDetail(): JSX.Element {
           )}
         </div>
 
-        {status?.connectUrl && (
-          <CopyField label="Link para o encoder enviar" value={status.connectUrl} />
+        {ingest.connect && (
+          <StreamKeyPanel
+            connect={ingest.connect}
+            canConfigure={configurable}
+            busy={keyBusy}
+            onRotate={() =>
+              void act(async () => {
+                setKeyBusy(true);
+                try {
+                  await api.rotateKey(ingest.id);
+                } finally {
+                  setKeyBusy(false);
+                }
+              })
+            }
+            onClear={() =>
+              void act(async () => {
+                setKeyBusy(true);
+                try {
+                  await api.clearKey(ingest.id);
+                } finally {
+                  setKeyBusy(false);
+                }
+              })
+            }
+          />
         )}
 
         {status?.lastError && state !== 'running' && (

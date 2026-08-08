@@ -133,6 +133,10 @@ export const api = {
 
   deleteIngest: (id: string) => request<void>(`/api/ingests/${id}`, { method: 'DELETE' }),
 
+  rotateKey: (id: string) => request<Ingest>(`/api/ingests/${id}/rotate-key`, { method: 'POST' }),
+
+  clearKey: (id: string) => request<Ingest>(`/api/ingests/${id}/clear-key`, { method: 'POST' }),
+
   startIngest: (id: string) => post(`/api/ingests/${id}/start`),
   stopIngest: (id: string) => post(`/api/ingests/${id}/stop`),
 

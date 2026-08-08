@@ -40,6 +40,49 @@ Nas saídas o bitrate vem do ffmpeg, mas calculado por **delta** de bytes — o
 campo `bitrate` nativo é média acumulada desde o início, que num sinal ao vivo
 atrasa minutos atrás da realidade.
 
+## Chave de transmissão
+
+Cada recepção recebe uma **chave** no mesmo modelo do YouTube: o endereço do
+servidor de um lado, a chave do outro, reutilizável enquanto você quiser e
+substituível quando quiser.
+
+```
+Endereço do servidor   srt://hub.suaempresa.com:9001?mode=caller&latency=120000
+Chave de transmissão   MbCS-RdFv-zYSX-scHm-GxSZ
+```
+
+A chave é gerada pela plataforma, não digitada. Pedir para o operador inventar
+uma senha é justamente como portas acabam desprotegidas.
+
+### Por que a chave é a passphrase, e não o streamid
+
+Porque foi medido. O listener SRT do ffmpeg **não valida o streamid**: um
+sender com streamid errado, ou sem nenhum, conecta do mesmo jeito. A passphrase
+é a única opção que de fato recusa um desconhecido, porque ela chaveia a
+criptografia em vez de apenas rotular a sessão.
+
+Então o streamid continua sendo o que honestamente é — um rótulo legível — e a
+chave é o que protege a porta.
+
+Uma recepção **sem chave aceita qualquer um** que descubra a porta. A interface
+avisa em vermelho quando isso acontece, e remover a proteção exige confirmação.
+
+### Trocar a chave
+
+Gerar uma nova invalida a antiga **imediatamente** e derruba quem estiver
+transmitindo — que é o objetivo de revogar uma chave, não um efeito colateral.
+A interface avisa antes.
+
+Verificação automatizada dos cinco casos que importam:
+
+```sh
+scripts/streamkey-test.sh
+```
+
+Confere que a chave correta conecta, que a ausência de chave é recusada, que uma
+chave errada é recusada, e que após a rotação a antiga para de funcionar
+enquanto a nova passa a funcionar.
+
 ## Usuários e permissões
 
 Dois eixos independentes:

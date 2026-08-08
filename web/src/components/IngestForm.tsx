@@ -18,7 +18,6 @@ export function IngestForm({
   const [host, setHost] = useState('');
   const [port, setPort] = useState('');
   const [streamId, setStreamId] = useState('');
-  const [passphrase, setPassphrase] = useState('');
   const [latencyMs, setLatencyMs] = useState(String(system.defaultLatencyMs));
   const [previewEnabled, setPreviewEnabled] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -38,7 +37,9 @@ export function IngestForm({
         // Listener mode leaves the port to the allocator unless one was typed.
         port: port ? Number(port) : undefined,
         streamId: streamId.trim() || null,
-        passphrase: passphrase || null,
+        // The key is issued by the server. Asking an operator to invent a
+        // passphrase is how ports end up unprotected.
+        passphrase: null,
         latencyUs: Number(latencyMs) * 1000,
         previewEnabled,
         enabled: true,
@@ -135,19 +136,13 @@ export function IngestForm({
             />
           </Field>
 
-          <Field
-            label={system.requirePassphrase ? 'Passphrase' : 'Passphrase (opcional)'}
-            hint="Mínimo de 10 caracteres."
-          >
-            <Input
-              type="password"
-              value={passphrase}
-              onChange={(e) => setPassphrase(e.target.value)}
-              minLength={10}
-              required={system.requirePassphrase}
-            />
-          </Field>
         </div>
+
+        <p className="rounded-lg border border-dashed border-ink-500 bg-ink-900 px-4 py-3 text-xs leading-relaxed text-faint">
+          Uma <strong className="text-mist">chave de transmissão</strong> será gerada
+          automaticamente. Ela protege a porta e você a entrega a quem for enviar o sinal —
+          reutilizável, e trocável a qualquer momento.
+        </p>
 
         <Toggle
           checked={previewEnabled}
