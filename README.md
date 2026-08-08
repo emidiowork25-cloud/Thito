@@ -33,12 +33,13 @@ Para desfazer, rode o mesmo arquivo de novo — ele detecta e oferece remover.
 
 ## Ligar o cérebro do JARBAS
 
-O hub inteiro funciona sem isso. Mas o JARBAS só pensa depois deste passo — é a única
-coisa que falta, e ela é sua porque envolve a sua chave de API.
+O hub inteiro funciona sem isso. Mas o JARBAS só pensa depois de **duas** coisas: a sua
+chave da Anthropic guardada no servidor, e uma conta criada no app.
 
 O projeto na nuvem **já está criado e configurado** (banco, políticas de segurança e a
-função do assistente já estão no ar, e o app já vem apontando para ele). Falta apenas
-guardar a sua chave da Anthropic lá dentro:
+função do assistente já estão no ar, e o app já vem apontando para ele).
+
+### 1. Guardar a sua chave da Anthropic
 
 ```bash
 # 1) instale a CLI do Supabase (uma vez):  https://supabase.com/docs/guides/cli
@@ -56,13 +57,18 @@ Prefere sem terminal? Dá para colar a chave direto no painel do Supabase, em
 **A chave nunca passa pelo navegador.** Ela fica guardada no servidor; o app só conversa
 com a função `jarbas`, que fala com a Anthropic em nome dele.
 
-### Criar sua conta (sincronizar entre dispositivos)
+### 2. Criar sua conta
 
 Abra **Ajustes → Nuvem e sincronização → Criar conta**, com e-mail e senha.
-Use a mesma conta em outro computador e os dados aparecem lá. Uma política de segurança
-no banco garante que cada conta só enxerga as próprias linhas.
 
-Sem conta, tudo continua funcionando — só fica guardado apenas neste PC.
+Isso **não é opcional para o JARBAS**: a função `jarbas` só aceita chamadas assinadas por
+um usuário de verdade, então sem estar logado ele responde *"Não autenticado."*. De quebra,
+a conta é o que sincroniza o hub entre os seus aparelhos — use a mesma em outro computador
+e os dados aparecem lá. Uma política de segurança no banco garante que cada conta só
+enxerga as próprias linhas.
+
+Sem conta, todo o resto continua funcionando — só fica guardado apenas neste PC, e o
+assistente fica mudo.
 
 ---
 
