@@ -1,0 +1,137 @@
+// Camada IndexedDB. Um object store por coleção, todos com a mesma forma:
+// { id, updatedAt, deleted, ...campos }
+
+const DB_NAME = 'thito';
+const DB_VERSION = 1;
+
+export const COLLECTIONS = [
+  'events',      // agenda
+  'tasks',       // pendências / action items
+  'accounts',    // contas financeiras
+  'transactions',
+  'budgets',
+  'lists',       // listas de compras
+  'items',       // itens das listas
+  'mindmaps',
+  'meetings',
+  'decks',       // apresentações
+  'chats',       // histórico de conversas com o assistente
+  'notes',       // anotações avulsas / memória do assistente
+];
+
+let dbp = null;
+
+function open() {
+  if (dbp) return dbp;
+  dbp = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      for (const name of COLLECTIONS) {
+        if (!db.objectStoreNames.contains(name)) {
+          const store = db.createObjectStore(name, { keyPath: 'id' });
+          store.createIndex('updatedAt', 'updatedAt');
+        }
+      }
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbp;
+}
+
+function tx(store, mode = 'readonly') {
+  return open().then((db) => db.transaction(store, mode).objectStore(store));
+}
+
+const wrap = (req) => new Promise((resolve, reject) => {
+  req.onsuccess = () => resolve(req.result);
+  req.onerror = () => reject(req.error);
+});
+
+/** Todos os registros vivos de uma coleção (exclui apagados). */
+export async function all(collection) {
+  const store = await tx(collection);
+  const rows = await wrap(store.getAll());
+  return rows.filter((r) => !r.deleted);
+}
+
+/** Todos os registros, inclusive os marcados como apagados (usado pela sync). */
+export async function allRaw(collection) {
+  const store = await tx(collection);
+  return wrap(store.getAll());
+}
+
+export async function get(collection, id) {
+  const store = await tx(collection);
+  const row = await wrap(store.get(id));
+  return row && !row.deleted ? row : null;
+}
+
+export async function put(collection, record) {
+  const store = await tx(collection, 'readwrite');
+  await wrap(store.put(record));
+  return record;
+}
+
+export async function putMany(collection, records) {
+  if (!records.length) return;
+  const db = await open();
+  await new Promise((resolve, reject) => {
+    const t = db.transaction(collection, 'readwrite');
+    const store = t.objectStore(collection);
+    for (const r of records) store.put(r);
+    t.oncomplete = resolve;
+    t.onerror = () => reject(t.error);
+  });
+}
+
+export async function hardDelete(collection, id) {
+  const store = await tx(collection, 'readwrite');
+  return wrap(store.delete(id));
+}
+
+export async function clear(collection) {
+  const store = await tx(collection, 'readwrite');
+  return wrap(store.clear());
+}
+
+/* ---------- kv (configurações, tokens, marcadores de sync) ---------- */
+
+export async function kvGet(key, fallback = null) {
+  const store = await tx('kv');
+  const v = await wrap(store.get(key));
+  return v === undefined ? fallback : v;
+}
+
+export async function kvSet(key, value) {
+  const store = await tx('kv', 'readwrite');
+  return wrap(store.put(value, key));
+}
+
+export async function kvDel(key) {
+  const store = await tx('kv', 'readwrite');
+  return wrap(store.delete(key));
+}
+
+/* ---------- backup ---------- */
+
+export async function exportAll() {
+  const out = { version: DB_VERSION, exportedAt: new Date().toISOString(), data: {} };
+  for (const c of COLLECTIONS) out.data[c] = await allRaw(c);
+  return out;
+}
+
+export async function importAll(dump, { replace = false } = {}) {
+  if (!dump?.data) throw new Error('Arquivo de backup inválido.');
+  let count = 0;
+  for (const c of COLLECTIONS) {
+    const rows = dump.data[c];
+    if (!Array.isArray(rows)) continue;
+    if (replace) await clear(c);
+    await putMany(c, rows);
+    count += rows.length;
+  }
+  return count;
+}

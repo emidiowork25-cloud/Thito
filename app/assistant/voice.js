@@ -1,0 +1,451 @@
+// Voz do JARBAS: reconhecimento (STT), síntese (TTS) e medidor de nível.
+//
+// Usa a Web Speech API do navegador — roda 100% local, sem chave e sem custo.
+// Chrome/Edge no Windows suportam pt-BR; Firefox não implementa SpeechRecognition
+// (nesse caso a escuta é desativada e só a fala continua funcionando).
+//
+// Modos de escuta:
+//   'off'  — microfone desligado
+//   'ptt'  — push-to-talk: segure o botão ou Ctrl+Espaço
+//   'wake' — escuta contínua; só aceita comando após a palavra-chave ("Jarbas")
+//
+// Eventos publicados no barramento:
+//   voice:state   {listening, speaking, mode, awake}
+//   voice:interim {text}          transcrição parcial
+//   voice:final   {text}          comando pronto para o assistente
+//   voice:level   {level}         0..1, energia do microfone (para o orbe)
+//   voice:error   {code, message}
+
+import { emit } from '../core/bus.js';
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+const synth = window.speechSynthesis || null;
+
+export const sttSupported = !!SR;
+export const ttsSupported = !!synth;
+
+/** Variações que aceitamos como palavra-chave (fala reconhecida erra bastante). */
+const WAKE_VARIANTS = [
+  'jarbas', 'jarba', 'jarvas', 'jarvis', 'jarbes', 'jaubas', 'garbas',
+  'jar bas', 'jarbás', 'járbas', 'jarbaz',
+];
+
+const state = {
+  mode: 'off',
+  listening: false,   // reconhecimento ativo
+  speaking: false,    // sintetizador falando
+  awake: false,       // palavra-chave detectada, aguardando o comando
+  allowBargeIn: true, // interromper a fala quando o usuário falar
+  lang: 'pt-BR',
+  rate: 1.05,
+  pitch: 1,
+  volume: 1,
+  voiceURI: null,
+};
+
+let rec = null;
+let wantListening = false;     // intenção do usuário (independe de reinícios internos)
+let restartTimer = null;
+let silenceTimer = null;
+let pendingCommand = '';
+let lastStart = 0;
+let consecutiveFails = 0;
+
+/* ============================ estado ============================ */
+
+export const getState = () => ({ ...state });
+
+function publish() {
+  emit('voice:state', getState());
+}
+
+function setStatus(patch) {
+  Object.assign(state, patch);
+  publish();
+}
+
+/* ============================ STT ============================ */
+
+function build() {
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = state.lang;
+  r.continuous = true;
+  r.interimResults = true;
+  r.maxAlternatives = 1;
+
+  r.onstart = () => {
+    consecutiveFails = 0;
+    setStatus({ listening: true });
+  };
+
+  r.onresult = (event) => {
+    let interim = '';
+    let final = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const res = event.results[i];
+      if (res.isFinal) final += res[0].transcript;
+      else interim += res[0].transcript;
+    }
+
+    // Barge-in: o usuário começou a falar enquanto JARBAS falava.
+    if ((interim.trim() || final.trim()) && state.speaking && state.allowBargeIn) stopSpeaking();
+
+    if (interim.trim()) emit('voice:interim', { text: interim.trim() });
+    if (final.trim()) handleFinal(final.trim());
+  };
+
+  r.onerror = (event) => {
+    const code = event.error;
+    // 'no-speech' e 'aborted' são rotina em escuta contínua — não são falhas reais.
+    if (code === 'no-speech' || code === 'aborted') return;
+    if (code === 'not-allowed' || code === 'service-not-allowed') {
+      wantListening = false;
+      setStatus({ mode: 'off', listening: false });
+      emit('voice:error', { code, message: 'Permissão de microfone negada. Autorize o microfone no navegador.' });
+      return;
+    }
+    consecutiveFails++;
+    emit('voice:error', { code, message: `Falha no reconhecimento de voz (${code}).` });
+  };
+
+  r.onend = () => {
+    setStatus({ listening: false });
+    // O Chrome encerra sozinho após silêncio; reinicia enquanto o usuário quiser ouvir.
+    if (wantListening && state.mode === 'wake') scheduleRestart();
+  };
+
+  return r;
+}
+
+function scheduleRestart() {
+  clearTimeout(restartTimer);
+  // recuo progressivo se algo estiver falhando em sequência
+  const delay = consecutiveFails > 3 ? Math.min(8000, 400 * 2 ** (consecutiveFails - 3)) : 300;
+  restartTimer = setTimeout(() => { if (wantListening) startRecognition(); }, delay);
+}
+
+function startRecognition() {
+  if (!SR || state.listening) return;
+  // proteção contra loop de reinício muito rápido
+  if (Date.now() - lastStart < 250) { scheduleRestart(); return; }
+  lastStart = Date.now();
+  rec ||= build();
+  if (!rec) return;
+  rec.lang = state.lang;
+  try {
+    rec.start();
+  } catch {
+    // InvalidStateError: já iniciado — o onend cuidará do reinício
+  }
+}
+
+function stopRecognition() {
+  clearTimeout(restartTimer);
+  clearTimeout(silenceTimer);
+  if (!rec) return;
+  try { rec.stop(); } catch { /* já parado */ }
+}
+
+/**
+ * Trata uma transcrição finalizada conforme o modo.
+ * No modo 'wake', ignora tudo até ouvir a palavra-chave; no 'ptt', tudo é comando.
+ */
+function handleFinal(text) {
+  if (state.mode === 'ptt') {
+    pendingCommand = `${pendingCommand} ${text}`.trim();
+    armSilence(900);
+    return;
+  }
+
+  const stripped = stripWake(text);
+  if (state.awake) {
+    pendingCommand = `${pendingCommand} ${stripped ?? text}`.trim();
+    armSilence(1400);
+    return;
+  }
+  if (stripped !== null) {
+    setStatus({ awake: true });
+    pendingCommand = stripped;
+    // Só a palavra-chave, sem comando: espera mais tempo pelo que vem em seguida.
+    armSilence(stripped ? 1400 : 4500);
+  }
+}
+
+/** Dispara o comando após um período de silêncio. */
+function armSilence(ms) {
+  clearTimeout(silenceTimer);
+  silenceTimer = setTimeout(() => {
+    const cmd = pendingCommand.trim();
+    pendingCommand = '';
+    setStatus({ awake: false });
+    if (cmd) emit('voice:final', { text: cmd });
+  }, ms);
+}
+
+/**
+ * Remove a palavra-chave do início da frase.
+ * @returns o restante da frase, '' se só houver a palavra-chave, ou null se não houver palavra-chave.
+ */
+function stripWake(text) {
+  const clean = text.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[.,!?;:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  for (const w of WAKE_VARIANTS) {
+    const bare = w.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const idx = clean.indexOf(bare);
+    if (idx === -1) continue;
+    // aceita a palavra-chave nos primeiros ~30 caracteres da frase
+    if (idx > 30) continue;
+    return text.slice(0).replace(new RegExp(`^.{0,${idx + bare.length}}`, 'i'), '')
+      .replace(/^[\s,.:!?]+/, '').trim();
+  }
+  return null;
+}
+
+/* ============================ API pública de escuta ============================ */
+
+export function setMode(mode) {
+  if (!sttSupported && mode !== 'off') {
+    emit('voice:error', { code: 'unsupported', message: 'Este navegador não reconhece voz. Use Chrome ou Edge.' });
+    return;
+  }
+  setStatus({ mode, awake: false });
+  pendingCommand = '';
+  if (mode === 'wake') {
+    wantListening = true;
+    startMeter();
+    startRecognition();
+  } else {
+    wantListening = false;
+    stopRecognition();
+    stopMeter();
+  }
+}
+
+/** Push-to-talk: começa a capturar enquanto o botão/atalho estiver pressionado. */
+export function pushToTalkStart() {
+  if (!sttSupported) {
+    emit('voice:error', { code: 'unsupported', message: 'Este navegador não reconhece voz. Use Chrome ou Edge.' });
+    return;
+  }
+  stopSpeaking();
+  const previous = state.mode;
+  if (previous === 'wake') stopRecognition();
+  setStatus({ mode: 'ptt', awake: true });
+  pendingCommand = '';
+  wantListening = true;
+  startMeter();
+  clearTimeout(silenceTimer);
+  startRecognition();
+}
+
+/** Solta o push-to-talk: envia o que foi capturado e volta ao modo anterior. */
+export function pushToTalkEnd(previousMode = 'off') {
+  if (state.mode !== 'ptt') return;
+  stopRecognition();
+  clearTimeout(silenceTimer);
+  const cmd = pendingCommand.trim();
+  pendingCommand = '';
+  setStatus({ mode: previousMode, awake: false });
+  if (cmd) emit('voice:final', { text: cmd });
+  if (previousMode === 'wake') { wantListening = true; setTimeout(startRecognition, 250); }
+  else { wantListening = false; stopMeter(); }
+}
+
+/* ============================ TTS ============================ */
+
+let voices = [];
+let resumeTicker = null;
+
+function loadVoices() {
+  if (!synth) return;
+  voices = synth.getVoices() || [];
+}
+if (synth) {
+  loadVoices();
+  synth.addEventListener?.('voiceschanged', loadVoices);
+}
+
+export function listVoices() {
+  loadVoices();
+  const pt = voices.filter((v) => /^pt/i.test(v.lang));
+  return (pt.length ? pt : voices).map((v) => ({ uri: v.voiceURI, name: v.name, lang: v.lang }));
+}
+
+function pickVoice() {
+  loadVoices();
+  if (state.voiceURI) {
+    const chosen = voices.find((v) => v.voiceURI === state.voiceURI);
+    if (chosen) return chosen;
+  }
+  return voices.find((v) => /pt[-_]BR/i.test(v.lang))
+    ?? voices.find((v) => /^pt/i.test(v.lang))
+    ?? voices[0]
+    ?? null;
+}
+
+/**
+ * Prepara o texto para ser falado: remove marcação, emojis e ruído visual,
+ * e traduz símbolos que soariam estranhos lidos literalmente.
+ */
+export function speakable(text) {
+  return String(text ?? '')
+    .replace(/```[\s\S]*?```/g, ' — trecho de código omitido — ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/[*_#>]/g, ' ')
+    .replace(/\p{Extended_Pictographic}/gu, ' ')
+    .replace(/https?:\/\/\S+/g, ' link ')
+    // "R$ 1.250,90" -> "1250 reais e 90 centavos" (o sintetizador lê melhor assim)
+    .replace(/R\$\s?(\d[\d.]*)(?:,(\d{2}))?/g, (_, inteiro, centavos) => {
+      const reais = inteiro.replace(/\./g, '');
+      const base = `${reais} ${reais === '1' ? 'real' : 'reais'}`;
+      return centavos && centavos !== '00' ? `${base} e ${Number(centavos)} centavos` : base;
+    })
+    .replace(/(\d)\s*%/g, '$1 por cento')
+    .replace(/\bvs\.?\b/gi, 'contra')
+    .replace(/•/g, '. ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+/** Quebra em frases para o sintetizador começar a falar antes do texto todo. */
+function chunk(text, max = 200) {
+  const parts = text.split(/(?<=[.!?…:])\s+/);
+  const out = [];
+  let buf = '';
+  for (const p of parts) {
+    if ((buf + ' ' + p).trim().length > max && buf) { out.push(buf.trim()); buf = p; }
+    else buf = `${buf} ${p}`.trim();
+  }
+  if (buf.trim()) out.push(buf.trim());
+  return out.filter(Boolean);
+}
+
+export function speak(text, { onEnd } = {}) {
+  if (!synth) { onEnd?.(); return; }
+  const clean = speakable(text);
+  if (!clean) { onEnd?.(); return; }
+
+  stopSpeaking();
+
+  // Em escuta contínua, silencia o microfone enquanto fala para não se ouvir.
+  const wasWake = state.mode === 'wake' && state.listening;
+  if (wasWake && !state.allowBargeIn) stopRecognition();
+
+  const pieces = chunk(clean);
+  const voice = pickVoice();
+  setStatus({ speaking: true });
+  keepAlive(true);
+
+  pieces.forEach((piece, i) => {
+    const u = new SpeechSynthesisUtterance(piece);
+    u.lang = state.lang;
+    u.rate = state.rate;
+    u.pitch = state.pitch;
+    u.volume = state.volume;
+    if (voice) u.voice = voice;
+    if (i === pieces.length - 1) {
+      u.onend = () => {
+        keepAlive(false);
+        setStatus({ speaking: false });
+        if (wasWake && wantListening) setTimeout(startRecognition, 200);
+        onEnd?.();
+      };
+      u.onerror = u.onend;
+    }
+    synth.speak(u);
+  });
+}
+
+export function stopSpeaking() {
+  if (!synth) return;
+  keepAlive(false);
+  try { synth.cancel(); } catch { /* ignora */ }
+  if (state.speaking) setStatus({ speaking: false });
+}
+
+/** Contorna o bug do Chrome que corta a fala após ~15 s. */
+function keepAlive(on) {
+  clearInterval(resumeTicker);
+  resumeTicker = null;
+  if (!on || !synth) return;
+  resumeTicker = setInterval(() => {
+    if (!synth.speaking) { clearInterval(resumeTicker); resumeTicker = null; return; }
+    synth.pause();
+    synth.resume();
+  }, 9000);
+}
+
+/* ============================ medidor de nível ============================ */
+
+let audioCtx = null;
+let analyser = null;
+let micStream = null;
+let meterRaf = null;
+
+async function startMeter() {
+  if (analyser || !navigator.mediaDevices?.getUserMedia) return;
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.75;
+    src.connect(analyser);
+    const buf = new Uint8Array(analyser.frequencyBinCount);
+    const tick = () => {
+      if (!analyser) return;
+      analyser.getByteTimeDomainData(buf);
+      let peak = 0;
+      for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i] - 128) / 128);
+      emit('voice:level', { level: Math.min(1, peak * 2.2) });
+      meterRaf = requestAnimationFrame(tick);
+    };
+    tick();
+  } catch {
+    // Sem permissão para o medidor: a escuta ainda funciona, só não há visualização.
+    analyser = null;
+  }
+}
+
+function stopMeter() {
+  cancelAnimationFrame(meterRaf);
+  meterRaf = null;
+  analyser = null;
+  micStream?.getTracks().forEach((t) => t.stop());
+  micStream = null;
+  audioCtx?.close().catch(() => {});
+  audioCtx = null;
+  emit('voice:level', { level: 0 });
+}
+
+/* ============================ preferências ============================ */
+
+export function configure(prefs = {}) {
+  const { rate, pitch, volume, voiceURI, lang, allowBargeIn } = prefs;
+  if (Number.isFinite(rate)) state.rate = Math.min(2, Math.max(0.5, rate));
+  if (Number.isFinite(pitch)) state.pitch = Math.min(2, Math.max(0, pitch));
+  if (Number.isFinite(volume)) state.volume = Math.min(1, Math.max(0, volume));
+  if (voiceURI !== undefined) state.voiceURI = voiceURI || null;
+  if (lang) state.lang = lang;
+  if (allowBargeIn !== undefined) state.allowBargeIn = !!allowBargeIn;
+  publish();
+}
+
+/** Frase curta para o usuário testar a voz configurada. */
+export function preview() {
+  speak('Sistemas prontos. Sou o JARBAS, seu assistente pessoal.');
+}
+
+export function shutdown() {
+  wantListening = false;
+  stopRecognition();
+  stopSpeaking();
+  stopMeter();
+  setStatus({ mode: 'off', awake: false });
+}

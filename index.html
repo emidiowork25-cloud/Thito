@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THITO — Hub Pessoal</title>
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/views.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='%2300e5ff' stroke-width='8'/><circle cx='50' cy='50' r='12' fill='%2300e5ff'/></svg>">
+</head>
+<body>
+  <div class="fx-grid" aria-hidden="true"></div>
+  <div class="fx-glow" aria-hidden="true"></div>
+
+  <div id="boot" class="boot">
+    <div class="boot-ring"><span></span><span></span><span></span></div>
+    <div class="boot-mark">T H I T O</div>
+    <div class="boot-status" id="boot-status">inicializando núcleo…</div>
+  </div>
+
+  <div id="app" hidden>
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-core"></span>
+        <div>
+          <div class="brand-text">THITO</div>
+          <div class="brand-sub">hub pessoal</div>
+        </div>
+      </div>
+      <nav id="nav" class="nav" aria-label="Seções"></nav>
+      <div class="sidebar-foot">
+        <button class="sync-chip" id="sync-chip" title="Estado da sincronização">
+          <span class="sync-dot"></span><span class="sync-label">local</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" id="btn-menu" title="Menu" aria-label="Menu">☰</button>
+          <h1 id="view-title">Painel</h1>
+          <span class="topbar-clock" id="clock"></span>
+        </div>
+        <div class="topbar-right">
+          <button class="ghost-btn" id="btn-palette" title="Busca rápida (Ctrl+K)">
+            <span>Buscar</span><kbd>Ctrl</kbd><kbd>K</kbd>
+          </button>
+          <button class="icon-btn" id="btn-jarbas" title="JARBAS (Ctrl+J)" aria-label="Abrir JARBAS">◈</button>
+        </div>
+      </header>
+      <div id="view" class="view" tabindex="-1"></div>
+    </main>
+
+    <section id="jarbas" class="jarbas" aria-label="JARBAS — assistente">
+      <header class="jarbas-head">
+        <div class="jarbas-id">
+          <canvas id="jarbas-orb" class="jarbas-orb" width="96" height="96" aria-hidden="true"></canvas>
+          <div>
+            <div class="jarbas-name">JARBAS</div>
+            <div class="jarbas-state" id="jarbas-state">em espera</div>
+          </div>
+        </div>
+        <div class="jarbas-actions">
+          <button class="icon-btn sm" id="jarbas-voice-toggle" title="Escuta contínua (palavra-chave “Jarbas”)" aria-pressed="false">🎙</button>
+          <button class="icon-btn sm" id="jarbas-speak-toggle" title="Falar as respostas" aria-pressed="true">🔊</button>
+          <button class="icon-btn sm" id="jarbas-clear" title="Nova conversa">⟳</button>
+          <button class="icon-btn sm" id="jarbas-close" title="Fechar">✕</button>
+        </div>
+      </header>
+
+      <div id="jarbas-log" class="jarbas-log" aria-live="polite"></div>
+
+      <div id="jarbas-heard" class="jarbas-heard" hidden></div>
+      <div id="jarbas-suggest" class="jarbas-suggest"></div>
+
+      <form id="jarbas-form" class="jarbas-form">
+        <button type="button" class="mic-btn" id="jarbas-mic" title="Segure para falar (Ctrl+Espaço)" aria-label="Falar">
+          <span class="mic-wave"></span>🎤
+        </button>
+        <textarea id="jarbas-input" rows="1" placeholder="Pergunte, peça ou mande fazer…"></textarea>
+        <button type="submit" class="send-btn" title="Enviar">↑</button>
+      </form>
+    </section>
+  </div>
+
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toast-root"></div>
+
+  <script type="module" src="app/main.js"></script>
+</body>
+</html>
