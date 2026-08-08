@@ -2,7 +2,7 @@
 // { id, updatedAt, deleted, ...campos }
 
 const DB_NAME = 'thito';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const COLLECTIONS = [
   'events',      // agenda
@@ -17,6 +17,12 @@ export const COLLECTIONS = [
   'decks',       // apresentações
   'chats',       // histórico de conversas com o assistente
   'notes',       // anotações avulsas / memória do assistente
+  // v2 — módulos COPYWRITER e TELEPROMPTER
+  'brands',      // vozes de marca (tom, público, o que evitar)
+  'copies',      // peças de texto: posts, roteiros, anúncios, e-mails
+  'campaigns',   // campanhas que agrupam peças
+  'metrics',     // métricas coladas do Meta Business e afins
+  'scripts',     // roteiros do teleprompter
 ];
 
 let dbp = null;

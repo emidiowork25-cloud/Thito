@@ -91,6 +91,59 @@ export function build() {
   parts.push(section('Apresentações', store.list('decks').map((d) =>
     `${d.title} — ${(d.slides?.length ?? 0)} slides${d.topic ? ` (tema: ${truncate(d.topic, 60)})` : ''}`)));
 
+  /* --- voz de marca (molda tudo que ele escreve) --- */
+  const marcas = store.list('brands');
+  const padrao = marcas.find((m) => m.padrao) ?? marcas[0];
+  if (padrao) {
+    const linhas = [
+      `Marca: ${padrao.name}`,
+      padrao.voice && `Tom: ${padrao.voice}`,
+      padrao.audience && `Público: ${padrao.audience}`,
+      padrao.avoid && `NUNCA usar: ${padrao.avoid}`,
+      padrao.example && `Exemplo do jeito certo de escrever: "${truncate(padrao.example, 400)}"`,
+    ].filter(Boolean);
+    parts.push(section('Voz de marca — siga em tudo que escrever', linhas));
+    if (marcas.length > 1) {
+      parts.push(section('Outras vozes cadastradas', marcas.filter((m) => m.id !== padrao.id).map((m) => `${m.name}: ${truncate(m.voice || '', 90)}`)));
+    }
+  }
+
+  /* --- copywriter --- */
+  parts.push(section('Campanhas', store.list('campaigns').map((c) => {
+    const pecas = store.list('copies', (x) => x.campaignId === c.id);
+    return `${c.name}${c.goal ? ` — objetivo: ${c.goal}` : ''}${c.from ? ` (${fmtDate(c.from)}${c.to ? ` a ${fmtDate(c.to)}` : ''})` : ''} — ${pecas.length} peça(s)`;
+  })));
+
+  const pecas = store.list('copies').sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+  parts.push(section('Peças de texto (mais recentes)', pecas.slice(0, 10).map((x) =>
+    `[${x.status || 'rascunho'}] ${x.title} — ${x.kind || 'post'} para ${x.platform || 'instagram'}, ${(x.body || '').length} caracteres${x.scheduledFor ? `, publicar em ${fmtDate(x.scheduledFor)}` : ''}`)));
+
+  const paraRevisar = pecas.filter((x) => x.status === 'revisar');
+  if (paraRevisar.length) {
+    parts.push(section('Peças esperando revisão', paraRevisar.map((x) => `${x.title}: "${truncate(x.body || '', 160)}"`)));
+  }
+
+  /* --- métricas --- */
+  const conjuntos = store.list('metrics').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  parts.push(section('Conjuntos de métricas importados', conjuntos.map((c) => {
+    const numericas = c.colunas.filter((col) => c.linhas.some((l) => typeof l[col] === 'number'));
+    const totais = numericas.slice(0, 4).map((col) => {
+      const vals = c.linhas.map((l) => l[col]).filter((v) => typeof v === 'number');
+      return `${col}: ${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(sum(vals))}`;
+    });
+    return `"${c.title}" (${fmtDate(c.date)}, ${c.linhas.length} linhas) — ${totais.join(', ') || 'sem colunas numéricas'}`;
+  })));
+  if (conjuntos.length) {
+    parts.push(['Para ver os números linha a linha, use a ferramenta analisar_metricas.'].join('\n'));
+  }
+
+  /* --- teleprompter --- */
+  parts.push(section('Roteiros do teleprompter', store.list('scripts').map((r) => {
+    const linhas = (r.body || '').split('\n').length;
+    const vel = r.config?.velocidade ?? 130;
+    return `${r.title} — ${linhas} linhas, ~${(linhas / vel).toFixed(1)} min no ar a ${vel} linhas/min`;
+  })));
+
   /* --- memória de longo prazo --- */
   const memoria = store.list('notes', (n) => n.kind === 'memory')
     .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));

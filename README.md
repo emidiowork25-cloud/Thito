@@ -1,8 +1,9 @@
 # THITO — seu hub pessoal, com o JARBAS dentro
 
 Um único lugar para tudo que é seu: agenda, finanças, listas de compras, mapas mentais
-para estudo, atas de reunião e apresentações. Por cima de tudo isso mora o **JARBAS** —
-um assistente que enxerga seus dados, conversa por voz e age por você.
+para estudo, atas de reunião, apresentações, escrita para redes e um teleprompter de
+emissora. Por cima de tudo isso mora o **JARBAS** — um assistente que enxerga seus dados,
+conversa por voz e age por você.
 
 Não é um site para mostrar aos outros. É um painel privado que você abre ao ligar o
 computador e fecha ao desligar.
@@ -117,9 +118,71 @@ O JARBAS acumula três camadas de contexto:
 | **Mind maps** | Editor visual para estudo. Ramos coloridos, anotação por nó, exportação em SVG. |
 | **Reuniões** | Pauta, anotações, decisões e encaminhamentos com responsável e prazo — que aparecem no Painel até serem fechados. |
 | **Apresentações** | De um tópico a um deck navegável. Modo de exibição em tela cheia, roteiro de fala, exportação em HTML (que vira PDF com `Ctrl+P`). |
+| **Copywriter** | Escrita para redes, roteiros e campanhas, com contador por plataforma, variações A/B, voz de marca e leitura de métricas do Meta Business. |
+| **Teleprompter** | Editor no PC, exibidor no celular, sincronizados ao vivo. Texto espelhado, rolagem controlada, marcações de operação. |
 
 As seções conversam entre si: a lista de compras vira lançamento, a reunião vira pendência,
-o mapa mental vira apresentação.
+o mapa mental vira apresentação, a peça de copy vira compromisso na agenda.
+
+---
+
+## Copywriter
+
+Quatro abas:
+
+- **Peças** — cada post, roteiro, anúncio ou e-mail. O contador conhece o limite real de cada
+  plataforma (280 no X, 125 num anúncio do Meta, 2200 no Instagram) e avisa antes de você
+  descobrir na hora de publicar. Botões do JARBAS geram variações, encurtam, endurecem o texto,
+  transformam em roteiro falado ou revisam. Variações ficam guardadas ao lado — "Usar esta"
+  promove uma e rebaixa a atual, sem perder nada.
+- **Campanhas** — agrupam peças em torno de um objetivo, um período e uma verba, com barra
+  de quanto já está aprovado.
+- **Insights** — cole a tabela do Meta Business (ou importe o CSV) e ele lê. O parser detecta
+  o separador sozinho, respeita aspas e entende número brasileiro: `12.480` vira doze mil
+  quatrocentos e oitenta, `1.250,90` vira mil duzentos e cinquenta e noventa centavos.
+  Serve para qualquer tabela — YouTube Studio, Analytics, planilha sua.
+- **Marca** — tom de voz, público, o que nunca usar e um exemplo do seu jeito de escrever.
+  Isso entra no contexto toda vez que o JARBAS escreve. É o que separa um texto seu de um
+  texto genérico de IA.
+
+---
+
+## Teleprompter
+
+Feito no espírito dos prompters de emissora: o operador controla, o apresentador lê.
+
+**No PC (aba Editor)** você escreve e comanda. Linhas entre colchetes viram marcação de
+operação — `[VT 30s]`, `[SOBE SOM]` — que aparecem em laranja e não contam como texto lido.
+Ao lado, uma miniatura fiel do que o celular está mostrando naquele instante.
+
+**No celular (aba Exibidor & link)** você aponta a câmera para o QR. A página abre em tela
+cheia, com a linha-guia onde o apresentador fixa o olhar, e a tela não apaga enquanto ela
+estiver aberta.
+
+**Tudo é ao vivo.** Mexeu na velocidade, no tamanho da fonte, na margem, no espelhamento ou
+no próprio texto — o celular acompanha na hora. O mesmo vale para rolar, pausar, voltar ao
+início e pular parágrafo.
+
+> **Como a rolagem fica lisa mesmo com a rede oscilando:** o editor não manda a posição quadro
+> a quadro (isso engasgaria). Ele manda a posição-base e um "estou rolando", e cada lado calcula
+> o resto com o próprio relógio. Um estado completo é reenviado a cada 5 segundos, então um
+> celular que entrou no meio ou reconectou se alinha sozinho.
+
+### Publicar o exibidor (uma vez só)
+
+A página do exibidor mora numa função do seu projeto Supabase, para o celular abrir de qualquer
+lugar. Rode uma vez, na pasta do THITO:
+
+```bash
+supabase functions deploy prompter --no-verify-jwt
+```
+
+O `--no-verify-jwt` é proposital: é o que permite abrir o link só com a câmera, sem login. A
+página em si não carrega roteiro nenhum — o texto chega depois pelo canal, e só para quem tem
+o código da sala. A aba **Exibidor & link** testa isso sozinha e avisa se ainda faltar publicar.
+
+> Quem tiver o link vê o seu roteiro. O código tem 14 caracteres aleatórios; se vazar, o botão
+> **Trocar código** invalida o antigo na hora.
 
 ---
 
@@ -130,7 +193,7 @@ o mapa mental vira apresentação.
 | `Ctrl + K` | Busca em tudo + paleta de comandos |
 | `Ctrl + J` | Abrir/fechar o JARBAS |
 | `Ctrl + Espaço` | Segurar para falar |
-| `1` a `8` | Pular direto para uma seção |
+| `1` a `9`, `0` | Pular direto para uma seção |
 | `Esc` | Fechar painel ou janela |
 
 ---
@@ -160,6 +223,8 @@ permite a ele responder com números reais). Nada além desse resumo sai da sua 
 | Ele responde "preciso que você entre na sua conta" | Ajustes → Nuvem → Entrar. |
 | "A chave da Anthropic foi recusada" | O segredo `ANTHROPIC_API_KEY` está errado ou não foi definido. Veja *Ligar o cérebro do JARBAS*. |
 | O JARBAS fica mudo mas o resto funciona | É o esperado sem internet. Seus dados continuam todos acessíveis. |
+| O celular abre o exibidor e fica em "conectando" | O editor precisa estar aberto na aba do Teleprompter. Confira também se você entrou na conta em Ajustes. |
+| O link do exibidor dá erro no celular | Falta publicar a função uma vez: `supabase functions deploy prompter --no-verify-jwt`. |
 | A voz corta no meio de textos longos | Bug conhecido do Chrome; o app já contorna. Se persistir, reduza a velocidade da fala em Ajustes. |
 
 ---
@@ -175,14 +240,16 @@ index.html
 start.bat                     sobe o servidor local e abre o hub
 instalar-inicializacao.bat    abre junto com o Windows
 app/
-  core/       db (IndexedDB), store (cache + regras), sync, supabase, settings, bus, util
+  core/       db (IndexedDB), store (cache + regras), sync, supabase, settings,
+              realtime (canal ao vivo), qr (gerador próprio), bus, util
   ui/         shell (rotas, paleta, navegação), components (modal, formulário, toast)
-  views/      as 8 telas
+  views/      as 10 telas
   assistant/  jarbas (conversa), voice (fala e escuta), context (retrato dos dados),
               tools (o que ele pode fazer), orb (o visual reativo)
 styles/       base (tokens e casca), views (cada tela)
 supabase/
   functions/jarbas/    a função que guarda a chave e chama o Claude
+  functions/prompter/  a página do exibidor do teleprompter
 ```
 
 O laço de ferramentas roda **no seu navegador**: o Claude pede uma ação, o app executa

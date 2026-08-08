@@ -5,6 +5,7 @@
 
 import * as store from '../core/store.js';
 import { emit } from '../core/bus.js';
+import { novaSala } from '../core/realtime.js';
 import {
   today, addDays, monthKey, money, fmtDate, fmtTime, parseMoney, norm, uid, sum,
 } from '../core/util.js';
@@ -256,6 +257,70 @@ export const definitions = [
     },
   },
   {
+    name: 'criar_copy',
+    description: 'Cria uma peça de texto no COPYWRITER (post, roteiro, anúncio, e-mail…). Respeite a voz de marca e o limite de caracteres da plataforma que estão no contexto. Se o usuário pediu variações, preencha o campo variacoes com abordagens realmente diferentes entre si, não sinônimos.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'Título interno, para o usuário achar depois.' },
+        tipo: {
+          type: 'string',
+          enum: ['post', 'carrossel', 'roteiro de reels', 'roteiro de vídeo', 'anúncio', 'e-mail', 'thread', 'legenda', 'headline', 'outro'],
+        },
+        plataforma: {
+          type: 'string',
+          enum: ['instagram', 'reels', 'threads', 'x', 'linkedin', 'facebook', 'youtube', 'email', 'anuncio', 'site'],
+        },
+        texto: { type: 'string', description: 'O texto da peça, pronto para publicar.' },
+        briefing: { type: 'string', description: 'Para quem é e o que precisa acontecer depois de ler.' },
+        hashtags: { type: 'string', description: 'Hashtags separadas por espaço, quando fizerem sentido.' },
+        variacoes: { type: 'array', items: { type: 'string' }, description: 'Outras abordagens do mesmo tema.' },
+        campanha: { type: 'string', description: 'Nome da campanha a que esta peça pertence, se houver.' },
+      },
+      required: ['titulo', 'texto'],
+    },
+  },
+  {
+    name: 'criar_campanha',
+    description: 'Cria uma campanha para agrupar peças em torno de um objetivo e um período.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nome: { type: 'string' },
+        objetivo: { type: 'string', description: 'O que precisa acontecer: vendas, inscrições, alcance.' },
+        de: { type: 'string', description: 'AAAA-MM-DD' },
+        ate: { type: 'string', description: 'AAAA-MM-DD' },
+        verba: { type: 'number' },
+        notas: { type: 'string' },
+      },
+      required: ['nome'],
+    },
+  },
+  {
+    name: 'criar_roteiro',
+    description: 'Cria um roteiro no TELEPROMPTER, pronto para ser lido no ar. Escreva para ser FALADO: frases curtas, uma ideia por linha, sem parênteses, sem siglas não explicadas. Linhas entre colchetes viram marcação de operação e não são lidas — use para [VT 30s], [SOBE SOM], [VIRA CÂMERA 2].',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string' },
+        texto: { type: 'string', description: 'O roteiro completo, com quebras de linha entre as falas.' },
+        velocidade: { type: 'number', description: 'Linhas por minuto, de 20 a 400. Padrão 130.' },
+      },
+      required: ['titulo', 'texto'],
+    },
+  },
+  {
+    name: 'analisar_metricas',
+    description: 'Lê um conjunto de métricas já importado (Meta Business, YouTube, planilha) e devolve os números crus para você analisar. Use antes de opinar sobre desempenho, em vez de confiar só no resumo do contexto.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        conjunto: { type: 'string', description: 'Trecho do nome do conjunto. Vazio = o mais recente.' },
+        limite: { type: 'number', description: 'Quantas linhas trazer. Padrão 40.' },
+      },
+    },
+  },
+  {
     name: 'abrir_secao',
     description: 'Abre uma seção do hub na tela do usuário. Use quando ele pedir para ver/mostrar algo.',
     input_schema: {
@@ -263,7 +328,8 @@ export const definitions = [
       properties: {
         secao: {
           type: 'string',
-          enum: ['dashboard', 'agenda', 'financas', 'compras', 'mindmap', 'reunioes', 'apresentacoes', 'ajustes'],
+          enum: ['dashboard', 'agenda', 'financas', 'compras', 'mindmap', 'reunioes',
+            'apresentacoes', 'copywriter', 'teleprompter', 'ajustes'],
         },
       },
       required: ['secao'],
@@ -484,6 +550,70 @@ const handlers = {
     return ok(linhas.join('\n'));
   },
 
+  async criar_copy(i) {
+    let campaignId;
+    if (i.campanha) campaignId = bestMatch(store.list('campaigns'), 'name', i.campanha)?.id;
+    const peca = await store.save('copies', {
+      title: i.titulo,
+      kind: i.tipo || 'post',
+      platform: i.plataforma || 'instagram',
+      body: i.texto,
+      brief: i.briefing || '',
+      hashtags: i.hashtags || '',
+      variants: i.variacoes || [],
+      status: 'revisar',
+      campaignId,
+    });
+    emit('nav:refresh');
+    emit('nav:go', { view: 'copywriter', id: peca.id });
+    const n = peca.body.length;
+    return ok(`Peça "${peca.title}" criada com ${n} caracteres${peca.variants.length ? ` e ${peca.variants.length} variação(ões)` : ''}, e aberta na tela para você revisar.`);
+  },
+
+  async criar_campanha(i) {
+    const c = await store.save('campaigns', {
+      name: i.nome,
+      goal: i.objetivo || '',
+      from: i.de || today(),
+      to: i.ate || '',
+      budget: i.verba != null ? parseMoney(i.verba) : 0,
+      notes: i.notas || '',
+    });
+    emit('nav:refresh');
+    return ok(`Campanha "${c.name}" criada${c.goal ? ` com o objetivo: ${c.goal}` : ''}.`);
+  },
+
+  async criar_roteiro(i) {
+    const linhas = String(i.texto || '').split('\n').length;
+    const velocidade = Math.min(400, Math.max(20, Number(i.velocidade) || 130));
+    const script = await store.save('scripts', {
+      title: i.titulo,
+      body: i.texto,
+      sala: novaSala(),
+      config: { velocidade },
+    });
+    emit('nav:refresh');
+    emit('nav:go', { view: 'teleprompter', id: script.id });
+    const minutos = (linhas / velocidade).toFixed(1);
+    return ok(`Roteiro "${script.title}" criado com ${linhas} linhas (~${minutos} min no ar a ${velocidade} linhas/min) e aberto no teleprompter.`);
+  },
+
+  async analisar_metricas(i) {
+    const conjuntos = store.list('metrics')
+      .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    if (!conjuntos.length) return fail('Nenhum conjunto de métricas importado ainda. Importe pelo COPYWRITER → Insights.');
+
+    const alvo = i.conjunto ? bestMatch(conjuntos, 'title', i.conjunto) : conjuntos[0];
+    if (!alvo) return fail(`Não achei um conjunto parecido com "${i.conjunto}".`);
+
+    const limite = Math.min(120, Math.max(1, Number(i.limite) || 40));
+    const linhas = alvo.linhas.slice(0, limite);
+    const cabecalho = alvo.colunas.join(' | ');
+    const corpo = linhas.map((l) => alvo.colunas.map((c) => l[c] ?? '').join(' | ')).join('\n');
+    const resto = alvo.linhas.length > limite ? `\n… e mais ${alvo.linhas.length - limite} linhas` : '';
+    return ok(`Conjunto "${alvo.title}" (${alvo.linhas.length} linhas, importado em ${alvo.date}):\n\n${cabecalho}\n${corpo}${resto}`);
+  },
+
   async abrir_secao(i) {
     emit('nav:go', { view: i.secao });
     return ok(`Seção "${i.secao}" aberta na tela.`);
@@ -507,5 +637,9 @@ export const label = (name, input = {}) => ({
   buscar: `buscando "${input.termo}"`,
   consultar_agenda: `consultando agenda ${input.de} → ${input.ate}`,
   consultar_financas: `consultando finanças de ${input.mes || 'este mês'}`,
+  criar_copy: `escrevendo "${input.titulo}"`,
+  criar_campanha: `criando campanha "${input.nome}"`,
+  criar_roteiro: `montando roteiro "${input.titulo}"`,
+  analisar_metricas: `lendo métricas${input.conjunto ? ` de "${input.conjunto}"` : ''}`,
   abrir_secao: `abrindo ${input.secao}`,
 }[name] ?? `executando ${name}`);

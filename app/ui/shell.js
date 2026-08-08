@@ -16,6 +16,8 @@ import * as compras from '../views/compras.js';
 import * as mindmap from '../views/mindmap.js';
 import * as reunioes from '../views/reunioes.js';
 import * as apresentacoes from '../views/apresentacoes.js';
+import * as copywriter from '../views/copywriter.js';
+import * as teleprompter from '../views/teleprompter.js';
 import * as ajustes from '../views/ajustes.js';
 
 export const VIEWS = {
@@ -26,6 +28,8 @@ export const VIEWS = {
   mindmap: { mod: mindmap, title: 'Mind maps', icon: '⁂' },
   reunioes: { mod: reunioes, title: 'Reuniões', icon: '❐' },
   apresentacoes: { mod: apresentacoes, title: 'Apresentações', icon: '▷' },
+  copywriter: { mod: copywriter, title: 'Copywriter', icon: '✎' },
+  teleprompter: { mod: teleprompter, title: 'Teleprompter', icon: '▤▤' },
   ajustes: { mod: ajustes, title: 'Ajustes', icon: '⚙' },
 };
 
@@ -93,6 +97,7 @@ function badgeFor(view) {
       return n || null;
     }
     case 'reunioes': return store.openActionItems().length || null;
+    case 'copywriter': return store.list('copies', (c) => c.status === 'revisar').length || null;
     default: return null;
   }
 }
@@ -146,6 +151,9 @@ const ACTIONS = [
   { title: 'Nova reunião', sub: 'reuniões', run: () => { go('reunioes'); emit('action:new-meeting'); } },
   { title: 'Novo mind map', sub: 'mind maps', run: () => { go('mindmap'); emit('action:new-mindmap'); } },
   { title: 'Nova apresentação', sub: 'apresentações', run: () => { go('apresentacoes'); emit('action:new-deck'); } },
+  { title: 'Nova peça de texto', sub: 'copywriter', run: () => { go('copywriter'); emit('action:new-copy'); } },
+  { title: 'Nova campanha', sub: 'copywriter', run: () => { go('copywriter'); emit('action:new-campaign'); } },
+  { title: 'Novo roteiro de teleprompter', sub: 'teleprompter', run: () => { go('teleprompter'); emit('action:new-script'); } },
   { title: 'Perguntar ao JARBAS', sub: 'assistente', run: () => jarbas.open() },
   { title: 'Falar com o JARBAS', sub: 'voz', run: () => { jarbas.open(); jarbas.startListening(); } },
   { title: 'Sincronizar agora', sub: 'nuvem', run: () => sync.run() },
@@ -228,9 +236,10 @@ export function init() {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
     else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'j') { e.preventDefault(); jarbas.toggle(); }
     else if (e.key === 'Escape' && jarbas.isOpen() && !document.querySelector('.modal-back')) jarbas.close();
-    else if (!typing && !e.ctrlKey && !e.metaKey && e.key >= '1' && e.key <= '8') {
+    else if (!typing && !e.ctrlKey && !e.metaKey && e.key >= '0' && e.key <= '9') {
+      // 1..9 nas nove primeiras seções, 0 na décima
       const keys = Object.keys(VIEWS);
-      const target = keys[Number(e.key) - 1];
+      const target = keys[(Number(e.key) + 9) % 10];
       if (target) go(target);
     }
   });
