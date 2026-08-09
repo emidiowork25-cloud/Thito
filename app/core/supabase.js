@@ -145,11 +145,16 @@ export function pushRecords(rows) {
   });
 }
 
-/* ---------- Edge Function (JARBAS) ---------- */
+/* ---------- Edge Functions ---------- */
 
-export async function invokeJarbas(payload) {
+/**
+ * Chama uma função do seu projeto com a sessão atual. O JWT vai junto porque as
+ * funções verificam quem está pedindo — sem isso a `noticias` viraria um
+ * buscador aberto pagando invocação na sua conta.
+ */
+export async function invokeFunction(name, payload) {
   const jwt = await token();
-  const res = await fetch(`${base()}/functions/v1/jarbas`, {
+  const res = await fetch(`${base()}/functions/v1/${name}`, {
     method: 'POST',
     headers: {
       apikey: anon(),
@@ -159,6 +164,8 @@ export async function invokeJarbas(payload) {
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Falha na função JARBAS (${res.status}).`);
+  if (!res.ok) throw new Error(data.error || `Falha na função ${name} (${res.status}).`);
   return data;
 }
+
+export const invokeJarbas = (payload) => invokeFunction('jarbas', payload);

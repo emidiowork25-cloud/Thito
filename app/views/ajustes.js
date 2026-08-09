@@ -1,10 +1,11 @@
-// Ajustes — perfil, aparência, assistente, voz, nuvem e backup.
+// Ajustes — perfil, aparência, assistente, voz, nuvem, notícias e backup.
 
 import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
 import * as sb from '../core/supabase.js';
 import * as sync from '../core/sync.js';
 import * as db from '../core/db.js';
+import * as noticias from '../core/noticias.js';
 import * as voice from '../assistant/voice.js';
 import { emit } from '../core/bus.js';
 import { el, download, pickFile, fmtDate } from '../core/util.js';
@@ -13,7 +14,34 @@ import { sectionCard, formModal, confirmDialog, toast } from '../ui/components.j
 export function render(root) {
   root.append(el('div', { class: 'grid ajustes-grid' },
     el('div', { class: 'grid', style: 'align-content:start' }, cardPerfil(), cardAssistente(), cardVoz()),
-    el('div', { class: 'grid', style: 'align-content:start' }, cardNuvem(), cardBackup(), cardSobre())));
+    el('div', { class: 'grid', style: 'align-content:start' }, cardNuvem(), cardNoticias(), cardBackup(), cardSobre())));
+}
+
+/* ---------- notícias ---------- */
+
+function cardNoticias() {
+  const body = el('div');
+
+  body.append(alternar('Buscar as manchetes sozinho', settings.get('noticiasAuto'),
+    (v) => settings.set({ noticiasAuto: v })));
+
+  body.append(campo('A partir de que horas', el('input', {
+    type: 'time', value: settings.get('noticiasHora') || '08:00',
+    onchange: (e) => settings.set({ noticiasHora: e.target.value || '08:00' }),
+  }), 'Antes desse horário o cartão fica quieto. O ⟳ no Painel busca na hora, a qualquer momento.'));
+
+  body.append(campo('Assuntos', el('textarea', {
+    rows: 5,
+    value: settings.get('noticiasTemas') || noticias.TEMAS_PADRAO,
+    spellcheck: 'false',
+    onchange: (e) => settings.set({ noticiasTemas: e.target.value }),
+  }), 'Um por linha, no formato "Rótulo | consulta". Aspas prendem a expressão inteira, '
+    + 'OR soma alternativas e when:3d limita aos últimos dias. Deixe a consulta vazia para as manchetes gerais.'));
+
+  body.append(el('p', { class: 'tiny dim', text: 'Vem de feeds públicos pela função "noticias" do seu Supabase. '
+    + 'Não consome crédito da Anthropic — nenhum modelo participa da busca.' }));
+
+  return sectionCard('Notícias', null, body);
 }
 
 /* ---------- perfil e aparência ---------- */

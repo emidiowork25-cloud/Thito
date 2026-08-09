@@ -292,6 +292,50 @@ o código da sala. A aba **Exibidor & link** testa isso sozinha e avisa se ainda
 
 ---
 
+## Notícias do dia (custo zero)
+
+O primeiro cartão do Painel traz as manchetes por assunto: Mundo, Sport, Música, Seahawks —
+e o que mais você quiser. **Nenhum modelo de IA participa disso, e não consome crédito nenhum.**
+
+A notícia não precisa de IA para ser encontrada: ela já vem pronta, de graça, por RSS. IA só
+seria necessária para *reescrever* a manchete, que é o passo mais caro e menos útil da corrente.
+
+**Como funciona**
+
+- A função `noticias` do seu Supabase lê os feeds e devolve as manchetes limpas. Ela existe
+  porque os sites de notícia não mandam cabeçalho CORS — o navegador não consegue ler um RSS
+  direto. Uma chamada por dia, por aparelho.
+- O resultado fica guardado até o dia virar. Reabrir o app não busca de novo.
+- Antes do horário combinado (padrão 08:00) o cartão fica quieto. O botão ⟳ busca na hora.
+
+**Para deixar funcionando**
+
+```bash
+supabase functions deploy noticias
+```
+
+Só isso. Nenhum segredo, nenhuma chave — mas é preciso estar logado na sua conta, senão a
+função viraria um buscador aberto gastando invocação da sua conta.
+
+**Trocar os assuntos**: Ajustes → Notícias → *Assuntos*. Uma linha por tema, no formato
+`Rótulo | consulta`. A sintaxe é a do Google Notícias:
+
+```
+Mundo |
+Sport | "Sport Club do Recife"
+Música | "novo álbum" OR "nova música" OR turnê when:3d
+Seahawks | "Seattle Seahawks"
+```
+
+Aspas prendem a expressão inteira, `OR` soma alternativas, `when:3d` limita aos últimos dias
+e consulta vazia traz as manchetes gerais do dia.
+
+**Se quiser a leitura do JARBAS**, o botão no rodapé do cartão manda as manchetes já buscadas
+para ele comentar. Aí sim custa — mas só tokens (centavos), sem taxa de busca, e só quando
+você clica.
+
+---
+
 ## Senhas e acessos — o cofre
 
 Por dentro é um mapa mental: `Casa → Bancos → Nubank → o acesso`. Cada nó guarda nome,

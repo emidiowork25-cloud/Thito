@@ -29,6 +29,12 @@ const DEFAULTS = {
   // e a chave nunca são gravadas em preferência nenhuma.
   cofreMinutos: 5,
 
+  // Notícias. Os temas ficam como texto editável ("Rótulo | consulta") para
+  // trocar time, banda ou assunto sem tocar no código. Vazio = usa o padrão.
+  noticiasTemas: '',
+  noticiasHora: '08:00',
+  noticiasAuto: true,
+
   // Sincronização — já apontando para o projeto criado para você.
   // A chave publishable é pública por design: quem protege os dados é a política
   // RLS do banco, que só devolve as linhas do usuário autenticado.

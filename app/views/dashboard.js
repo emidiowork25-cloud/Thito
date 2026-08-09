@@ -2,6 +2,7 @@
 
 import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
+import * as noticias from '../core/noticias.js';
 import * as ctx from '../assistant/context.js';
 import * as jarbas from '../assistant/jarbas.js';
 import { el, money, fmtDate, fmtTime, relDay, today, addDays, monthKey, truncate } from '../core/util.js';
@@ -20,8 +21,81 @@ export function render(root) {
   root.append(el('div', { class: 'grid dash-stats' }, ...tiles));
 
   root.append(el('div', { class: 'grid dash-main' },
-    el('div', { class: 'grid', style: 'align-content:start' }, cardHoje(t), cardProximos(t)),
+    el('div', { class: 'grid', style: 'align-content:start' }, cardNoticias(), cardHoje(t), cardProximos(t)),
     el('div', { class: 'grid', style: 'align-content:start' }, cardSinais(), cardFinancas(), cardPendencias())));
+}
+
+/* ---------- notícias ---------- */
+
+/**
+ * As manchetes do dia. Desenha o que já está em cache na hora (render é
+ * síncrono) e busca por trás quando ainda não buscou hoje — o cartão se
+ * preenche sozinho em vez de segurar a tela inteira esperando a rede.
+ */
+function cardNoticias() {
+  const corpo = el('div', { class: 'list-plain' });
+  const card = sectionCard('Notícias de hoje', [
+    el('button', { class: 'btn sm', text: '⟳', title: 'Buscar de novo', onclick: () => atualizarNoticias(corpo, true) }),
+  ], corpo);
+
+  corpo.append(el('div', { class: 'tiny dim', text: 'Carregando…' }));
+  atualizarNoticias(corpo, false);
+  return card;
+}
+
+async function atualizarNoticias(corpo, forcar) {
+  let pacote = forcar ? null : await noticias.cache();
+
+  if (!pacote) {
+    // Sem cache: só busca sozinho depois da hora combinada. Antes disso o
+    // cartão explica por que está vazio, em vez de parecer quebrado.
+    if (!forcar && !(settings.get('noticiasAuto') && noticias.estaNaHora())) {
+      corpo.innerHTML = '';
+      corpo.append(el('div', { class: 'tiny dim', text: `As manchetes chegam às ${settings.get('noticiasHora') || '08:00'}. Use ⟳ para ver agora.` }));
+      return;
+    }
+    corpo.innerHTML = '';
+    corpo.append(el('div', { class: 'tiny dim', text: 'Buscando manchetes…' }));
+    pacote = await noticias.buscar();
+  }
+
+  corpo.innerHTML = '';
+
+  if (pacote.erro) {
+    corpo.append(el('div', { class: 'tiny dim', text: pacote.erro }));
+    return;
+  }
+
+  const comConteudo = (pacote.temas ?? []).filter((t) => t.itens?.length);
+  if (!comConteudo.length) {
+    corpo.append(el('div', { class: 'tiny dim', text: 'Nenhuma manchete veio. Tente de novo em alguns minutos.' }));
+    return;
+  }
+
+  for (const tema of comConteudo) {
+    corpo.append(el('div', { class: 'noticia-tema', text: tema.label }));
+    for (const item of tema.itens) {
+      corpo.append(el('a', {
+        class: 'noticia', href: item.link, target: '_blank', rel: 'noopener noreferrer',
+      },
+      el('span', { class: 'noticia-titulo', text: item.titulo }),
+      item.fonte ? el('span', { class: 'noticia-fonte', text: item.fonte }) : null));
+    }
+  }
+
+  const falhou = (pacote.temas ?? []).filter((t) => t.erro);
+  if (falhou.length) {
+    corpo.append(el('div', { class: 'tiny dim', style: 'margin-top:10px', text: `Não veio: ${falhou.map((t) => `${t.label} (${t.erro})`).join(', ')}.` }));
+  }
+
+  corpo.append(el('button', {
+    class: 'btn sm', style: 'margin-top:12px',
+    text: 'Pedir a leitura do JARBAS',
+    onclick: () => jarbas.askFrom(
+      `Estas são as manchetes de hoje. Me diga em no máximo 6 linhas o que realmente importa `
+      + `para mim e por quê. Se tiver algo do Sport ou dos Seahawks, comente como você comentaria.\n\n${noticias.comoTexto(pacote)}`,
+    ),
+  }));
 }
 
 /* ---------- topo ---------- */

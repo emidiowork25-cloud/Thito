@@ -136,6 +136,12 @@ export function el(tag, attrs = {}, ...children) {
     else if (k === 'text') node.textContent = v;
     else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2), v);
     else if (k === 'dataset') Object.assign(node.dataset, v);
+    // <textarea> não tem atributo `value`: o conteúdo dele é o texto-filho.
+    // setAttribute('value', …) era aceito em silêncio e não desenhava nada —
+    // o campo aparecia vazio mesmo com o valor gravado. (`select` fica de fora
+    // de propósito: aqui os <option> ainda não foram anexados, então atribuir
+    // .value neste ponto não pegaria em nada.)
+    else if (k === 'value' && tag === 'textarea') node.value = v;
     else node.setAttribute(k, v === true ? '' : v);
   }
   for (const c of children.flat()) {

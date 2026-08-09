@@ -212,6 +212,21 @@
 .mm-text { fill: var(--txt); pointer-events: none; user-select: none; }
 .color-dot { width: 24px; height: 24px; border-radius: 50%; border: 0; cursor: pointer; }
 
+/* ================= notícias ================= */
+.noticia-tema {
+  font: 600 10px/1 var(--sub); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--acc); margin: 16px 0 7px;
+}
+.noticia-tema:first-child { margin-top: 0; }
+.noticia {
+  display: block; padding: 7px 0; color: var(--txt);
+  text-decoration: none; border-bottom: 1px solid var(--line);
+}
+.noticia:last-of-type { border-bottom: 0; }
+.noticia:hover .noticia-titulo { color: var(--acc); }
+.noticia-titulo { display: block; font-size: 13.5px; line-height: 1.45; }
+.noticia-fonte { display: block; font-size: 11px; color: var(--txt-3); margin-top: 2px; }
+
 /* ================= senhas e acessos (cofre) ================= */
 .cofre-linha { display: flex; gap: 5px; align-items: stretch; }
 .cofre-linha input { flex: 1; min-width: 0; }
