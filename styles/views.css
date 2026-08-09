@@ -24,7 +24,7 @@
     linear-gradient(120deg, rgba(212, 199, 87, .10), rgba(205, 74, 44, .07)),
     var(--glass);
 }
-.hero-greet { font-size: 21px; font-weight: 600; letter-spacing: .01em; }
+.hero-greet { font-size: 24px; font-weight: 600; letter-spacing: .005em; }
 .hero-brief { margin: 6px 0 0; color: var(--txt-2); max-width: 62ch; }
 .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -33,11 +33,14 @@
   background: var(--glass); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 15px 16px;
 }
-.stat-label { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--txt-3); }
-.stat-value { font-size: 25px; font-weight: 600; margin-top: 5px; font-variant-numeric: tabular-nums; }
+.stat-label { font-family: var(--cond); font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--txt-3); }
+.stat-value {
+  font-family: var(--display); font-size: 38px; font-weight: 500; line-height: 1.05;
+  margin-top: 2px; letter-spacing: .01em; font-variant-numeric: tabular-nums;
+}
 .stat-value.ok { color: var(--ok); }
 .stat-value.bad { color: var(--bad); }
-.stat-sub { font-size: 11px; color: var(--txt-3); margin-top: 3px; }
+.stat-sub { font-family: var(--cond); font-size: 12px; color: var(--txt-3); margin-top: 3px; }
 
 /* ================= listas genéricas ================= */
 .list-plain { display: flex; flex-direction: column; }
@@ -47,7 +50,7 @@
 }
 .lp-row:last-child { border-bottom: 0; }
 .lp-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.lp-date { font-size: 11px; color: var(--txt-3); min-width: 74px; }
+.lp-date { font-family: var(--mono); font-size: 11px; color: var(--txt-3); min-width: 78px; }
 .clickable { cursor: pointer; }
 .clickable:hover { background: rgba(212, 199, 87, .05); }
 .lp-row.sel { background: rgba(212, 199, 87, .09); box-shadow: inset 2px 0 0 var(--gold); }
@@ -59,7 +62,7 @@
   padding: 10px 4px; border-bottom: 1px solid var(--line);
 }
 .tl-row:last-child { border-bottom: 0; }
-.tl-time { min-width: 46px; color: var(--gold); font-size: 12px; padding-top: 1px; }
+.tl-time { font-family: var(--mono); min-width: 52px; color: var(--gold); font-size: 12.5px; padding-top: 2px; font-variant-numeric: tabular-nums; }
 .tl-body { flex: 1; min-width: 0; }
 .tl-title { font-weight: 500; }
 
@@ -74,16 +77,17 @@
 .signal.bad { border-left-color: var(--bad); }
 .signal.info { border-left-color: var(--gold); }
 .signal-kind {
-  font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--txt-3); padding-top: 3px; min-width: 62px; flex: none;
+  font-family: var(--cond); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--txt-3); padding-top: 3px; min-width: 64px; flex: none;
 }
 
 /* ================= barras ================= */
 .bar-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
-.bar-label { min-width: 96px; font-size: 12px; color: var(--txt-2); text-transform: capitalize; }
+.bar-label { font-family: var(--cond); min-width: 96px; font-size: 13px; color: var(--txt-2); text-transform: capitalize; }
 .bar-track { flex: 1; height: 7px; background: var(--bg-3); border-radius: 4px; overflow: hidden; }
 .bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--rust)); border-radius: 4px; }
-.bar-value { min-width: 84px; text-align: right; font-size: 12px; }
+.bar-value { font-family: var(--mono); min-width: 92px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
 
 .meter { height: 6px; background: var(--bg-3); border-radius: 4px; overflow: hidden; margin: 5px 0; }
 .meter-fill { display: block; height: 100%; border-radius: 4px; background: var(--gold); }
@@ -100,7 +104,8 @@
    para fora da tela no celular, e sexta e sábado ficam cortadas. */
 .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .cal-head {
-  text-align: center; font-size: 10px; letter-spacing: .1em;
+  font-family: var(--cond); font-weight: 600;
+  text-align: center; font-size: 11px; letter-spacing: .1em;
   text-transform: uppercase; color: var(--txt-3); padding-bottom: 6px;
 }
 .cal-day {
@@ -154,9 +159,9 @@
   padding: 9px 4px; border-bottom: 1px solid var(--line);
 }
 .tx-row:last-child { border-bottom: 0; }
-.tx-date { min-width: 56px; color: var(--txt-3); }
+.tx-date { font-family: var(--mono); font-size: 11.5px; min-width: 62px; color: var(--txt-3); }
 .tx-main { flex: 1; min-width: 0; }
-.tx-amount { min-width: 104px; text-align: right; font-variant-numeric: tabular-nums; }
+.tx-amount { font-family: var(--mono); min-width: 112px; text-align: right; font-variant-numeric: tabular-nums; }
 .tx-amount.ok { color: var(--ok); }
 .tx-amount.bad { color: var(--bad); }
 
@@ -284,7 +289,8 @@
   padding: 8px 11px; border-bottom: 1px solid var(--line); font-size: 12px; white-space: nowrap;
 }
 .cw-tr:last-child { border-bottom: 0; }
-.cw-tr span { overflow: hidden; text-overflow: ellipsis; }
+.cw-tr span { overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.cw-th span { font-family: var(--cond); font-weight: 600; font-size: 11.5px; letter-spacing: .08em; }
 .cw-th {
   font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--txt-3); background: var(--bg-3); position: sticky; top: 0;
@@ -315,6 +321,9 @@
   border-top: 2px solid rgba(212, 199, 87, .55); pointer-events: none;
 }
 .tp-track {
+  /* mesma fonte do exibidor: se o preview usasse outra, a quebra de linha
+     que o apresentador ensaia não seria a que aparece no ar */
+  font-family: 'Saira Condensed', system-ui, sans-serif;
   position: absolute; top: 42%; left: 0; right: 0;
   will-change: transform; transform-origin: center center;
 }

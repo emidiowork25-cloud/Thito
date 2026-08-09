@@ -337,3 +337,23 @@ para a chave da API.
 
 O modelo é o `claude-opus-5`. A profundidade de raciocínio é ajustável em Ajustes →
 Assistente — `low` para respostas rápidas e baratas, `xhigh` para análises pesadas.
+
+---
+
+## Tipografia
+
+Quatro famílias, cada uma no que faz melhor — e todas servidas do próprio projeto, porque
+o hub precisa abrir offline e fonte que não carrega vira fallback silencioso.
+
+| Família | Onde aparece | Por quê |
+|---|---|---|
+| **Teko** | Números dos indicadores, relógio, marca THITO | Estreita e altíssima: mostrador de HUD. Ilegível como texto, imbatível como leitura de painel |
+| **Chakra Petch** | Títulos, botões, navegação, prosa, conversa com o JARBAS | Carrega o caráter técnico e ainda se lê em parágrafo |
+| **Saira Condensed** | Rótulos, cabeçalhos de tabela, legendas — e o teleprompter | Resolve onde falta largura; no ar, cabe mais palavra por linha sem apertar |
+| **IBM Plex Mono** | Horas, datas, valores, códigos, o roteiro no editor | Alinha número em coluna, e é onde o alinhamento importa |
+
+Os tokens são `--display`, `--ui`, `--cond` e `--mono`. Trocar uma família é mudar uma linha.
+
+O **exibidor do teleprompter carrega a Saira Condensed embutida** no próprio arquivo, em
+base64. Não é capricho: o preview do editor e o que aparece no celular precisam quebrar
+linha no mesmo lugar, e no meio de um programa ao vivo não dá para depender de rede.

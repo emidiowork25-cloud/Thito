@@ -9,11 +9,12 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'thito-v3';
+const VERSAO = 'thito-v4';
 
 const CASCA = [
   './',
   './index.html',
+  './styles/fontes.css',
   './styles/base.css',
   './styles/views.css',
   './app/main.js',
@@ -45,6 +46,30 @@ const CASCA = [
   './app/views/reunioes.js',
   './app/views/teleprompter.js',
   './manifest.webmanifest',
+  './assets/fontes/chakra-petch-400-latin-ext.woff2',
+  './assets/fontes/chakra-petch-400-latin.woff2',
+  './assets/fontes/chakra-petch-500-latin-ext.woff2',
+  './assets/fontes/chakra-petch-500-latin.woff2',
+  './assets/fontes/chakra-petch-600-latin-ext.woff2',
+  './assets/fontes/chakra-petch-600-latin.woff2',
+  './assets/fontes/chakra-petch-700-latin-ext.woff2',
+  './assets/fontes/chakra-petch-700-latin.woff2',
+  './assets/fontes/ibm-plex-mono-400-latin-ext.woff2',
+  './assets/fontes/ibm-plex-mono-400-latin.woff2',
+  './assets/fontes/ibm-plex-mono-500-latin-ext.woff2',
+  './assets/fontes/ibm-plex-mono-500-latin.woff2',
+  './assets/fontes/saira-condensed-400-latin-ext.woff2',
+  './assets/fontes/saira-condensed-400-latin.woff2',
+  './assets/fontes/saira-condensed-500-latin-ext.woff2',
+  './assets/fontes/saira-condensed-500-latin.woff2',
+  './assets/fontes/saira-condensed-600-latin-ext.woff2',
+  './assets/fontes/saira-condensed-600-latin.woff2',
+  './assets/fontes/teko-400-latin-ext.woff2',
+  './assets/fontes/teko-400-latin.woff2',
+  './assets/fontes/teko-500-latin-ext.woff2',
+  './assets/fontes/teko-500-latin.woff2',
+  './assets/fontes/teko-600-latin-ext.woff2',
+  './assets/fontes/teko-600-latin.woff2',
   './assets/jarbas-retrato.png',
   './assets/icone-180.png',
   './assets/icone-192.png',
