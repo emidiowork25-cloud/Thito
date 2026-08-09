@@ -221,24 +221,24 @@ function htmlDoDeck(deck, { apresentacao = false } = {}) {
 <html lang="pt-BR"><head><meta charset="utf-8">
 <title>${esc(deck.title)}</title>
 <style>
-  :root { --cy:#00e5ff; --vi:#8b5cff; --bg:#05070d; --txt:#dbe7f5; }
+  :root { --cy:#d4c757; --vi:#cd4a2c; --bg:#08181d; --txt:#ece7d5; }
   * { box-sizing:border-box }
   body { margin:0; background:var(--bg); color:var(--txt);
          font-family:"Segoe UI",system-ui,sans-serif; overflow:hidden }
   body::before { content:''; position:fixed; inset:0; pointer-events:none; opacity:.5;
-    background-image:linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),
-                     linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);
+    background-image:linear-gradient(rgba(212,199,87,.05) 1px,transparent 1px),
+                     linear-gradient(90deg,rgba(212,199,87,.05) 1px,transparent 1px);
     background-size:44px 44px }
   .slide { display:none; position:fixed; inset:0; padding:8vh 10vw;
            flex-direction:column; justify-content:center }
   .slide.on { display:flex; animation:in .35s ease }
   @keyframes in { from { opacity:0; transform:translateY(14px) } }
   h2 { font-size:clamp(28px,4.6vw,58px); margin:0 0 .6em; line-height:1.15;
-       background:linear-gradient(120deg,var(--cy),var(--vi));
+       background:linear-gradient(120deg,var(--gold),var(--rust));
        -webkit-background-clip:text; background-clip:text; color:transparent }
   ul { font-size:clamp(16px,2.1vw,27px); line-height:1.75; padding-left:1.1em; margin:0 }
   li { margin-bottom:.5em }
-  li::marker { color:var(--cy) }
+  li::marker { color:var(--gold) }
   footer { position:absolute; left:10vw; right:10vw; bottom:5vh;
            display:flex; justify-content:space-between; font-size:13px; opacity:.45 }
   .notes { display:none }

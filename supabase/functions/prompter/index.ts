@@ -22,7 +22,7 @@ function pagina(url: string, chave: string, sala: string): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#000000">
+<meta name="theme-color" content="#08181d">
 <title>Exibidor — THITO</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23000'/><rect x='14' y='40' width='72' height='7' fill='%2300e5ff'/></svg>">
 <style>
@@ -58,10 +58,10 @@ function pagina(url: string, chave: string, sala: string): string {
     font-weight: 600; letter-spacing: .01em;
   }
   #trilho p.cue {
-    color: #ffb454; font-weight: 400; font-style: italic;
+    color: #e39a3c; font-weight: 400; font-style: italic;
     opacity: .85; font-size: .62em;
   }
-  body.claro #trilho p.cue { color: #b3700c; }
+  body.claro #trilho p.cue { color: #96610f; }
 
   /* aviso enquanto o editor não manda nada */
   #espera {
@@ -69,23 +69,23 @@ function pagina(url: string, chave: string, sala: string): string {
     gap: 16px; justify-items: center; background: #000; text-align: center; padding: 24px;
   }
   #espera.oculto { display: none; }
-  .anel { width: 62px; height: 62px; border-radius: 50%; border: 2px solid #123; border-top-color: #00e5ff; animation: girar 1.1s linear infinite; }
+  .anel { width: 62px; height: 62px; border-radius: 50%; border: 2px solid #123; border-top-color: #d4c757; animation: girar 1.1s linear infinite; }
   @keyframes girar { to { transform: rotate(360deg); } }
-  #espera h1 { font-size: 15px; font-weight: 600; letter-spacing: .22em; margin: 0; color: #8aa0bd; }
-  #espera p { font-size: 13px; color: #5b6f8c; margin: 0; max-width: 30ch; line-height: 1.6; }
+  #espera h1 { font-size: 15px; font-weight: 600; letter-spacing: .22em; margin: 0; color: #9fb6ba; }
+  #espera p { font-size: 13px; color: #6d8b93; margin: 0; max-width: 30ch; line-height: 1.6; }
 
   /* barra de status, some sozinha */
   #barra {
     position: fixed; top: 0; left: 0; right: 0; z-index: 4;
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
     padding: 10px 14px; font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
-    color: #5b6f8c; background: linear-gradient(#000c, transparent);
+    color: #6d8b93; background: linear-gradient(#000c, transparent);
     transition: opacity .4s; font-family: ui-monospace, monospace;
   }
   #barra.sumiu { opacity: 0; }
-  body.claro #barra { color: #6b7d94; background: linear-gradient(#fffc, transparent); }
-  .luz { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff5f6d; margin-right: 6px; }
-  .luz.on { background: #22e39a; }
+  body.claro #barra { color: #6d8b93; background: linear-gradient(#fffc, transparent); }
+  .luz { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #e2553a; margin-right: 6px; }
+  .luz.on { background: #3fa08d; }
 
   @media (prefers-reduced-motion: reduce) { .anel { animation: none; } }
 </style>

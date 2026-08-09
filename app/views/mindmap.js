@@ -15,7 +15,7 @@ let selecionado = null;
 let zoom = 1;
 let pan = { x: 0, y: 0 };
 
-const PALETA = ['#00e5ff', '#8b5cff', '#22e39a', '#ffb454', '#ff5f6d', '#4d8bff'];
+const PALETA = ['#d4c757', '#cd4a2c', '#4fa3a8', '#e08a5f', '#9aa84f', '#7fb3a4'];
 
 export function render(root, params = {}) {
   const mapas = store.list('mindmaps').sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
@@ -404,12 +404,12 @@ function exportarSvg(mapa, svg) {
   const estilo = document.createElementNS('http://www.w3.org/2000/svg', 'style');
   estilo.textContent = `
     .mm-edge { fill:none; stroke-width:1.6; opacity:.55 }
-    .mm-text { fill:#dbe7f5; font-family:"Segoe UI",system-ui,sans-serif }`;
+    .mm-text { fill:#ece7d5; font-family:"Segoe UI",system-ui,sans-serif }`;
   clone.prepend(estilo);
   const fundo = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
   fundo.setAttribute('width', '100%');
   fundo.setAttribute('height', '100%');
-  fundo.setAttribute('fill', '#05070d');
+  fundo.setAttribute('fill', '#08181d');
   clone.prepend(fundo);
   download(`${mapa.title.replace(/[^\w-]+/g, '-')}.svg`, new XMLSerializer().serializeToString(clone), 'image/svg+xml');
   toast('SVG exportado.', 'ok');

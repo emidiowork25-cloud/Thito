@@ -7,7 +7,7 @@
 import * as voice from './voice.js';
 import * as tools from './tools.js';
 import * as ctx from './context.js';
-import { createOrb } from './orb.js';
+import { createFace } from './face.js';
 import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
 import * as sb from '../core/supabase.js';
@@ -40,7 +40,7 @@ export function init() {
   ui.voiceToggle = $('#jarbas-voice-toggle');
   ui.speakToggle = $('#jarbas-speak-toggle');
 
-  orb = createOrb($('#jarbas-orb'));
+  orb = createFace($('#jarbas-face'));
 
   wireForm();
   wireVoice();
