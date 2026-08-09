@@ -557,7 +557,7 @@ async function verificarExibidor(url) {
       return { ok: false, motivo: 'O exibidor exige login, então o celular não consegue abrir. Republique-o como página pública:' };
     }
     if (res.status === 404) {
-      return { ok: false, motivo: 'A página do exibidor ainda não foi publicada no seu projeto. Rode uma vez, na pasta do THITO:' };
+      return { ok: false, motivo: 'A página do exibidor ainda não foi publicada no seu projeto. Rode uma vez, na pasta do JARBAS:' };
     }
     return { ok: false, motivo: `O exibidor respondeu ${res.status}. Tente publicar de novo:` };
   } catch {

@@ -23,7 +23,7 @@ function pagina(url: string, chave: string, sala: string): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#08181d">
-<title>Exibidor — THITO</title>
+<title>Exibidor — JARBAS</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23000'/><rect x='14' y='40' width='72' height='7' fill='%2300e5ff'/></svg>">
 <style>
   /* Saira Condensed viaja embutida: o exibidor tem que ficar idêntico ao

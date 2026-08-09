@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>THITO — Hub Pessoal</title>
+<title>JARBAS — seu mordomo</title>
 <link rel="stylesheet" href="styles/fontes.css">
 <link rel="stylesheet" href="styles/base.css">
 <link rel="stylesheet" href="styles/views.css">
@@ -11,13 +11,13 @@
 <link rel="preload" as="font" type="font/woff2" href="assets/fontes/chakra-petch-400-latin.woff2" crossorigin>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#08181d">
-<meta name="application-name" content="THITO">
+<meta name="application-name" content="JARBAS">
 <!-- iPhone: sem estas quatro linhas, "Adicionar à Tela de Início" abre uma
      aba do Safari com barra de endereço, em vez de um aplicativo. -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="THITO">
+<meta name="apple-mobile-web-app-title" content="JARBAS">
 <link rel="apple-touch-icon" sizes="180x180" href="assets/icone-180.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='%23d4c757' stroke-width='8'/><circle cx='50' cy='50' r='12' fill='%23d4c757'/></svg>">
 </head>
@@ -27,7 +27,7 @@
 
   <div id="boot" class="boot">
     <div class="boot-ring"><span></span><span></span><span></span></div>
-    <div class="boot-mark">T H I T O</div>
+    <div class="boot-mark">J A R B A S</div>
     <div class="boot-status" id="boot-status">inicializando núcleo…</div>
   </div>
 
@@ -36,8 +36,8 @@
       <div class="sidebar-brand">
         <span class="brand-core"></span>
         <div>
-          <div class="brand-text">THITO</div>
-          <div class="brand-sub">hub pessoal</div>
+          <div class="brand-text">JARBAS</div>
+          <div class="brand-sub">ao seu dispor</div>
         </div>
       </div>
       <nav id="nav" class="nav" aria-label="Seções"></nav>
@@ -103,7 +103,7 @@
   <script type="module" src="app/main.js"></script>
 
   <script>
-    // Registra o service worker: é ele que faz o THITO abrir instalado, com o
+    // Registra o service worker: é ele que faz o JARBAS abrir instalado, com o
     // servidor local desligado. Em file:// não existe, e tudo bem — o hub roda igual.
     //
     // Como o cache responde antes da rede, uma versão nova publicada só apareceria
@@ -121,7 +121,7 @@
           const bar = document.createElement('div');
           bar.id = 'update-bar';
           bar.className = 'update-bar';
-          bar.innerHTML = '<span>Uma versão nova do THITO está pronta.</span>';
+          bar.innerHTML = '<span>Uma versão nova do JARBAS está pronta.</span>';
           const btn = document.createElement('button');
           btn.textContent = 'Atualizar agora';
           btn.onclick = () => location.reload();

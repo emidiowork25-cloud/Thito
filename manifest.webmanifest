@@ -1,7 +1,7 @@
 {
-  "name": "THITO — Hub Pessoal",
-  "short_name": "THITO",
-  "description": "Agenda, finanças, compras, mapas mentais, reuniões, apresentações, copywriter e teleprompter, com o JARBAS dentro.",
+  "name": "JARBAS — seu mordomo",
+  "short_name": "JARBAS",
+  "description": "Agenda, finanças, compras, mapas mentais, reuniões, apresentações, copywriter e teleprompter — e um mordomo que conhece tudo isso.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

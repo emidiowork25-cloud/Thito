@@ -1,5 +1,5 @@
 /**
- * Service worker do THITO.
+ * Service worker do JARBAS.
  *
  * Existe por um motivo só: deixar o hub abrir como aplicativo instalado, com o
  * servidor local desligado. Ele guarda o app inteiro no primeiro carregamento e,
@@ -9,7 +9,7 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'thito-v4';
+const VERSAO = 'jarbas-v4';
 
 const CASCA = [
   './',
@@ -113,7 +113,7 @@ self.addEventListener('fetch', (evento) => {
       try {
         return await fetch(req);
       } catch {
-        return new Response('O THITO ainda não foi carregado uma vez neste navegador.', {
+        return new Response('O JARBAS ainda não foi carregado uma vez neste navegador.', {
           status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         });
       }

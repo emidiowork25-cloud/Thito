@@ -263,7 +263,7 @@ function cardBackup() {
 function cardSobre() {
   const body = el('div', { class: 'tiny dim' });
   body.append(el('p', { style: 'margin-top:0' },
-    'THITO é seu hub pessoal: agenda, finanças, compras, mapas mentais, reuniões e apresentações num lugar só, '
+    'JARBAS é o seu mordomo: agenda, finanças, compras, mapas mentais, reuniões e apresentações num lugar só, '
     + 'com o JARBAS por cima de tudo isso.'));
 
   body.append(el('div', { class: 'atalhos' },

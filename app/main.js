@@ -71,7 +71,7 @@ function mostrarFalhaDeBoot(err) {
   box.style.cssText = 'max-width:560px;text-align:center;display:grid;gap:12px;justify-items:center';
   box.innerHTML = `
     <div style="font-size:32px">⚠</div>
-    <div style="font-size:15px">Não consegui iniciar o THITO.</div>
+    <div style="font-size:15px">Não consegui iniciar o JARBAS.</div>
     <pre style="font-size:11px;color:#9fb6ba;white-space:pre-wrap;text-align:left;max-width:100%;overflow:auto">${
   String(err?.stack ?? err).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</pre>
     <div style="font-size:12px;color:#6d8b93">

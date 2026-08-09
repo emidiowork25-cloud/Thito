@@ -1,4 +1,4 @@
-/* THITO — estilos específicos de cada tela */
+/* JARBAS — estilos específicos de cada tela */
 
 /* ================= grades ================= */
 .dash-stats { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 14px; }

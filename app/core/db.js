@@ -1,6 +1,9 @@
 // Camada IndexedDB. Um object store por coleção, todos com a mesma forma:
 // { id, updatedAt, deleted, ...campos }
 
+// O banco continua se chamando 'thito' de propósito: o sistema foi renomeado para
+// JARBAS, mas trocar o nome aqui esconderia todos os dados que já estão gravados no
+// navegador de quem usou a versão anterior. Nome interno não é marca.
 const DB_NAME = 'thito';
 const DB_VERSION = 2;
 

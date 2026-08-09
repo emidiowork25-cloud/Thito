@@ -35,7 +35,7 @@ export function motivoSemVoz() {
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   if (iOS) {
     return 'O iOS só reconhece voz no Safari, e às vezes não no app instalado na tela de início. '
-      + 'Abra o THITO pelo Safari para ditar. A fala do JARBAS continua funcionando.';
+      + 'Abra o JARBAS pelo Safari para ditar. A fala do JARBAS continua funcionando.';
   }
   return 'Este navegador não reconhece voz. Use Chrome ou Edge.';
 }

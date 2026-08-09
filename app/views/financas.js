@@ -286,7 +286,7 @@ function exportarCsv() {
     ].join(';')),
   ];
   // BOM para o Excel abrir os acentos corretamente
-  download(`thito-financas-${mes}.csv`, `﻿${linhas.join('\n')}`, 'text/csv;charset=utf-8');
+  download(`jarbas-financas-${mes}.csv`, `﻿${linhas.join('\n')}`, 'text/csv;charset=utf-8');
   toast('CSV exportado.', 'ok');
 }
 

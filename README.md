@@ -1,9 +1,9 @@
-# THITO — seu hub pessoal, com o JARBAS dentro
+# JARBAS — seu mordomo pessoal
 
 Um único lugar para tudo que é seu: agenda, finanças, listas de compras, mapas mentais
 para estudo, atas de reunião, apresentações, escrita para redes e um teleprompter de
-emissora. Por cima de tudo isso mora o **JARBAS** — um assistente que enxerga seus dados,
-conversa por voz e age por você.
+emissora. Por cima de tudo isso mora o **JARBAS** — um mordomo que conhece a sua rotina,
+conversa por voz e resolve por você.
 
 Não é um site para mostrar aos outros. É um painel privado que você abre ao ligar o
 computador e fecha ao desligar.
@@ -12,10 +12,10 @@ computador e fecha ao desligar.
 
 ## Começar em 2 minutos
 
-1. **Baixe a pasta** para o seu PC (ex.: `C:\Thito`).
+1. **Baixe a pasta** para o seu PC (ex.: `C:\Jarbas`).
 2. **Dê dois cliques em `start.bat`.**
    Ele sobe um servidor local e abre o hub numa janela limpa do Chrome.
-   Uma janela preta fica aberta — é o servidor. Fechá-la desliga o THITO.
+   Uma janela preta fica aberta — é o servidor. Fechá-la desliga o JARBAS.
 3. Pronto. Agenda, finanças, compras, mapas, reuniões e apresentações já funcionam,
    **offline, sem depender de nada**.
 
@@ -33,7 +33,7 @@ uma vez, e o repositório já vem com o `vercel.json` pronto — **não há buil
 serve os arquivos**.
 
 1. Entre em [vercel.com](https://vercel.com) com a sua conta do GitHub.
-2. **Add New… → Project** e escolha o repositório `Thito`.
+2. **Add New… → Project** e escolha o repositório `Jarbas`.
 3. Em *Framework Preset* deixe **Other**. Não preencha build nem output — o `vercel.json`
    já diz que a raiz é a saída.
 4. **Deploy.** Em cerca de um minuto sai um endereço `https://…vercel.app`.
@@ -67,7 +67,7 @@ detecta a situação e explica isso na tela em vez de mandar você "usar o Chrom
 ## Instalar como aplicativo de verdade
 
 O `start.bat` já abre numa janela limpa, mas continua sendo um navegador com um servidor
-atrás. Dá para instalar o THITO como programa do Windows — **ícone no menu Iniciar, janela
+atrás. Dá para instalar o JARBAS como programa do Windows — **ícone no menu Iniciar, janela
 própria, sem barra de endereço, e abrindo com o servidor desligado.**
 
 **Uma vez só:**
@@ -76,7 +76,7 @@ própria, sem barra de endereço, e abrindo com o servidor desligado.**
 2. No Chrome, menu **⋮** → **Transmitir, salvar e compartilhar** → **Instalar página como app**.
    (No Edge: **⋯** → **Aplicativos** → **Instalar este site como um aplicativo**.)
    Se aparecer um ícone de instalar na barra de endereço, ele faz o mesmo.
-3. Confirme o nome **THITO**.
+3. Confirme o nome **JARBAS**.
 
 Pronto. Ele vira um aplicativo: aparece no menu Iniciar, dá para fixar na barra de tarefas,
 e abre em janela própria. Clique com o botão direito no ícone e você acha atalhos diretos
@@ -86,7 +86,7 @@ para Agenda, Finanças e Teleprompter.
 inteiro no navegador, então o app abre com o servidor desligado e sem internet — testado
 com o servidor derrubado: as dez telas carregam normalmente.
 
-> **Quando o `start.bat` ainda é necessário:** depois de atualizar os arquivos do THITO.
+> **Quando o `start.bat` ainda é necessário:** depois de atualizar os arquivos do JARBAS.
 > Suba o servidor uma vez e abra o app — ele pega a versão nova e volta a dispensar o
 > servidor. O endereço fica gravado como `http://localhost:7331`, então não mude a porta
 > no `start.bat` depois de instalar; se mudar, é só instalar de novo.
@@ -99,7 +99,7 @@ você deu uma vez vale para o aplicativo instalado.
 Dois cliques em **`instalar-inicializacao.bat`** e confirme.
 Para desfazer, rode o mesmo arquivo de novo — ele detecta e oferece remover.
 
-Se você instalou o THITO como aplicativo, prefira colocar o **atalho do app instalado** na
+Se você instalou o JARBAS como aplicativo, prefira colocar o **atalho do app instalado** na
 pasta de inicialização (`Win+R` → `shell:startup`): abre mais rápido e sem a janela preta.
 
 ---
@@ -250,7 +250,7 @@ início e pular parágrafo.
 ### Publicar o exibidor (uma vez só)
 
 A página do exibidor mora numa função do seu projeto Supabase, para o celular abrir de qualquer
-lugar. Rode uma vez, na pasta do THITO:
+lugar. Rode uma vez, na pasta do JARBAS:
 
 ```bash
 supabase functions deploy prompter --no-verify-jwt
@@ -347,7 +347,7 @@ o hub precisa abrir offline e fonte que não carrega vira fallback silencioso.
 
 | Família | Onde aparece | Por quê |
 |---|---|---|
-| **Teko** | Números dos indicadores, relógio, marca THITO | Estreita e altíssima: mostrador de HUD. Ilegível como texto, imbatível como leitura de painel |
+| **Teko** | Números dos indicadores, relógio, marca JARBAS | Estreita e altíssima: mostrador de HUD. Ilegível como texto, imbatível como leitura de painel |
 | **Chakra Petch** | Títulos, botões, navegação, prosa, conversa com o JARBAS | Carrega o caráter técnico e ainda se lê em parágrafo |
 | **Saira Condensed** | Rótulos, cabeçalhos de tabela, legendas — e o teleprompter | Resolve onde falta largura; no ar, cabe mais palavra por linha sem apertar |
 | **IBM Plex Mono** | Horas, datas, valores, códigos, o roteiro no editor | Alinha número em coluna, e é onde o alinhamento importa |

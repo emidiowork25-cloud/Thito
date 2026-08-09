@@ -1,4 +1,4 @@
-# Fontes do THITO
+# Fontes do JARBAS
 
 As quatro famílias são servidas do próprio projeto, não de CDN. O hub precisa abrir
 offline, e uma fonte que não carrega vira fallback silencioso — o desenho quebra sem

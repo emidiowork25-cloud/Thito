@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-title THITO — Hub Pessoal
+title JARBAS — Hub Pessoal
 cd /d "%~dp0"
 
 rem ---------------------------------------------------------------------------
-rem  O THITO precisa rodar em um servidor local (http://), nao direto do arquivo.
+rem  O JARBAS precisa rodar em um servidor local (http://), nao direto do arquivo.
 rem  Modulos JavaScript e o banco local (IndexedDB) nao funcionam em file://.
 rem  Este script sobe um servidor minusculo so na sua maquina e abre o navegador.
 rem ---------------------------------------------------------------------------
@@ -12,7 +12,7 @@ rem ---------------------------------------------------------------------------
 set PORT=7331
 
 echo.
-echo   THITO — subindo o hub em http://localhost:%PORT%
+echo   JARBAS — subindo o hub em http://localhost:%PORT%
 echo.
 
 rem --- 1) Escolhe o motor disponivel: Python, depois Node ---------------------
@@ -53,9 +53,9 @@ if defined CHROME (
 )
 
 rem --- 3) Sobe o servidor (segura esta janela; fechar ela derruba o hub) ------
-echo   Servidor rodando. Feche esta janela para desligar o THITO.
+echo   Servidor rodando. Feche esta janela para desligar o JARBAS.
 echo.
-echo   [dica] Instale o THITO como aplicativo: no menu (tres pontinhos) do Chrome,
+echo   [dica] Instale o JARBAS como aplicativo: no menu (tres pontinhos) do Chrome,
 echo          "Transmitir, salvar e compartilhar" ^> "Instalar pagina como app".
 echo          Depois disso ele ganha icone no menu Iniciar e abre sozinho,
 echo          sem esta janela e sem servidor. Veja o README.
