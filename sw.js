@@ -9,7 +9,7 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'thito-v1';
+const VERSAO = 'thito-v2';
 
 const CASCA = [
   './',
@@ -44,6 +44,7 @@ const CASCA = [
   './app/views/reunioes.js',
   './app/views/teleprompter.js',
   './manifest.webmanifest',
+  './assets/icone-180.png',
   './assets/icone-192.png',
   './assets/icone-512.png',
   './assets/icone-mascara.png',

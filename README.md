@@ -26,6 +26,44 @@ computador e fecha ao desligar.
 
 ---
 
+## Publicar na Vercel (e abrir do iPhone, de qualquer lugar)
+
+Sem HTTPS o iPhone não instala o app nem libera o microfone. Publicar resolve os dois de
+uma vez, e o repositório já vem com o `vercel.json` pronto — **não há build, a Vercel só
+serve os arquivos**.
+
+1. Entre em [vercel.com](https://vercel.com) com a sua conta do GitHub.
+2. **Add New… → Project** e escolha o repositório `Thito`.
+3. Em *Framework Preset* deixe **Other**. Não preencha build nem output — o `vercel.json`
+   já diz que a raiz é a saída.
+4. **Deploy.** Em cerca de um minuto sai um endereço `https://…vercel.app`.
+
+Abra esse endereço no **Safari do iPhone** → botão de compartilhar → **Adicionar à Tela de
+Início**. Ele vira um ícone de aplicativo: tela cheia, sem barra de endereço, respeitando a
+ilha dinâmica e o indicador de home.
+
+**Entre na sua conta em Ajustes.** Sem isso o celular abre um hub vazio: os dados moram no
+navegador de cada aparelho, e é a conta que sincroniza os dois.
+
+### O que fica público e o que não fica
+
+Os **arquivos do programa** ficam num endereço público — qualquer um com o link vê a
+interface vazia. Os **seus dados** não: continuam atrás do login, com a política do banco
+que garante que cada conta só enxerga as próprias linhas.
+
+Se quiser fechar também os arquivos, ponha o **Cloudflare Access** na frente do domínio, ou
+troque o projeto na Vercel para *Deployment Protection → Vercel Authentication* — aí só quem
+estiver logado na sua conta da Vercel abre a página.
+
+### Voz no iPhone
+
+O reconhecimento de fala no iOS existe só no Safari, e é instável quando o app foi adicionado
+à tela de início. Se o microfone não responder no ícone, abra o mesmo endereço pelo Safari
+para ditar — a **fala** do JARBAS (ele responder em voz alta) funciona nos dois casos. O app
+detecta a situação e explica isso na tela em vez de mandar você "usar o Chrome".
+
+---
+
 ## Instalar como aplicativo de verdade
 
 O `start.bat` já abre numa janela limpa, mas continua sendo um navegador com um servidor

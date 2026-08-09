@@ -1,0 +1,6 @@
+# O que não precisa ir para o ar. O hub é só HTML, CSS e JS de módulo —
+# a Vercel serve a pasta como está, sem build.
+supabase/
+*.bat
+README.md
+.gitignore

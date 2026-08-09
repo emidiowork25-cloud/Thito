@@ -58,7 +58,7 @@ export function init() {
   if (!voice.sttSupported) {
     ui.mic.classList.add('off');
     ui.voiceToggle.disabled = true;
-    ui.voiceToggle.title = 'Este navegador não reconhece voz. Use Chrome ou Edge.';
+    ui.voiceToggle.title = voice.motivoSemVoz();
   }
 
   newConversation({ silent: true });
@@ -384,7 +384,7 @@ function wireControls() {
 }
 
 function beginPTT() {
-  if (!voice.sttSupported) { toast('Este navegador não reconhece voz. Use Chrome ou Edge.', 'err'); return; }
+  if (!voice.sttSupported) { toast(voice.motivoSemVoz(), 'err'); return; }
   previousVoiceMode = voice.getState().mode === 'wake' ? 'wake' : 'off';
   ui.mic.classList.add('on');
   voice.pushToTalkStart();

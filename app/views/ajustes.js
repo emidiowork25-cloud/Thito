@@ -85,7 +85,7 @@ function cardVoz() {
   const body = el('div');
 
   if (!voice.sttSupported) {
-    body.append(el('div', { class: 'aviso', text: 'Este navegador não reconhece voz. A fala do JARBAS funciona, mas para falar com ele use o Chrome ou o Edge.' }));
+    body.append(el('div', { class: 'aviso', text: voice.motivoSemVoz() }));
   }
 
   const vozes = voice.listVoices();

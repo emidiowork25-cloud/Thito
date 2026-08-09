@@ -2,14 +2,20 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>THITO — Hub Pessoal</title>
 <link rel="stylesheet" href="styles/base.css">
 <link rel="stylesheet" href="styles/views.css">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#05080f">
 <meta name="application-name" content="THITO">
-<link rel="apple-touch-icon" href="assets/icone-192.png">
+<!-- iPhone: sem estas quatro linhas, "Adicionar à Tela de Início" abre uma
+     aba do Safari com barra de endereço, em vez de um aplicativo. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="THITO">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/icone-180.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='34' fill='none' stroke='%2300e5ff' stroke-width='8'/><circle cx='50' cy='50' r='12' fill='%2300e5ff'/></svg>">
 </head>
 <body>

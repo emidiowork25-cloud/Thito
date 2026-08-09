@@ -22,6 +22,23 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 const synth = window.speechSynthesis || null;
 
 export const sttSupported = !!SR;
+
+/**
+ * Explica por que a voz não funciona, no idioma do aparelho de quem lê.
+ * Mandar um usuário de iPhone "usar o Chrome" é inútil: todo navegador no iOS
+ * roda o mesmo motor do Safari, então o problema (e a solução) são outros.
+ */
+export function motivoSemVoz() {
+  if (sttSupported) return '';
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (iOS) {
+    return 'O iOS só reconhece voz no Safari, e às vezes não no app instalado na tela de início. '
+      + 'Abra o THITO pelo Safari para ditar. A fala do JARBAS continua funcionando.';
+  }
+  return 'Este navegador não reconhece voz. Use Chrome ou Edge.';
+}
 export const ttsSupported = !!synth;
 
 /** Variações que aceitamos como palavra-chave (fala reconhecida erra bastante). */
