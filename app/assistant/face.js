@@ -18,11 +18,11 @@
  */
 
 const PALETA = {
-  idle:      { rede: '#6f8aa3', circuito: '#bcceda', vivo: '#e2eef7', pulso: '#f5faff' },
-  listening: { rede: '#89a7c0', circuito: '#dceaf4', vivo: '#ffffff', pulso: '#ffffff' },
-  thinking:  { rede: '#9a8a6a', circuito: '#d3a35f', vivo: '#f0dcb4', pulso: '#fff3d8' },
-  speaking:  { rede: '#6f8fa8', circuito: '#9fc4dd', vivo: '#e2eef7', pulso: '#ffffff' },
-  error:     { rede: '#8a5f5a', circuito: '#d3736b', vivo: '#f0b0a8', pulso: '#ffd8d2' },
+  idle:      { rede: '#3d63b8', circuito: '#4ca8dd', vivo: '#a8d8f2', pulso: '#eaf2fb' },
+  listening: { rede: '#5a86d8', circuito: '#7ec4ea', vivo: '#d6ecf9', pulso: '#ffffff' },
+  thinking:  { rede: '#8a6fc4', circuito: '#e0a63c', vivo: '#f4d79a', pulso: '#fff0cf' },
+  speaking:  { rede: '#4a5fc0', circuito: '#6fb9e4', vivo: '#bfe2f6', pulso: '#ffffff' },
+  error:     { rede: '#a04a63', circuito: '#f0576b', vivo: '#ffa8b4', pulso: '#ffd6dc' },
 };
 
 /* ============================ anatomia ============================ */
@@ -437,7 +437,7 @@ export function createFace(canvas, { semente = 20260809, densidade = 1 } = {}) {
 
     // órbita e narina: vazios escavados por cima de tudo
     ctx.save();
-    ctx.fillStyle = 'rgba(6, 12, 17, .92)';
+    ctx.fillStyle = 'rgba(4, 6, 20, .92)';
     ctx.fill(olho);
     ctx.fill(nariz);
     if (detalhado) ctx.fill(ouvido);

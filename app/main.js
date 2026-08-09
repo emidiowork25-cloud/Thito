@@ -72,9 +72,9 @@ function mostrarFalhaDeBoot(err) {
   box.innerHTML = `
     <div style="font-size:32px">⚠</div>
     <div style="font-size:15px">Não consegui iniciar o JARBAS.</div>
-    <pre style="font-size:11px;color:#a8bbc9;white-space:pre-wrap;text-align:left;max-width:100%;overflow:auto">${
+    <pre style="font-size:11px;color:#9fb6d4;white-space:pre-wrap;text-align:left;max-width:100%;overflow:auto">${
   String(err?.stack ?? err).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]))}</pre>
-    <div style="font-size:12px;color:#6e8093">
+    <div style="font-size:12px;color:#6b7fa8">
       Causa mais comum: o app foi aberto direto pelo arquivo (file://) em vez de um servidor local.
       Feche esta janela e use o <strong>start.bat</strong>.
     </div>`;

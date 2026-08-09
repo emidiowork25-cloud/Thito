@@ -221,7 +221,7 @@ function htmlDoDeck(deck, { apresentacao = false } = {}) {
 <html lang="pt-BR"><head><meta charset="utf-8">
 <title>${esc(deck.title)}</title>
 <style>
-  :root { --cy:#bcceda; --vi:#c58274; --bg:#141f27; --txt:#f5faff; }
+  :root { --cy:#4ca8dd; --vi:#f0576b; --bg:#070a1e; --txt:#eaf2fb; }
   * { box-sizing:border-box }
   body { margin:0; background:var(--bg); color:var(--txt);
          font-family:"Segoe UI",system-ui,sans-serif; overflow:hidden }
