@@ -342,18 +342,20 @@ Assistente — `low` para respostas rápidas e baratas, `xhigh` para análises p
 
 ## Tipografia
 
-Quatro famílias, cada uma no que faz melhor — e todas servidas do próprio projeto, porque
-o hub precisa abrir offline e fonte que não carrega vira fallback silencioso.
-
-| Família | Onde aparece | Por quê |
+| Papel | Fonte pedida | O que está hospedado |
 |---|---|---|
-| **Teko** | Números dos indicadores, relógio, marca JARBAS | Estreita e altíssima: mostrador de HUD. Ilegível como texto, imbatível como leitura de painel |
-| **Chakra Petch** | Títulos, botões, navegação, prosa, conversa com o JARBAS | Carrega o caráter técnico e ainda se lê em parágrafo |
-| **Saira Condensed** | Rótulos, cabeçalhos de tabela, legendas — e o teleprompter | Resolve onde falta largura; no ar, cabe mais palavra por linha sem apertar |
-| **IBM Plex Mono** | Horas, datas, valores, códigos, o roteiro no editor | Alinha número em coluna, e é onde o alinhamento importa |
+| **Destaque** — saudação, números, títulos, marca | Gotham Bold | Montserrat 700/800 |
+| **Subtítulo e rótulo** — cabeçalhos de cartão, legendas, relógio | Bebas Neue | Bebas Neue |
+| **Corpo** — texto, listas, conversa com o JARBAS | Creato Display | Figtree |
+| **Dados** — horas, valores, códigos, roteiro | — | IBM Plex Mono |
 
-Os tokens são `--display`, `--ui`, `--cond` e `--mono`. Trocar uma família é mudar uma linha.
+**Gotham e Creato são licenciadas** e não podem ser redistribuídas com o projeto. Os
+nomes reais vêm primeiro na pilha do CSS: se você tiver a licença instalada no
+computador, o navegador usa as de verdade sem mudar uma linha. Sem elas, cai nas
+substitutas livres. Detalhes em `assets/fontes/LEIA-ME.md`.
 
-O **exibidor do teleprompter carrega a Saira Condensed embutida** no próprio arquivo, em
-base64. Não é capricho: o preview do editor e o que aparece no celular precisam quebrar
-linha no mesmo lugar, e no meio de um programa ao vivo não dá para depender de rede.
+Bebas Neue só tem caixa-alta — por isso é rótulo e subtítulo, nunca corpo.
+
+O **exibidor do teleprompter** carrega a fonte de corpo embutida em base64 na própria
+função: o preview do editor e o que aparece no celular precisam quebrar linha no mesmo
+lugar, e no meio de um programa ao vivo não dá para depender de rede.

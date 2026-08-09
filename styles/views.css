@@ -21,10 +21,13 @@
   display: flex; align-items: center; justify-content: space-between;
   gap: 20px; flex-wrap: wrap; margin-bottom: 14px;
   background:
-    linear-gradient(120deg, rgba(76, 168, 221, .10), rgba(41, 47, 145, .07)),
+    linear-gradient(120deg, rgba(94, 179, 196, .10), rgba(44, 83, 100, .07)),
     var(--glass);
 }
-.hero-greet { font-size: 24px; font-weight: 600; letter-spacing: .005em; }
+.hero-greet {
+  font-family: var(--display); font-size: 25px; font-weight: 700;
+  letter-spacing: -.008em; text-shadow: var(--txt-shadow-forte);
+}
 .hero-brief { margin: 6px 0 0; color: var(--txt-2); max-width: 62ch; }
 .hero-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
@@ -33,14 +36,15 @@
   background: var(--glass); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 15px 16px;
 }
-.stat-label { font-family: var(--cond); font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--txt-3); }
+.stat-label { font-family: var(--sub); font-size: 14px; letter-spacing: .13em; color: var(--txt-3); }
 .stat-value {
-  font-family: var(--display); font-size: 38px; font-weight: 500; line-height: 1.05;
-  margin-top: 2px; letter-spacing: .01em; font-variant-numeric: tabular-nums;
+  font-family: var(--display); font-size: 31px; font-weight: 700; line-height: 1.12;
+  margin-top: 3px; letter-spacing: -.01em; font-variant-numeric: tabular-nums;
+  text-shadow: var(--txt-shadow-forte);
 }
 .stat-value.ok { color: var(--ok); }
 .stat-value.bad { color: var(--bad); }
-.stat-sub { font-family: var(--cond); font-size: 12px; color: var(--txt-3); margin-top: 3px; }
+.stat-sub { font-size: 12px; color: var(--txt-3); margin-top: 4px; }
 
 /* ================= listas genéricas ================= */
 .list-plain { display: flex; flex-direction: column; }
@@ -52,8 +56,8 @@
 .lp-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .lp-date { font-family: var(--mono); font-size: 11px; color: var(--txt-3); min-width: 78px; }
 .clickable { cursor: pointer; }
-.clickable:hover { background: rgba(76, 168, 221, .05); }
-.lp-row.sel { background: rgba(76, 168, 221, .09); box-shadow: inset 2px 0 0 var(--acc); }
+.clickable:hover { background: rgba(94, 179, 196, .05); }
+.lp-row.sel { background: rgba(94, 179, 196, .09); box-shadow: inset 2px 0 0 var(--acc); }
 
 /* ================= linha do tempo ================= */
 .timeline { display: flex; flex-direction: column; }
@@ -77,14 +81,13 @@
 .signal.bad { border-left-color: var(--bad); }
 .signal.info { border-left-color: var(--acc); }
 .signal-kind {
-  font-family: var(--cond); font-size: 10.5px; font-weight: 600;
-  letter-spacing: .12em; text-transform: uppercase;
+  font-family: var(--sub); font-size: 12.5px; letter-spacing: .11em;
   color: var(--txt-3); padding-top: 3px; min-width: 64px; flex: none;
 }
 
 /* ================= barras ================= */
 .bar-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
-.bar-label { font-family: var(--cond); min-width: 96px; font-size: 13px; color: var(--txt-2); text-transform: capitalize; }
+.bar-label { min-width: 96px; font-size: 13px; color: var(--txt-2); text-transform: capitalize; }
 .bar-track { flex: 1; height: 7px; background: var(--bg-3); border-radius: 4px; overflow: hidden; }
 .bar-fill { display: block; height: 100%; background: linear-gradient(90deg, var(--acc), var(--acc-2)); border-radius: 4px; }
 .bar-value { font-family: var(--mono); min-width: 92px; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -104,8 +107,8 @@
    para fora da tela no celular, e sexta e sábado ficam cortadas. */
 .cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .cal-head {
-  font-family: var(--cond); font-weight: 600;
-  text-align: center; font-size: 11px; letter-spacing: .1em;
+  font-family: var(--sub);
+  text-align: center; font-size: 13px; letter-spacing: .1em;
   text-transform: uppercase; color: var(--txt-3); padding-bottom: 6px;
 }
 .cal-day {
@@ -119,28 +122,28 @@
 .cal-day.out { opacity: .34; }
 .cal-day.today { border-color: var(--acc); }
 .cal-day.today .cal-num { color: var(--acc); font-weight: 700; }
-.cal-day.sel { background: rgba(76, 168, 221, .12); border-color: var(--acc); box-shadow: var(--glow); }
+.cal-day.sel { background: rgba(94, 179, 196, .12); border-color: var(--acc); box-shadow: var(--glow); }
 .cal-num { font-size: 12px; font-family: var(--mono); }
 .cal-dots { display: flex; flex-wrap: wrap; gap: 3px; }
 .cal-more { position: absolute; right: 6px; bottom: 4px; color: var(--txt-3); }
 
 .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--txt-3); display: inline-block; }
-.dot.cat-trabalho { background: #4ca8dd; }
-.dot.cat-pessoal { background: #8b7fe0; }
-.dot.cat-estudo { background: #35c39a; }
-.dot.cat-saúde { background: #f0576b; }
-.dot.cat-financeiro { background: #e0a63c; }
-.dot.cat-outro { background: #6b7fa8; }
+.dot.cat-trabalho { background: #5eb3c4; }
+.dot.cat-pessoal { background: #7f9fd0; }
+.dot.cat-estudo { background: #4bb391; }
+.dot.cat-saúde { background: #e0656b; }
+.dot.cat-financeiro { background: #d9a04a; }
+.dot.cat-outro { background: #6c8791; }
 .dot.task { background: transparent; border: 1px solid var(--txt-2); }
 
 .cal-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .legend-item { display: flex; align-items: center; gap: 5px; }
 
-.pill.cat-trabalho { color: #4ca8dd; border-color: rgba(76, 168, 221, .45); }
-.pill.cat-pessoal { color: #8b7fe0; border-color: rgba(139, 127, 224, .45); }
-.pill.cat-estudo { color: #35c39a; border-color: rgba(53, 195, 154, .45); }
-.pill.cat-saúde { color: #f0576b; border-color: rgba(240, 87, 107, .45); }
-.pill.cat-financeiro { color: #e0a63c; border-color: rgba(224, 166, 60, .45); }
+.pill.cat-trabalho { color: #5eb3c4; border-color: rgba(94, 179, 196, .45); }
+.pill.cat-pessoal { color: #7f9fd0; border-color: rgba(139, 127, 224, .45); }
+.pill.cat-estudo { color: #4bb391; border-color: rgba(53, 195, 154, .45); }
+.pill.cat-saúde { color: #e0656b; border-color: rgba(240, 87, 107, .45); }
+.pill.cat-financeiro { color: #d9a04a; border-color: rgba(224, 166, 60, .45); }
 
 /* ================= tarefas ================= */
 .task-row {
@@ -173,7 +176,7 @@
   color: var(--txt-2); cursor: pointer; font-size: 13px;
 }
 .chip:hover { border-color: var(--line-2); color: var(--txt); }
-.chip.on { color: var(--acc); border-color: var(--acc); background: rgba(76, 168, 221, .1); box-shadow: var(--glow); }
+.chip.on { color: var(--acc); border-color: var(--acc); background: rgba(94, 179, 196, .1); box-shadow: var(--glow); }
 .chip-count {
   font-size: 10px; font-family: var(--mono);
   background: var(--acc); color: #04121a; padding: 0 6px; border-radius: 999px;
@@ -195,7 +198,7 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--line); overflow: hidden;
   background:
-    radial-gradient(circle at 50% 45%, rgba(76, 168, 221, .07), transparent 62%),
+    radial-gradient(circle at 50% 45%, rgba(94, 179, 196, .07), transparent 62%),
     rgba(0, 0, 0, .25);
 }
 .mm-svg { width: 100%; height: 100%; cursor: grab; display: block; }
@@ -215,7 +218,7 @@
   aspect-ratio: 16 / 9; border-radius: var(--radius-sm);
   border: 1px solid var(--line-2); overflow: hidden;
   background:
-    linear-gradient(145deg, rgba(76, 168, 221, .07), rgba(41, 47, 145, .05)),
+    linear-gradient(145deg, rgba(94, 179, 196, .07), rgba(44, 83, 100, .05)),
     rgba(0, 0, 0, .3);
   display: flex;
 }
@@ -290,7 +293,7 @@
 }
 .cw-tr:last-child { border-bottom: 0; }
 .cw-tr span { overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
-.cw-th span { font-family: var(--cond); font-weight: 600; font-size: 11.5px; letter-spacing: .08em; }
+.cw-th span { font-family: var(--sub); font-size: 13px; letter-spacing: .08em; }
 .cw-th {
   font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
   color: var(--txt-3); background: var(--bg-3); position: sticky; top: 0;
@@ -318,12 +321,12 @@
 
 .tp-cue {
   position: absolute; left: 0; right: 0; top: 42%; z-index: 2;
-  border-top: 2px solid rgba(76, 168, 221, .55); pointer-events: none;
+  border-top: 2px solid rgba(94, 179, 196, .55); pointer-events: none;
 }
 .tp-track {
   /* mesma fonte do exibidor: se o preview usasse outra, a quebra de linha
      que o apresentador ensaia não seria a que aparece no ar */
-  font-family: 'Saira Condensed', system-ui, sans-serif;
+  font-family: 'Creato Display', 'Figtree', system-ui, sans-serif;
   position: absolute; top: 42%; left: 0; right: 0;
   will-change: transform; transform-origin: center center;
 }
