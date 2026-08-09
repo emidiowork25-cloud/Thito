@@ -9,7 +9,7 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'jarbas-v4';
+const VERSAO = 'jarbas-v5';
 
 const CASCA = [
   './',

@@ -2,11 +2,11 @@
 // e a energia do microfone. Puramente visual — some sozinho se o canvas sair da tela.
 
 const PALETTE = {
-  idle: ['#d4c757', '#1a4a63'],
-  listening: ['#d4c757', '#d4c757'],
-  thinking: ['#e39a3c', '#7a5a20'],
-  speaking: ['#cd4a2c', '#4a2f8a'],
-  error: ['#e2553a', '#6b2830'],
+  idle: ['#bcceda', '#3c4d5e'],
+  listening: ['#e2eef7', '#e2eef7'],
+  thinking: ['#d3a35f', '#6b5a3a'],
+  speaking: ['#9fc4dd', '#3f5c72'],
+  error: ['#d3736b', '#5e332f'],
 };
 
 export function createOrb(canvas) {

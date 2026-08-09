@@ -221,7 +221,7 @@ function htmlDoDeck(deck, { apresentacao = false } = {}) {
 <html lang="pt-BR"><head><meta charset="utf-8">
 <title>${esc(deck.title)}</title>
 <style>
-  :root { --cy:#d4c757; --vi:#cd4a2c; --bg:#08181d; --txt:#ece7d5; }
+  :root { --cy:#bcceda; --vi:#c58274; --bg:#141f27; --txt:#f5faff; }
   * { box-sizing:border-box }
   body { margin:0; background:var(--bg); color:var(--txt);
          font-family:"Segoe UI",system-ui,sans-serif; overflow:hidden }
@@ -234,11 +234,11 @@ function htmlDoDeck(deck, { apresentacao = false } = {}) {
   .slide.on { display:flex; animation:in .35s ease }
   @keyframes in { from { opacity:0; transform:translateY(14px) } }
   h2 { font-size:clamp(28px,4.6vw,58px); margin:0 0 .6em; line-height:1.15;
-       background:linear-gradient(120deg,var(--gold),var(--rust));
+       background:linear-gradient(120deg,var(--acc),var(--acc-2));
        -webkit-background-clip:text; background-clip:text; color:transparent }
   ul { font-size:clamp(16px,2.1vw,27px); line-height:1.75; padding-left:1.1em; margin:0 }
   li { margin-bottom:.5em }
-  li::marker { color:var(--gold) }
+  li::marker { color:var(--acc) }
   footer { position:absolute; left:10vw; right:10vw; bottom:5vh;
            display:flex; justify-content:space-between; font-size:13px; opacity:.45 }
   .notes { display:none }
