@@ -5,7 +5,7 @@
 // JARBAS, mas trocar o nome aqui esconderia todos os dados que já estão gravados no
 // navegador de quem usou a versão anterior. Nome interno não é marca.
 const DB_NAME = 'thito';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const COLLECTIONS = [
   'events',      // agenda
@@ -25,6 +25,13 @@ export const COLLECTIONS = [
   // nomes quase iguais é armadilha garantida na próxima leitura deste arquivo.
   'freelas',
   'producoes',
+
+  // v4 — SENHAS E ACESSOS.
+  // Esta coleção é a única do sistema cujo conteúdo está cifrado em repouso:
+  // aqui só existem { id, iv, ct }. Quem for mexer nela leia core/cofre.js
+  // antes — gravar um campo em texto claro aqui derruba a proteção inteira,
+  // porque este banco e a tabela do Supabase recebem exatamente o que vier.
+  'cofre',
 
   // v2 — módulos COPYWRITER e TELEPROMPTER
   'brands',      // vozes de marca (tom, público, o que evitar)

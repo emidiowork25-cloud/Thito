@@ -1,6 +1,12 @@
 // Monta o retrato dos seus dados que vai junto de cada pergunta ao JARBAS.
 // Compacto de propósito: o que cabe em poucos milhares de tokens e responde
 // 95% das perguntas do dia a dia. O resto o JARBAS busca com ferramentas.
+//
+// A coleção 'cofre' (módulo Senhas e acessos) NÃO entra aqui, nem cifrada nem
+// resumida, e não existe ferramenta que a leia. Senha não vira contexto: o que
+// vai neste texto sai do seu navegador e chega à API da Anthropic. Se um dia
+// alguém for tentado a acrescentar "só a contagem de acessos", a resposta é
+// não — o cofre é o único módulo que o JARBAS não enxerga, e é de propósito.
 
 import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';

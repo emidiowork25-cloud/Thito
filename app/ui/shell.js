@@ -5,6 +5,7 @@ import { $, el, debounce, norm } from '../core/util.js';
 import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
 import * as sync from '../core/sync.js';
+import * as cofre from '../core/cofre.js';
 import { on, emit } from '../core/bus.js';
 import { modal, toast } from './components.js';
 import * as jarbas from '../assistant/jarbas.js';
@@ -19,6 +20,7 @@ import * as apresentacoes from '../views/apresentacoes.js';
 import * as freela from '../views/freela.js';
 import * as eventos from '../views/eventos.js';
 import * as copywriter from '../views/copywriter.js';
+import * as senhas from '../views/senhas.js';
 import * as teleprompter from '../views/teleprompter.js';
 import * as ajustes from '../views/ajustes.js';
 
@@ -38,6 +40,7 @@ export const VIEWS = {
   freela: { mod: freela, title: 'Freela', icon: '◆' },
   mindmap: { mod: mindmap, title: 'Mind maps', icon: '⁂' },
   reunioes: { mod: reunioes, title: 'Reuniões', icon: '❐' },
+  senhas: { mod: senhas, title: 'Senhas e acessos', icon: '⛨' },
   teleprompter: { mod: teleprompter, title: 'Teleprompter', icon: '▤▤' },
 
   ajustes: { mod: ajustes, title: 'Ajustes', icon: '⚙' },
@@ -123,6 +126,9 @@ function badgeFor(view) {
       return n || null;
     }
     case 'copywriter': return store.list('copies', (c) => c.status === 'revisar').length || null;
+    // Cofre trancado é o normal e não merece aviso. O que merece é o cofre
+    // aberto: dá para esquecer que ele está assim e sair de perto da tela.
+    case 'senhas': return cofre.destrancado() ? '🔓' : null;
     default: return null;
   }
 }
@@ -179,6 +185,8 @@ const ACTIONS = [
   { title: 'Nova peça de texto', sub: 'copywriter', run: () => { go('copywriter'); emit('action:new-copy'); } },
   { title: 'Nova campanha', sub: 'copywriter', run: () => { go('copywriter'); emit('action:new-campaign'); } },
   { title: 'Novo roteiro de teleprompter', sub: 'teleprompter', run: () => { go('teleprompter'); emit('action:new-script'); } },
+  { title: 'Abrir o cofre', sub: 'senhas e acessos', run: () => go('senhas') },
+  { title: 'Trancar o cofre', sub: 'senhas e acessos', run: () => { cofre.trancar(); toast('Cofre trancado.', 'ok'); } },
   { title: 'Perguntar ao JARBAS', sub: 'assistente', run: () => jarbas.open() },
   { title: 'Falar com o JARBAS', sub: 'voz', run: () => { jarbas.open(); jarbas.startListening(); } },
   { title: 'Sincronizar agora', sub: 'nuvem', run: () => sync.run() },
@@ -278,6 +286,7 @@ export function init() {
   on('nav:go', ({ view, id }) => go(view, id ? { id } : {}));
   on('nav:refresh', () => render());
   on('data:changed', debounce(() => { renderNav(); }, 200));
+  on('cofre:estado', () => renderNav());
   on('settings:changed', () => render());
 
   const { view, id } = parseHash();

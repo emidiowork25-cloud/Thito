@@ -210,6 +210,9 @@ O JARBAS acumula três camadas de contexto:
 | **Reuniões** | Pauta, anotações, decisões e encaminhamentos com responsável e prazo — que aparecem no Painel até serem fechados. |
 | **Apresentações** | De um tópico a um deck navegável. Modo de exibição em tela cheia, roteiro de fala, exportação em HTML (que vira PDF com `Ctrl+P`). |
 | **Copywriter** | Escrita para redes, roteiros e campanhas, com contador por plataforma, variações A/B, voz de marca e leitura de métricas do Meta Business. |
+| **Freela** | O que é o trabalho, para quem, qual a sua função, quanto paga, quando paga. Marcar como pago lança a entrada no financeiro sozinho. |
+| **Eventos** | Orçamento, cachê, equipe (contratada ou da qual você faz parte) e checklist editável de antes, durante e depois. |
+| **Senhas e acessos** | O cofre. Mapa mental por dentro, criptografia de ponta a ponta por fora. [Detalhes abaixo](#senhas-e-acessos--o-cofre). |
 | **Teleprompter** | Editor no PC, exibidor no celular, sincronizados ao vivo. Texto espelhado, rolagem controlada, marcações de operação. |
 
 As seções conversam entre si: a lista de compras vira lançamento, a reunião vira pendência,
@@ -289,6 +292,49 @@ o código da sala. A aba **Exibidor & link** testa isso sozinha e avisa se ainda
 
 ---
 
+## Senhas e acessos — o cofre
+
+Por dentro é um mapa mental: `Casa → Bancos → Nubank → o acesso`. Cada nó guarda nome,
+usuário, senha, endereço, códigos de recuperação e anotações. Por fora, é o único módulo
+do sistema com criptografia própria.
+
+**Como funciona**
+
+1. Na primeira vez você define uma **senha-mestra**. Ela vira uma chave AES-256 por
+   PBKDF2-SHA256 com 600 mil iterações.
+2. Cada mapa de acessos é cifrado inteiro antes de ser gravado. O que vai para o
+   IndexedDB, para o Supabase e para o backup é `{ id, iv, ct }` — bytes embaralhados.
+   Nem o nome do mapa fica legível.
+3. A senha-mestra **não é gravada em lugar nenhum**. A chave vive na memória da aba e
+   morre quando o cofre tranca.
+
+**O que isso significa na prática**
+
+- Quem abrir o banco do navegador, o JSON do backup ou a tabela `records` no Supabase não
+  vê senha nenhuma. Nem você, sem a senha-mestra.
+- **Esquecer a senha-mestra é perder o cofre.** Não existe recuperação, e isso é de
+  propósito: se existisse para você, existiria para quem roubasse o banco. Anote em papel.
+- A senha-mestra é **separada** da senha da sua conta Supabase. Se forem iguais, quem
+  pegar uma pega as duas.
+
+**O que o cofre faz sozinho**
+
+- Tranca depois de 5 minutos sem uso (ajustável no ⚙ da própria tela), ao voltar para a
+  aba depois do prazo, e no botão *Trancar agora*.
+- Mostra as senhas mascaradas; o olho revela uma por vez e o segredo volta a se esconder
+  quando você troca de item.
+- Copiar limpa a área de transferência em 30 segundos.
+- Gera senhas de 20 caracteres com `crypto.getRandomValues`, e mede a força do que você
+  digitar em bits de entropia.
+- No desenho do mapa aparecem só os **nomes** — mostrar a tela ou compartilhar a janela
+  não vaza credencial. No celular o mapa vira lista, que é o que serve para procurar.
+
+**O JARBAS não enxerga o cofre.** A coleção não entra no contexto que vai junto das suas
+perguntas, não existe ferramenta que a leia, e ela não aparece na busca global. É o único
+módulo invisível para ele, e é intencional: o que vira contexto sai da sua máquina.
+
+---
+
 ## Onde ficam seus dados
 
 - **Neste computador**, no IndexedDB do navegador. É a fonte principal — o app lê e escreve
@@ -297,7 +343,11 @@ o código da sala. A aba **Exibidor & link** testa isso sozinha e avisa se ainda
 - **Backup em arquivo**: Ajustes → Backup local → Exportar. Um JSON que você guarda onde quiser.
 
 Ao conversar com o JARBAS, um **resumo** dos seus dados vai junto da pergunta (é o que
-permite a ele responder com números reais). Nada além desse resumo sai da sua máquina.
+permite a ele responder com números reais). Nada além desse resumo sai da sua máquina —
+e o cofre de senhas não entra nesse resumo em hipótese nenhuma.
+
+Nos três lugares acima, o módulo **Senhas e acessos** está cifrado. Um backup do sistema
+inteiro, nas mãos de outra pessoa, entrega tudo menos o cofre.
 
 > ⚠️ Um backup vale mais que arrependimento: exporte antes de mexer em "Apagar tudo"
 > ou de importar um arquivo com a opção "Substituir".

@@ -25,6 +25,10 @@ const DEFAULTS = {
   voiceVolume: 1,
   allowBargeIn: true,            // interromper a fala falando por cima
 
+  // Cofre (Senhas e acessos). Só o tempo de bloqueio mora aqui — a senha-mestra
+  // e a chave nunca são gravadas em preferência nenhuma.
+  cofreMinutos: 5,
+
   // Sincronização — já apontando para o projeto criado para você.
   // A chave publishable é pública por design: quem protege os dados é a política
   // RLS do banco, que só devolve as linhas do usuário autenticado.

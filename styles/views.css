@@ -201,7 +201,9 @@
     radial-gradient(circle at 50% 45%, rgba(94, 179, 196, .07), transparent 62%),
     rgba(0, 0, 0, .25);
 }
-.mm-svg { width: 100%; height: 100%; cursor: grab; display: block; }
+/* pan-y e não none: arrastar de lado move o mapa, arrastar para cima continua
+   rolando a página — senão o mapa vira uma armadilha no meio da tela do celular. */
+.mm-svg { width: 100%; height: 100%; cursor: grab; display: block; touch-action: pan-y; }
 .mm-svg:active { cursor: grabbing; }
 .mm-edge { fill: none; stroke-width: 1.6; opacity: .5; }
 .mm-node { cursor: pointer; }
@@ -209,6 +211,53 @@
 .mm-node.sel rect { filter: drop-shadow(0 0 8px currentColor); }
 .mm-text { fill: var(--txt); pointer-events: none; user-select: none; }
 .color-dot { width: 24px; height: 24px; border-radius: 50%; border: 0; cursor: pointer; }
+
+/* ================= senhas e acessos (cofre) ================= */
+.cofre-linha { display: flex; gap: 5px; align-items: stretch; }
+.cofre-linha input { flex: 1; min-width: 0; }
+/* Botões estreitos: o campo da senha carrega até quatro deles, e com o padding
+   padrão sobra pouco espaço para ver a própria senha. */
+.cofre-linha .btn.sm { flex: 0 0 auto; padding: 0 9px; }
+/* Fonte monoespaçada em campo mascarado: com senha à mostra dá para conferir
+   caractere a caractere sem confundir l com 1 ou O com 0. */
+.cofre-linha input[type='password'],
+.cofre-linha input[type='text'] { font-family: var(--mono); letter-spacing: .02em; }
+
+.cofre-forca { font-size: 11px; margin-top: 5px; color: var(--txt-3); }
+.cofre-forca.bad { color: var(--bad); }
+.cofre-forca.warn { color: var(--warn); }
+.cofre-forca.ok { color: var(--ok); }
+
+.cofre-selo {
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ok); border: 1px solid var(--ok); border-radius: 999px;
+  padding: 3px 10px; align-self: center;
+}
+
+.cofre-alerta {
+  border: 1px solid var(--warn); border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warn) 10%, transparent);
+  color: var(--txt-2); font-size: 13px; line-height: 1.55;
+  padding: 12px 14px; margin: 14px 0 18px;
+}
+.cofre-alerta strong { color: var(--warn); }
+
+.cofre-lista { display: flex; flex-direction: column; gap: 2px; }
+.cofre-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 11px 10px; text-align: left; cursor: pointer;
+  background: transparent; color: var(--txt); font: inherit;
+  border: 0; border-left: 3px solid transparent;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.cofre-item:hover { background: rgba(255, 255, 255, .04); }
+.cofre-item.sel { background: color-mix(in srgb, var(--acc) 16%, transparent); }
+.cofre-item-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cofre-item-marca { flex: 0 0 auto; opacity: .85; }
+
+.cofre-aviso, .cofre-portao { max-width: 620px; }
+.cofre-aviso h2 { margin: 0 0 10px; }
 
 /* ================= reuniões ================= */
 .meta-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
@@ -360,4 +409,11 @@
   .cal-day { aspect-ratio: auto; min-height: 46px; padding: 4px 5px; }
   .cal-head { font-size: 9px; letter-spacing: .04em; }
   .cal-dots { gap: 2px; }
+
+  /* Mesma armadilha do calendário, outra tela: com `aspect-ratio` de 3/1 e
+     `min-height: 300px`, o navegador deduz 900px de largura mínima e o quadro
+     do mapa vaza para fora do cartão. No celular a altura passa a ser fixa e a
+     proporção sai de cena. O !important é necessário porque a proporção vem
+     de um style inline, calculado a partir do próprio mapa. */
+  .mm-canvas { aspect-ratio: auto !important; height: 340px; min-height: 0; }
 }
