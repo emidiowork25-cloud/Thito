@@ -96,7 +96,9 @@
 .budget-top { display: flex; justify-content: space-between; text-transform: capitalize; }
 
 /* ================= calendário ================= */
-.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+/* minmax(0, 1fr): sem isso a largura mínima das células empurra a grade
+   para fora da tela no celular, e sexta e sábado ficam cortadas. */
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .cal-head {
   text-align: center; font-size: 10px; letter-spacing: .1em;
   text-transform: uppercase; color: var(--txt-3); padding-bottom: 6px;
@@ -333,4 +335,17 @@
 @media (max-width: 1100px) {
   .cw-grid, .tp-grid { grid-template-columns: 1fr; }
   .tp-preview.grande { aspect-ratio: 16 / 10; max-height: none; }
+}
+
+/* ================= celular ================= */
+/* Fica no fim de views.css de propósito: este arquivo carrega depois do
+   base.css, então regras móveis colocadas lá seriam sobrescritas por
+   .cal-day daqui, que tem a mesma especificidade. */
+@media (max-width: 780px) {
+  .cal { gap: 3px; }
+  /* aspect-ratio transforma a altura mínima em largura mínima e empurra a
+     grade para fora do cartão — sexta e sábado ficavam cortadas. */
+  .cal-day { aspect-ratio: auto; min-height: 46px; padding: 4px 5px; }
+  .cal-head { font-size: 9px; letter-spacing: .04em; }
+  .cal-dots { gap: 2px; }
 }

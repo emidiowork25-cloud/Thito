@@ -397,6 +397,8 @@ input[type=range] { padding: 0; accent-color: var(--cy); background: transparent
   #btn-menu { display: grid; }
   .view { padding: 14px; }
   .topbar-clock { display: none; }
+  /* num celular não existe Ctrl: o atalho vira só ruído no botão de busca */
+  #btn-palette kbd { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
