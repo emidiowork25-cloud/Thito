@@ -102,9 +102,51 @@
   <script>
     // Registra o service worker: é ele que faz o THITO abrir instalado, com o
     // servidor local desligado. Em file:// não existe, e tudo bem — o hub roda igual.
+    //
+    // Como o cache responde antes da rede, uma versão nova publicada só apareceria
+    // na segunda vez que o app abrisse. Em vez de deixar você fechar e abrir de novo
+    // sem saber por quê, avisamos na tela e recarregamos quando você mandar.
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-      addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => { /* sem cache offline */ });
+      addEventListener('load', async () => {
+        let reg;
+        try {
+          reg = await navigator.serviceWorker.register('sw.js');
+        } catch { return; }
+
+        const avisar = () => {
+          if (document.getElementById('update-bar')) return;
+          const bar = document.createElement('div');
+          bar.id = 'update-bar';
+          bar.className = 'update-bar';
+          bar.innerHTML = '<span>Uma versão nova do THITO está pronta.</span>';
+          const btn = document.createElement('button');
+          btn.textContent = 'Atualizar agora';
+          btn.onclick = () => location.reload();
+          const depois = document.createElement('button');
+          depois.className = 'ghost';
+          depois.textContent = 'depois';
+          depois.onclick = () => bar.remove();
+          bar.append(btn, depois);
+          document.body.append(bar);
+        };
+
+        // Já existia um worker no comando: então esta é uma atualização, não a
+        // primeira instalação — e aí sim vale avisar.
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.addEventListener('controllerchange', avisar);
+          reg.addEventListener('updatefound', () => {
+            const novo = reg.installing;
+            novo?.addEventListener('statechange', () => {
+              if (novo.state === 'installed') avisar();
+            });
+          });
+        }
+
+        // Procura versão nova ao abrir e ao voltar para a aba.
+        reg.update().catch(() => {});
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) reg.update().catch(() => {});
+        });
       });
     }
   </script>

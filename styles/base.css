@@ -438,3 +438,25 @@ input[type=range] { padding: 0; accent-color: var(--cy); background: transparent
   body { overflow: visible; background: #fff; color: #000; }
   .card { background: #fff; border-color: #ccc; }
 }
+
+/* ---------- aviso de versão nova ---------- */
+.update-bar {
+  position: fixed; z-index: 90;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  max-width: min(560px, calc(100vw - 28px));
+  padding: 11px 14px; border-radius: var(--radius);
+  background: var(--bg-2); border: 1px solid var(--line-2);
+  box-shadow: var(--shadow), var(--glow);
+  font-size: 13px;
+}
+.update-bar button {
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 600;
+  background: linear-gradient(135deg, var(--cy), var(--vi)); color: #04121a;
+}
+.update-bar button.ghost {
+  background: transparent; color: var(--txt-3);
+  border-color: var(--line); font-weight: 400;
+}
