@@ -310,6 +310,67 @@ export const definitions = [
     },
   },
   {
+    name: 'criar_freela',
+    description: 'Registra um trabalho avulso no módulo FREELA: para quem é, qual a função, quanto e quando paga. Use quando a pessoa contar sobre um trabalho novo, mesmo que ainda seja proposta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'O que é o trabalho.' },
+        cliente: { type: 'string' },
+        funcao: { type: 'string', description: 'O papel dela no trabalho: roteiro, apresentação, edição…' },
+        valor: { type: 'number', description: 'Quanto paga, em reais.' },
+        situacao: { type: 'string', enum: ['proposta', 'fechado', 'em andamento', 'entregue', 'cancelado'] },
+        entrega_em: { type: 'string', description: 'AAAA-MM-DD' },
+        paga_em: { type: 'string', description: 'AAAA-MM-DD' },
+        como_paga: { type: 'string', description: 'ex.: 50% na assinatura, 50% na entrega' },
+        contato: { type: 'string' },
+        notas: { type: 'string' },
+      },
+      required: ['titulo'],
+    },
+  },
+  {
+    name: 'criar_evento_producao',
+    description: 'Registra um evento no módulo EVENTOS, com cachê, equipe e checklist de antes/durante/depois. Não confundir com agendar_compromisso: este é a produção inteira, aquele é só o horário na agenda.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string' },
+        data: { type: 'string', description: 'AAAA-MM-DD' },
+        local: { type: 'string' },
+        papel: { type: 'string', enum: ['contrato', 'integrante', 'sozinho'], description: 'contrato = ela contrata a equipe; integrante = ela é parte de uma equipe de outro.' },
+        cache: { type: 'number', description: 'Quanto ela recebe, em reais.' },
+        equipe: {
+          type: 'array',
+          description: 'Quem trabalha no evento e quanto cada um recebe.',
+          items: {
+            type: 'object',
+            properties: { nome: { type: 'string' }, funcao: { type: 'string' }, valor: { type: 'number' } },
+            required: ['nome'],
+          },
+        },
+        antes: { type: 'array', items: { type: 'string' }, description: 'Checklist do que fazer antes.' },
+        durante: { type: 'array', items: { type: 'string' } },
+        depois: { type: 'array', items: { type: 'string' } },
+        notas: { type: 'string' },
+      },
+      required: ['titulo'],
+    },
+  },
+  {
+    name: 'marcar_pago',
+    description: 'Marca um freela ou o cachê de um evento como recebido, e lança a entrada no financeiro. Use quando a pessoa disser que o dinheiro caiu.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        o_que: { type: 'string', description: 'Trecho do nome do freela ou do evento.' },
+        valor: { type: 'number', description: 'Quanto caiu. Vazio = o valor combinado.' },
+        quando: { type: 'string', description: 'AAAA-MM-DD. Vazio = hoje.' },
+      },
+      required: ['o_que'],
+    },
+  },
+  {
     name: 'analisar_metricas',
     description: 'Lê um conjunto de métricas já importado (Meta Business, YouTube, planilha) e devolve os números crus para você analisar. Use antes de opinar sobre desempenho, em vez de confiar só no resumo do contexto.',
     input_schema: {
@@ -596,6 +657,59 @@ const handlers = {
     emit('nav:go', { view: 'teleprompter', id: script.id });
     const minutos = (linhas / velocidade).toFixed(1);
     return ok(`Roteiro "${script.title}" criado com ${linhas} linhas (~${minutos} min no ar a ${velocidade} linhas/min) e aberto no teleprompter.`);
+  },
+
+  async criar_freela(i) {
+    const f = await store.save('freelas', {
+      title: i.titulo, client: i.cliente, role: i.funcao,
+      valor: Number(i.valor) || 0, status: i.situacao || 'proposta',
+      entregaEm: i.entrega_em || null, pagaEm: i.paga_em || null,
+      comoPaga: i.como_paga, contato: i.contato, notes: i.notas,
+      pago: false, pagoEm: null, transactionId: null,
+    });
+    emit('nav:refresh');
+    return ok(`Freela "${f.title}" registrado${f.client ? ` para ${f.client}` : ''}${f.valor ? `, ${money(f.valor)}` : ''}.`);
+  },
+
+  async criar_evento_producao(i) {
+    const lista = (itens) => (itens ?? []).map((text) => ({ id: uid(), text, done: false }));
+    const e = await store.save('producoes', {
+      title: i.titulo, date: i.data || null, local: i.local,
+      papel: i.papel || 'contrato', cache: Number(i.cache) || 0, notes: i.notas,
+      equipe: (i.equipe ?? []).map((m) => ({ id: uid(), nome: m.nome, funcao: m.funcao, valor: Number(m.valor) || 0, pago: false })),
+      checklist: { antes: lista(i.antes), durante: lista(i.durante), depois: lista(i.depois) },
+      custos: [], pago: false, pagoEm: null, transactionId: null,
+    });
+    emit('nav:refresh');
+    const n = (i.antes?.length ?? 0) + (i.durante?.length ?? 0) + (i.depois?.length ?? 0);
+    return ok(`Evento "${e.title}" criado${e.date ? ` para ${e.date}` : ''}${n ? `, com ${n} item(ns) de checklist` : ''}.`);
+  },
+
+  async marcar_pago(i) {
+    const quando = i.quando || store.today();
+    const freela = bestMatch(store.list('freelas', (f) => !f.pago), 'title', i.o_que);
+    const evento = freela ? null : bestMatch(store.list('producoes', (e) => !e.pago), 'title', i.o_que);
+    if (!freela && !evento) return fail(`Não achei nada em aberto com o nome "${i.o_que}".`);
+
+    const alvo = freela ?? evento;
+    const colecao = freela ? 'freelas' : 'producoes';
+    const valor = Number(i.valor) || Number(freela ? alvo.valor : alvo.cache) || 0;
+
+    const contas = store.list('accounts');
+    let transactionId = null;
+    if (valor > 0 && contas.length) {
+      const tx = await store.save('transactions', {
+        desc: `${freela ? 'Freela' : 'Evento'} — ${alvo.title || 'sem título'}`,
+        amount: valor, type: 'in', date: quando, category: 'salário', accountId: contas[0].id,
+      });
+      transactionId = tx.id;
+    }
+    await store.save(colecao, {
+      id: alvo.id, pago: true, pagoEm: quando, transactionId,
+      ...(freela ? { valor } : { cache: valor }),
+    });
+    emit('nav:refresh');
+    return ok(`"${alvo.title}" marcado como recebido${valor ? ` — ${money(valor)} lançado no financeiro` : ''}.`);
   },
 
   async analisar_metricas(i) {

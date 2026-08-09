@@ -16,20 +16,30 @@ import * as compras from '../views/compras.js';
 import * as mindmap from '../views/mindmap.js';
 import * as reunioes from '../views/reunioes.js';
 import * as apresentacoes from '../views/apresentacoes.js';
+import * as freela from '../views/freela.js';
+import * as eventos from '../views/eventos.js';
 import * as copywriter from '../views/copywriter.js';
 import * as teleprompter from '../views/teleprompter.js';
 import * as ajustes from '../views/ajustes.js';
 
+// Ordem alfabética entre os módulos, com duas exceções deliberadas: Painel
+// abre no topo porque é a casa, e Ajustes fica no fim porque é configuração.
+// Nenhum dos dois é módulo — alfabetá-los junto jogaria a tela inicial para o
+// meio da lista.
 export const VIEWS = {
   dashboard: { mod: dashboard, title: 'Painel', icon: '◉' },
+
   agenda: { mod: agenda, title: 'Agenda', icon: '▤' },
-  financas: { mod: financas, title: 'Finanças', icon: '◈' },
+  apresentacoes: { mod: apresentacoes, title: 'Apresentações', icon: '▷' },
   compras: { mod: compras, title: 'Compras', icon: '▦' },
+  copywriter: { mod: copywriter, title: 'Copywriter', icon: '✎' },
+  eventos: { mod: eventos, title: 'Eventos', icon: '◎' },
+  financas: { mod: financas, title: 'Finanças', icon: '◈' },
+  freela: { mod: freela, title: 'Freela', icon: '◆' },
   mindmap: { mod: mindmap, title: 'Mind maps', icon: '⁂' },
   reunioes: { mod: reunioes, title: 'Reuniões', icon: '❐' },
-  apresentacoes: { mod: apresentacoes, title: 'Apresentações', icon: '▷' },
-  copywriter: { mod: copywriter, title: 'Copywriter', icon: '✎' },
   teleprompter: { mod: teleprompter, title: 'Teleprompter', icon: '▤▤' },
+
   ajustes: { mod: ajustes, title: 'Ajustes', icon: '⚙' },
 };
 
@@ -97,6 +107,21 @@ function badgeFor(view) {
       return n || null;
     }
     case 'reunioes': return store.openActionItems().length || null;
+    // Freela conta o que está a receber; Eventos, as pendências do que ainda vem.
+    // Badge é lembrete do que trava, não contador de linhas.
+    case 'freela': {
+      const t = store.today();
+      const abertos = ['proposta', 'fechado', 'em andamento', 'entregue'];
+      return store.list('freelas', (f) => !f.pago && abertos.includes(f.status ?? 'proposta')).length || null;
+    }
+    case 'eventos': {
+      const t = store.today();
+      const futuros = store.list('producoes', (e) => !e.date || e.date >= t);
+      const n = futuros.reduce((a, e) => a + [
+        ...(e.checklist?.antes ?? []), ...(e.checklist?.durante ?? []), ...(e.checklist?.depois ?? []),
+      ].filter((i) => !i.done).length, 0);
+      return n || null;
+    }
     case 'copywriter': return store.list('copies', (c) => c.status === 'revisar').length || null;
     default: return null;
   }

@@ -12,8 +12,12 @@ export function render(root) {
   const t = today();
 
   root.append(hero());
-  root.append(el('div', { class: 'grid dash-stats' },
-    tileAgenda(t), tileTarefas(t), tileFinancas(), tileCompras()));
+
+  // O topo mostra o que precisa de você, não como você está indo. Saldo do mês
+  // é boa informação e péssima manchete: some do painel e continua em Finanças,
+  // onde alguém vai olhar querendo saber disso.
+  const tiles = [tileAgenda(t), tileTarefas(t), tileReceber(), tileProximaEntrega(t)].filter(Boolean);
+  root.append(el('div', { class: 'grid dash-stats' }, ...tiles));
 
   root.append(el('div', { class: 'grid dash-main' },
     el('div', { class: 'grid', style: 'align-content:start' }, cardHoje(t), cardProximos(t)),
@@ -70,23 +74,46 @@ function tileTarefas(t) {
   });
 }
 
-function tileFinancas() {
-  const r = store.monthSummary();
+/**
+ * Dinheiro que alguém te deve — a única cifra que pede ação. Some quando não
+ * há nada a receber: quadro zerado no topo é ruído com aparência de dado.
+ */
+function tileReceber() {
+  const abertos = ['proposta', 'fechado', 'em andamento', 'entregue'];
+  const freelas = store.list('freelas', (f) => !f.pago && abertos.includes(f.status ?? 'proposta'));
+  const eventos = store.list('producoes', (e) => !e.pago && (Number(e.cache) || 0) > 0);
+  const total = freelas.reduce((a, f) => a + (Number(f.valor) || 0), 0)
+    + eventos.reduce((a, e) => a + (Number(e.cache) || 0), 0);
+  if (!total) return null;
+
+  const t = today();
+  const vencidos = freelas.filter((f) => f.pagaEm && f.pagaEm < t).length
+    + eventos.filter((e) => e.date && e.date < t).length;
+
   return statTile({
-    label: `Resultado de ${monthKey(today())}`,
-    value: money(r.net),
-    sub: `${money(r.income)} entrou · ${money(r.expense)} saiu`,
-    tone: r.net < 0 ? 'bad' : 'ok',
+    label: 'A receber',
+    value: money(total),
+    tone: vencidos ? 'bad' : '',
+    sub: vencidos ? `${vencidos} já venceu — cobre` : `${freelas.length + eventos.length} trabalho(s)`,
   });
 }
 
-function tileCompras() {
-  const pendentes = store.activeLists().reduce((a, l) => a + store.listTotal(l.id).pending, 0);
-  const estimativa = store.activeLists().reduce((a, l) => a + store.listTotal(l.id).estimate, 0);
+/** O próximo compromisso com consequência: entrega de freela ou evento. */
+function tileProximaEntrega(t) {
+  const candidatos = [
+    ...store.list('freelas', (f) => f.entregaEm && f.entregaEm >= t && f.status !== 'entregue' && f.status !== 'cancelado')
+      .map((f) => ({ quando: f.entregaEm, o_que: f.title, tipo: 'entrega' })),
+    ...store.list('producoes', (e) => e.date && e.date >= t)
+      .map((e) => ({ quando: e.date, o_que: e.title, tipo: 'evento' })),
+  ].sort((a, b) => a.quando.localeCompare(b.quando));
+
+  const proximo = candidatos[0];
+  if (!proximo) return null;
+
   return statTile({
-    label: 'Itens a comprar',
-    value: String(pendentes),
-    sub: estimativa ? `estimativa ${money(estimativa)}` : 'sem estimativa',
+    label: proximo.tipo === 'evento' ? 'Próximo evento' : 'Próxima entrega',
+    value: relDay(proximo.quando),
+    sub: truncate(proximo.o_que || 'sem título', 30),
   });
 }
 

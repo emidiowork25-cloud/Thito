@@ -137,6 +137,42 @@ export function build() {
     parts.push(['Para ver os números linha a linha, use a ferramenta analisar_metricas.'].join('\n'));
   }
 
+  /* --- freelas --- */
+  const abertosFreela = ['proposta', 'fechado', 'em andamento', 'entregue'];
+  parts.push(section('Freelas', store.list('freelas')
+    .sort((a, b) => (a.pagaEm || '9999').localeCompare(b.pagaEm || '9999'))
+    .slice(0, 20)
+    .map((f) => [
+      f.title || 'sem título',
+      f.client ? `para ${f.client}` : null,
+      f.role ? `função: ${f.role}` : null,
+      f.status ?? 'proposta',
+      (Number(f.valor) || 0) ? money(Number(f.valor)) : null,
+      f.entregaEm ? `entrega ${f.entregaEm}` : null,
+      f.pago ? `PAGO${f.pagoEm ? ` em ${f.pagoEm}` : ''}` : (f.pagaEm ? `a receber em ${f.pagaEm}` : 'sem data de pagamento'),
+    ].filter(Boolean).join(' · '))));
+
+  /* --- eventos --- */
+  parts.push(section('Eventos', store.list('producoes')
+    .sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'))
+    .slice(0, 20)
+    .map((e) => {
+      const equipe = e.equipe ?? [];
+      const custoEquipe = equipe.reduce((a, m) => a + (Number(m.valor) || 0), 0);
+      const aPagar = equipe.filter((m) => !m.pago).length;
+      const pend = [...(e.checklist?.antes ?? []), ...(e.checklist?.durante ?? []), ...(e.checklist?.depois ?? [])]
+        .filter((i) => !i.done);
+      return [
+        e.title || 'sem título',
+        e.date ? e.date : 'sem data',
+        e.local || null,
+        (Number(e.cache) || 0) ? `cachê ${money(Number(e.cache))}` : null,
+        equipe.length ? `equipe de ${equipe.length} (${money(custoEquipe)}${aPagar ? `, ${aPagar} a pagar` : ''})` : null,
+        e.pago ? 'cachê RECEBIDO' : 'cachê a receber',
+        pend.length ? `${pend.length} pendência(s): ${pend.slice(0, 4).map((i) => i.text).join('; ')}` : 'checklist completo',
+      ].filter(Boolean).join(' · ');
+    })));
+
   /* --- teleprompter --- */
   parts.push(section('Roteiros do teleprompter', store.list('scripts').map((r) => {
     const linhas = (r.body || '').split('\n').length;

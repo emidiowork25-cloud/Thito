@@ -5,7 +5,7 @@
 // JARBAS, mas trocar o nome aqui esconderia todos os dados que já estão gravados no
 // navegador de quem usou a versão anterior. Nome interno não é marca.
 const DB_NAME = 'thito';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const COLLECTIONS = [
   'events',      // agenda
@@ -20,6 +20,12 @@ export const COLLECTIONS = [
   'decks',       // apresentações
   'chats',       // histórico de conversas com o assistente
   'notes',       // anotações avulsas / memória do assistente
+  // v3 — módulos FREELA e EVENTOS.
+  // 'producoes' e não 'eventos': 'events' já é a agenda, e duas coleções com
+  // nomes quase iguais é armadilha garantida na próxima leitura deste arquivo.
+  'freelas',
+  'producoes',
+
   // v2 — módulos COPYWRITER e TELEPROMPTER
   'brands',      // vozes de marca (tom, público, o que evitar)
   'copies',      // peças de texto: posts, roteiros, anúncios, e-mails
