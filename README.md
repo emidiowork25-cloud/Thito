@@ -130,6 +130,18 @@ Prefere sem terminal? Dá para colar a chave direto no painel do Supabase, em
 **A chave nunca passa pelo navegador.** Ela fica guardada no servidor; o app só conversa
 com a função `jarbas`, que fala com a Anthropic em nome dele.
 
+### Contar quem você é
+
+Em **Ajustes → Sobre você** há um campo de texto livre que vai no topo do contexto de
+toda pergunta. É onde mora idade, família, time, o que você faz, o que te irrita.
+
+Não é enfeite: é a diferença entre o JARBAS responder como um assistente genérico e
+responder como alguém que te conhece. Ele lê isso antes de qualquer coisa — se você
+disser que torce pelo Sport, ele comemora a vitória e alfineta a derrota; se disser que
+odeia reunião depois das 17h, ele avisa quando você marcar uma.
+
+É dado, não código: dá para reescrever quando quiser, sem me chamar.
+
 ### 2. Criar sua conta
 
 Abra **Ajustes → Nuvem e sincronização → Criar conta**, com e-mail e senha.

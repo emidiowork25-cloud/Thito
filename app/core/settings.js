@@ -6,6 +6,9 @@ import { emit } from './bus.js';
 const DEFAULTS = {
   theme: 'dark',                 // 'dark' | 'light'
   name: '',                      // como o JARBAS deve te chamar
+  // Quem você é, em texto livre. Vai no topo do contexto de toda pergunta.
+  // É dado, não código: dá para reescrever em Ajustes sem tocar no programa.
+  perfil: '',
   startView: 'dashboard',
   currency: 'BRL',
 

@@ -29,6 +29,9 @@ export function build() {
     `Hoje é ${fmtDate(t, { weekday: true, year: true })}.`,
   );
 
+  const perfil = settings.get('perfil');
+  if (perfil?.trim()) parts.push(`\n## Quem é ${name || 'ele'}\n${perfil.trim()}\n`);
+
   /* --- agenda --- */
   const hoje = store.eventsOn(t);
   parts.push(section('Agenda de hoje', hoje.map((e) =>

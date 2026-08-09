@@ -27,6 +27,12 @@ function cardPerfil() {
     onchange: (e) => settings.set({ name: e.target.value.trim() }),
   })));
 
+  body.append(campo('Sobre você', el('textarea', {
+    rows: 5, value: settings.get('perfil') || '',
+    placeholder: 'Idade, família, time, gostos, o que te irrita, o que você faz da vida…',
+    onchange: (e) => settings.set({ perfil: e.target.value }),
+  }), 'Vai junto de toda pergunta ao JARBAS. Quanto mais específico, menos genérica a resposta.'));
+
   body.append(campo('Tema', seletor(
     [['dark', 'escuro (HUD)'], ['light', 'claro']],
     s.theme,
