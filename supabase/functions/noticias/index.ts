@@ -44,14 +44,26 @@ type Item = { titulo: string; fonte: string; link: string; quando: string | null
  * O cliente manda só o texto da consulta — a URL é montada aqui. É o que
  * impede a função de virar um proxy para buscar qualquer endereço da internet.
  */
-function urlDoTema(q: string): string {
+function urlDoTema(q: string, idioma: string): string {
   const base = 'https://news.google.com/rss';
-  const idioma = 'hl=pt-BR&gl=BR&ceid=BR:pt-419';
   const consulta = q.trim().slice(0, MAX_CONSULTA);
   return consulta
     ? `${base}/search?q=${encodeURIComponent(consulta)}&${idioma}`
     : `${base}?${idioma}`;   // sem consulta = manchetes gerais do dia
 }
+
+/**
+ * Duas tentativas por tema, e não uma. O feed em português é o que interessa;
+ * a segunda variante existe porque o muro de consentimento do Google é
+ * aplicado por região, e uma edição pode passar onde a outra é barrada.
+ *
+ * Só serve para não gastar uma nova publicação a cada hipótese: se a primeira
+ * responder com notícias, a segunda nem é buscada.
+ */
+const VARIANTES = [
+  { nome: 'pt-BR', idioma: 'hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { nome: 'pt-PT', idioma: 'hl=pt-PT&gl=PT&ceid=PT:pt-150' },
+];
 
 const ENTIDADES: Record<string, string> = {
   '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"',
@@ -105,38 +117,48 @@ async function buscarTema(tema: Tema): Promise<{ id: string; label: string; iten
   const controle = new AbortController();
   const relogio = setTimeout(() => controle.abort(), TIMEOUT_MS);
 
+  const queixas: string[] = [];
+
   try {
-    const res = await fetch(urlDoTema(String(tema.q ?? '')), {
-      signal: controle.signal,
-      headers: {
-        // Navegador de verdade: a partir de um datacenter, um User-Agent
-        // esquisito é o caminho mais curto para levar 403 ou página de captcha.
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-          + '(KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-        Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
-        'Accept-Language': 'pt-BR,pt;q=0.9',
-        // Pula o muro de consentimento do Google, que responde 200 com uma
-        // página HTML no lugar do feed — e HTML sem <item> é indistinguível
-        // de "não há notícias" para quem só conta itens.
-        Cookie: 'CONSENT=YES+cb; SOCS=CAI',
-      },
-    });
-    if (!res.ok) return { id, label, itens: [], erro: `feed respondeu ${res.status}` };
+    for (const variante of VARIANTES) {
+      try {
+        const res = await fetch(urlDoTema(String(tema.q ?? ''), variante.idioma), {
+          signal: controle.signal,
+          headers: {
+            // Navegador de verdade: a partir de um datacenter, um User-Agent
+            // esquisito é o caminho mais curto para levar 403 ou captcha.
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+              + '(KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+            Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+            'Accept-Language': 'pt-BR,pt;q=0.9',
+            // Pula o muro de consentimento do Google, que responde 200 com uma
+            // página HTML no lugar do feed — e HTML sem <item> é indistinguível
+            // de "não há notícias" para quem só conta itens.
+            Cookie: 'CONSENT=YES+cb; SOCS=CAI',
+          },
+        });
 
-    const corpo = await res.text();
-    const vistos = new Set<string>();
-    const itens = parsear(corpo)
-      .filter((i) => (vistos.has(i.titulo) ? false : (vistos.add(i.titulo), true)))
-      .slice(0, POR_TEMA);
+        if (!res.ok) { queixas.push(`${variante.nome}: HTTP ${res.status}`); continue; }
 
-    // Zero itens com HTTP 200 quase nunca é "não há notícias": é outra coisa no
-    // lugar do feed. O tipo e o tamanho do que veio dizem qual — e sem isso o
-    // erro chega na tela como "não veio nada", que não ajuda ninguém.
-    if (!itens.length) {
-      const tipo = res.headers.get('content-type')?.split(';')[0] ?? 'sem tipo';
-      return { id, label, itens: [], erro: `resposta sem notícias (${tipo}, ${Math.round(corpo.length / 1024)} KB)` };
+        const corpo = await res.text();
+        const vistos = new Set<string>();
+        const itens = parsear(corpo)
+          .filter((i) => (vistos.has(i.titulo) ? false : (vistos.add(i.titulo), true)))
+          .slice(0, POR_TEMA);
+
+        if (itens.length) return { id, label, itens };
+
+        // Zero itens com HTTP 200 quase nunca é "não há notícias": é outra
+        // coisa no lugar do feed. O tipo e o tamanho dizem qual — e sem isso
+        // o erro chega na tela como "não veio nada", que não ajuda ninguém.
+        const tipo = res.headers.get('content-type')?.split(';')[0] ?? 'sem tipo';
+        queixas.push(`${variante.nome}: ${tipo}, ${Math.round(corpo.length / 1024)} KB, sem itens`);
+      } catch (e) {
+        if ((e as Error).name === 'AbortError') throw e;   // o tempo acabou para o tema inteiro
+        queixas.push(`${variante.nome}: ${(e as Error).message}`);
+      }
     }
-    return { id, label, itens };
+    return { id, label, itens: [], erro: queixas.join(' · ') };
   } catch (e) {
     // Um tema que falha não pode derrubar os outros: o cartão mostra o que veio
     // e diz o que faltou, em vez de aparecer vazio sem explicação.
