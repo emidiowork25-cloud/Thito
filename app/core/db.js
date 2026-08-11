@@ -5,7 +5,7 @@
 // JARBAS, mas trocar o nome aqui esconderia todos os dados que já estão gravados no
 // navegador de quem usou a versão anterior. Nome interno não é marca.
 const DB_NAME = 'thito';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export const COLLECTIONS = [
   'events',      // agenda
@@ -32,6 +32,9 @@ export const COLLECTIONS = [
   // antes — gravar um campo em texto claro aqui derruba a proteção inteira,
   // porque este banco e a tabela do Supabase recebem exatamente o que vier.
   'cofre',
+
+  // v5 — módulo ROTINA (tarefas que se repetem toda semana).
+  'rotinas',
 
   // v2 — módulos COPYWRITER e TELEPROMPTER
   'brands',      // vozes de marca (tom, público, o que evitar)

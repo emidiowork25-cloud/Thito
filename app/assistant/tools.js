@@ -330,6 +330,35 @@ export const definitions = [
     },
   },
   {
+    name: 'criar_rotina',
+    description: 'Cria uma tarefa que se repete toda semana, no módulo ROTINA. Use quando a pessoa falar de algo recorrente ("toda segunda eu…", "sempre preciso checar…"). Para compromisso com data marcada use agendar_compromisso; para tarefa de uma vez só, criar_tarefa.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'O que fazer.' },
+        dias: {
+          type: 'array',
+          items: { type: 'integer', minimum: 0, maximum: 6 },
+          description: 'Dias da semana: 0=domingo, 1=segunda … 6=sábado. Dias úteis são [1,2,3,4,5].',
+        },
+        contexto: { type: 'string', description: 'Agrupador curto: Universidade, Seminário, Trabalho…' },
+        horario: { type: 'string', description: 'HH:MM, se houver hora certa.' },
+        link: { type: 'string', description: 'Endereço que abre direto da lista (Trello, perfil…).' },
+        notas: { type: 'string' },
+      },
+      required: ['titulo', 'dias'],
+    },
+  },
+  {
+    name: 'marcar_rotina_feita',
+    description: 'Marca uma tarefa da rotina como feita hoje (ou desmarca, se já estiver feita). Identifique pelo título.',
+    input_schema: {
+      type: 'object',
+      properties: { titulo: { type: 'string', description: 'Título ou parte dele.' } },
+      required: ['titulo'],
+    },
+  },
+  {
     name: 'criar_evento_producao',
     description: 'Registra um evento no módulo EVENTOS, com cachê, equipe e checklist de antes/durante/depois. Não confundir com agendar_compromisso: este é a produção inteira, aquele é só o horário na agenda.',
     input_schema: {
@@ -669,6 +698,31 @@ const handlers = {
     });
     emit('nav:refresh');
     return ok(`Freela "${f.title}" registrado${f.client ? ` para ${f.client}` : ''}${f.valor ? `, ${money(f.valor)}` : ''}.`);
+  },
+
+  async criar_rotina(i) {
+    const dias = [...new Set((i.dias ?? []).map(Number).filter((d) => d >= 0 && d <= 6))].sort();
+    if (!dias.length) return ok('Preciso saber em que dias da semana isso acontece.');
+    const r = await store.save('rotinas', {
+      title: i.titulo, contexto: i.contexto || null, horario: i.horario || null,
+      link: i.link || null, notes: i.notas || null, dias, feitos: {},
+    });
+    emit('nav:refresh');
+    const nomes = store.DIAS_SEMANA.filter((d) => dias.includes(d.n)).map((d) => d.curto).join(', ');
+    return ok(`"${r.title}" entrou na rotina — ${nomes}.`);
+  },
+
+  async marcar_rotina_feita(i) {
+    const alvo = norm(i.titulo);
+    const r = store.rotinasAtivas().find((x) => norm(x.title).includes(alvo));
+    if (!r) return ok(`Não achei "${i.titulo}" na rotina.`);
+    const hoje = today();
+    const feitos = { ...(r.feitos ?? {}) };
+    const estava = !!feitos[hoje];
+    if (estava) delete feitos[hoje]; else feitos[hoje] = true;
+    await store.save('rotinas', { id: r.id, feitos });
+    emit('nav:refresh');
+    return ok(`"${r.title}" ${estava ? 'desmarcada' : 'marcada como feita'} hoje.`);
   },
 
   async criar_evento_producao(i) {

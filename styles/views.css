@@ -212,6 +212,96 @@
 .mm-text { fill: var(--txt); pointer-events: none; user-select: none; }
 .color-dot { width: 24px; height: 24px; border-radius: 50%; border: 0; cursor: pointer; }
 
+/* ================= rotina ================= */
+
+/* O painel do dia: número grande, barra, e um verde que só acende quando
+   acabou. O prêmio de fechar a rotina precisa ser visível de longe. */
+.rot-hero {
+  display: flex; align-items: center; gap: 18px;
+  padding: 16px 18px; margin-bottom: 16px;
+  border: 1px solid var(--line-2); border-radius: var(--radius-sm);
+  background: linear-gradient(120deg,
+    color-mix(in srgb, var(--acc) 12%, transparent),
+    color-mix(in srgb, var(--acc-2) 22%, transparent));
+}
+.rot-hero.completo {
+  border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+  background: linear-gradient(120deg,
+    color-mix(in srgb, var(--ok) 16%, transparent),
+    color-mix(in srgb, var(--acc-2) 20%, transparent));
+}
+.rot-hero-num {
+  font: 400 40px/1 var(--sub); letter-spacing: .02em;
+  color: var(--acc); text-shadow: var(--txt-shadow-forte); flex: 0 0 auto;
+}
+.rot-hero.completo .rot-hero-num { color: var(--ok); }
+.rot-hero-txt { flex: 1; min-width: 0; }
+.rot-hero-tit { font: 400 17px/1.2 var(--sub); letter-spacing: .04em; margin-bottom: 3px; }
+.rot-hero .meter { margin-top: 9px; }
+
+.rot-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 2px; border-bottom: 1px solid var(--line);
+}
+.rot-item:last-child { border-bottom: 0; }
+.rot-item.ok .rot-titulo { opacity: .45; text-decoration: line-through; }
+
+/* Alvo grande de propósito: isto é clicado às pressas, de manhã, no celular. */
+.rot-check {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 9px;
+  border: 2px solid var(--line-2); background: transparent;
+  color: var(--deep); font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: background .12s, border-color .12s;
+}
+.rot-check:hover { border-color: var(--acc); }
+.rot-check.on { background: var(--ok); border-color: var(--ok); color: var(--bg); }
+
+.rot-meio { flex: 1; min-width: 0; }
+.rot-titulo { font-size: 14px; line-height: 1.35; }
+.rot-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.rot-meta .mono { font-size: 11px; color: var(--txt-3); }
+.rot-seq { font-size: 11px; color: var(--warn); }
+
+/* A grade: linhas são tarefas, colunas são dias. Sempre à vista, sempre clicável. */
+.rot-grade-rolagem { overflow-x: auto; }
+/* Colunas de dia com teto: sem ele, `1fr` numa tela larga estica cada célula
+   a mais de 150px e a semana vira um tabuleiro de xadrez. A coluna do título
+   é quem absorve a sobra. */
+.rot-grade {
+  display: grid; grid-template-columns: minmax(190px, 1fr) repeat(7, minmax(38px, 84px));
+  gap: 4px; min-width: 480px;
+}
+.rot-gh {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 5px 2px 8px;
+  font: 400 11px/1 var(--sub); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--txt-3);
+}
+.rot-gh-num { font-size: 13px; color: var(--txt-2); letter-spacing: 0; }
+.rot-gh.hoje { color: var(--acc); }
+.rot-gh.hoje .rot-gh-num { color: var(--acc); }
+
+.rot-gl {
+  display: flex; align-items: center; gap: 7px; min-width: 0;
+  padding-right: 10px; font-size: 12.5px;
+}
+.rot-gl-tit { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Altura fixa e não `aspect-ratio`: proporção quadrada com coluna larga é
+   exatamente o que inflou a grade (e o calendário, e o mapa, antes dela). */
+.rot-cel {
+  height: 38px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--line); background: rgba(0, 0, 0, .18);
+  color: var(--txt-3); font-size: 13px; font-weight: 700;
+  transition: background .12s, border-color .12s;
+}
+.rot-cel:hover { border-color: var(--acc); }
+.rot-cel.on { background: color-mix(in srgb, var(--acc) 20%, transparent); border-color: color-mix(in srgb, var(--acc) 45%, transparent); color: var(--acc); }
+.rot-cel.ok { background: color-mix(in srgb, var(--ok) 32%, transparent); border-color: var(--ok); color: var(--txt); }
+/* Dia marcado que já passou sem ser feito. É o que a grade existe para mostrar. */
+.rot-cel.perdida { background: color-mix(in srgb, var(--bad) 16%, transparent); border-color: color-mix(in srgb, var(--bad) 45%, transparent); color: var(--bad); }
+.rot-cel.hoje { box-shadow: inset 0 0 0 1px var(--acc); }
+
 /* ================= notícias ================= */
 .noticia-tema {
   font: 600 10px/1 var(--sub); letter-spacing: .16em; text-transform: uppercase;
@@ -431,4 +521,13 @@
      proporção sai de cena. O !important é necessário porque a proporção vem
      de um style inline, calculado a partir do próprio mapa. */
   .mm-canvas { aspect-ratio: auto !important; height: 340px; min-height: 0; }
+
+  /* Na largura de um celular a coluna do título comia a tela e sobravam três
+     dias antes de precisar rolar. Aperta o título e some com a etiqueta de
+     contexto — a semana inteira quase cabe, que é o ponto da grade. */
+  .rot-grade { grid-template-columns: minmax(104px, 1fr) repeat(7, 40px); gap: 3px; min-width: 0; }
+  .rot-gl .pill { display: none; }
+  .rot-cel { height: 34px; }
+  .rot-hero { gap: 12px; padding: 14px; }
+  .rot-hero-num { font-size: 32px; }
 }

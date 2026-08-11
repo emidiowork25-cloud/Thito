@@ -17,7 +17,7 @@ export function render(root) {
   // O topo mostra o que precisa de você, não como você está indo. Saldo do mês
   // é boa informação e péssima manchete: some do painel e continua em Finanças,
   // onde alguém vai olhar querendo saber disso.
-  const tiles = [tileAgenda(t), tileTarefas(t), tileReceber(), tileProximaEntrega(t)].filter(Boolean);
+  const tiles = [tileRotina(t), tileAgenda(t), tileTarefas(t), tileReceber(), tileProximaEntrega(t)].filter(Boolean);
   root.append(el('div', { class: 'grid dash-stats' }, ...tiles));
 
   root.append(el('div', { class: 'grid dash-main' },
@@ -124,6 +124,22 @@ function hero() {
 }
 
 /* ---------- indicadores ---------- */
+
+/**
+ * A rotina do dia é o primeiro quadro porque é a única coisa do topo que você
+ * resolve hoje mesmo, riscando. Some quando não há rotina para o dia — quadro
+ * "0 de 0" é ruído com cara de dado.
+ */
+function tileRotina(t) {
+  const r = store.rotinaResumo(t);
+  if (!r.total) return null;
+  return statTile({
+    label: 'Rotina de hoje',
+    value: `${r.feitos}/${r.total}`,
+    tone: r.completo ? 'ok' : '',
+    sub: r.completo ? 'tudo feito' : `${r.pendentes} pendente(s)`,
+  });
+}
 
 function tileAgenda(t) {
   const hoje = store.eventsOn(t);

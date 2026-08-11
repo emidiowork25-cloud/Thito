@@ -20,6 +20,7 @@ import * as apresentacoes from '../views/apresentacoes.js';
 import * as freela from '../views/freela.js';
 import * as eventos from '../views/eventos.js';
 import * as copywriter from '../views/copywriter.js';
+import * as rotina from '../views/rotina.js';
 import * as senhas from '../views/senhas.js';
 import * as teleprompter from '../views/teleprompter.js';
 import * as ajustes from '../views/ajustes.js';
@@ -40,6 +41,7 @@ export const VIEWS = {
   freela: { mod: freela, title: 'Freela', icon: '◆' },
   mindmap: { mod: mindmap, title: 'Mind maps', icon: '⁂' },
   reunioes: { mod: reunioes, title: 'Reuniões', icon: '❐' },
+  rotina: { mod: rotina, title: 'Rotina', icon: '↻' },
   senhas: { mod: senhas, title: 'Senhas e acessos', icon: '⛨' },
   teleprompter: { mod: teleprompter, title: 'Teleprompter', icon: '▤▤' },
 
@@ -126,6 +128,8 @@ function badgeFor(view) {
       return n || null;
     }
     case 'copywriter': return store.list('copies', (c) => c.status === 'revisar').length || null;
+    // O que falta hoje. Zerou, o selo some — e sumir é o prêmio.
+    case 'rotina': return store.rotinaResumo().pendentes || null;
     // Cofre trancado é o normal e não merece aviso. O que merece é o cofre
     // aberto: dá para esquecer que ele está assim e sair de perto da tela.
     case 'senhas': return cofre.destrancado() ? '🔓' : null;
@@ -185,6 +189,7 @@ const ACTIONS = [
   { title: 'Nova peça de texto', sub: 'copywriter', run: () => { go('copywriter'); emit('action:new-copy'); } },
   { title: 'Nova campanha', sub: 'copywriter', run: () => { go('copywriter'); emit('action:new-campaign'); } },
   { title: 'Novo roteiro de teleprompter', sub: 'teleprompter', run: () => { go('teleprompter'); emit('action:new-script'); } },
+  { title: 'Nova tarefa da rotina', sub: 'rotina', run: () => { go('rotina'); emit('action:new-rotina'); } },
   { title: 'Abrir o cofre', sub: 'senhas e acessos', run: () => go('senhas') },
   { title: 'Trancar o cofre', sub: 'senhas e acessos', run: () => { cofre.trancar(); toast('Cofre trancado.', 'ok'); } },
   { title: 'Perguntar ao JARBAS', sub: 'assistente', run: () => jarbas.open() },

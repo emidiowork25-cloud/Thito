@@ -253,6 +253,49 @@ export function openActionItems() {
   return out.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
 }
 
+/* ================= ROTINA ================= */
+
+/** Domingo é 0 no JavaScript; quem monta a semana começa na segunda. */
+export const DIAS_SEMANA = [
+  { n: 1, curto: 'seg', longo: 'segunda' },
+  { n: 2, curto: 'ter', longo: 'terça' },
+  { n: 3, curto: 'qua', longo: 'quarta' },
+  { n: 4, curto: 'qui', longo: 'quinta' },
+  { n: 5, curto: 'sex', longo: 'sexta' },
+  { n: 6, curto: 'sáb', longo: 'sábado' },
+  { n: 0, curto: 'dom', longo: 'domingo' },
+];
+
+export const rotinasAtivas = () => list('rotinas', (r) => !r.arquivada)
+  .sort((a, b) => (a.horario || '99').localeCompare(b.horario || '99')
+    || (a.createdAt || '').localeCompare(b.createdAt || ''));
+
+/** As tarefas que valem para uma data, pelo dia da semana dela. */
+export function rotinasDoDia(date = today()) {
+  const dow = parseDate(date).getDay();
+  return rotinasAtivas().filter((r) => (r.dias ?? []).includes(dow));
+}
+
+export const rotinaFeita = (r, date) => !!(r.feitos ?? {})[date];
+
+export function rotinaResumo(date = today()) {
+  const itens = rotinasDoDia(date);
+  const feitos = itens.filter((r) => rotinaFeita(r, date));
+  return {
+    total: itens.length,
+    feitos: feitos.length,
+    pendentes: itens.length - feitos.length,
+    pct: itens.length ? feitos.length / itens.length : 0,
+    completo: itens.length > 0 && feitos.length === itens.length,
+  };
+}
+
+/** A segunda-feira da semana em que a data cai. */
+export function segundaDe(date) {
+  const dow = parseDate(date).getDay();
+  return addDays(date, dow === 0 ? -6 : 1 - dow);
+}
+
 /* ================= BUSCA GLOBAL ================= */
 
 const SEARCHABLE = {

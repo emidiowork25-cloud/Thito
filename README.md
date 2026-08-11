@@ -212,6 +212,7 @@ O JARBAS acumula três camadas de contexto:
 | **Copywriter** | Escrita para redes, roteiros e campanhas, com contador por plataforma, variações A/B, voz de marca e leitura de métricas do Meta Business. |
 | **Freela** | O que é o trabalho, para quem, qual a sua função, quanto paga, quando paga. Marcar como pago lança a entrada no financeiro sozinho. |
 | **Eventos** | Orçamento, cachê, equipe (contratada ou da qual você faz parte) e checklist editável de antes, durante e depois. |
+| **Rotina** | O que se repete toda semana, com a grade de dias sempre à vista e editável. [Detalhes abaixo](#rotina--o-que-se-repete-toda-semana). |
 | **Senhas e acessos** | O cofre. Mapa mental por dentro, criptografia de ponta a ponta por fora. [Detalhes abaixo](#senhas-e-acessos--o-cofre). |
 | **Teleprompter** | Editor no PC, exibidor no celular, sincronizados ao vivo. Texto espelhado, rolagem controlada, marcações de operação. |
 
@@ -289,6 +290,45 @@ o código da sala. A aba **Exibidor & link** testa isso sozinha e avisa se ainda
 | `Ctrl + Espaço` | Segurar para falar |
 | `1` a `9`, `0` | Pular direto para uma seção |
 | `Esc` | Fechar painel ou janela |
+
+---
+
+## Rotina — o que se repete toda semana
+
+Para o que não tem data marcada mas volta sempre: checar o Trello, as postagens da
+Universidade, as do Seminário, acompanhar um perfil. Coisa que se esquece justamente
+por ser óbvia demais para virar compromisso na agenda.
+
+**Duas partes, numa tela só**
+
+- **Hoje** — a lista do dia, com caixa grande de marcar e a contagem em destaque
+  (`2/5`). Quando fecha, o quadro acende em verde. É o que você olha de manhã.
+- **A semana** — a grade: linhas são as tarefas, colunas são os dias. Está **sempre
+  visível** e é **editável no clique**: tocar numa célula inclui ou tira a tarefa
+  daquele dia. Mudar a rotina não exige abrir menu nenhum.
+
+**As cores da grade dizem tudo**
+
+| | |
+|---|---|
+| Azul com `·` | a tarefa vale nesse dia |
+| Verde com `✓` | feita |
+| **Vermelho** | o dia passou e ela não foi feita |
+| Vazio | não se aplica nesse dia |
+
+Setas navegam entre semanas — dá para olhar para trás e ver o que vem caindo.
+
+**Outros detalhes**
+
+- Cada tarefa aceita **horário**, **contexto** (Universidade, Seminário, Kadu…),
+  **link** (abre o Trello ou o perfil direto da lista) e observação.
+- 🔥 aparece quando você fecha a mesma tarefa duas semanas seguidas ou mais. A conta
+  ignora a semana corrente — ela ainda está acontecendo, e zerar a sequência de quem
+  só não chegou na sexta seria mentira.
+- O histórico de feitos é podado em 120 dias. Sem isso, uma tarefa diária acumularia
+  milhares de datas — e esse registro sobe inteiro para a nuvem a cada clique.
+- O JARBAS enxerga a rotina: sabe o que está pendente hoje, o que se repete na semana,
+  e cria tarefas quando você diz "toda segunda eu preciso…".
 
 ---
 

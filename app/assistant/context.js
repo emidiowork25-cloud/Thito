@@ -47,6 +47,26 @@ export function build() {
   parts.push(section('Próximos 7 dias', proximos.map((e) =>
     `${fmtDate(e.occurrence, { weekday: true })} ${e.time ? fmtTime(e.time) : ''} — ${e.title}`)));
 
+  /* --- rotina --- */
+  const rot = store.rotinaResumo(t);
+  if (rot.total) {
+    parts.push(section(`Rotina de hoje (${rot.feitos} de ${rot.total} feitas)`,
+      store.rotinasDoDia(t).map((r) => [
+        store.rotinaFeita(r, t) ? '✔' : '☐',
+        r.horario ? `${r.horario} —` : null,
+        r.title,
+        r.contexto ? `[${r.contexto}]` : null,
+      ].filter(Boolean).join(' '))));
+  }
+
+  const rotinaToda = store.rotinasAtivas();
+  if (rotinaToda.length) {
+    parts.push(section('Rotina da semana (o que se repete)', rotinaToda.map((r) => {
+      const dias = store.DIAS_SEMANA.filter((d) => (r.dias ?? []).includes(d.n)).map((d) => d.curto).join(', ');
+      return `${r.title}${r.contexto ? ` [${r.contexto}]` : ''} — ${dias || 'nenhum dia'}${r.horario ? ` às ${r.horario}` : ''}`;
+    })));
+  }
+
   /* --- tarefas --- */
   const abertas = store.openTasks();
   const atrasadas = abertas.filter((x) => x.due && x.due < t);
