@@ -30,7 +30,10 @@ export const TEMAS_PADRAO = [
 
 /** Converte o texto dos ajustes em temas. Linha vazia e lixo são ignorados. */
 export function temas() {
-  const bruto = settings.get('noticiasTemas') ?? TEMAS_PADRAO;
+  // `||` e não `??`: o valor guardado começa como string vazia, e `??` só cai
+  // no padrão quando é nulo. Com `??` a lista saía vazia e a busca ia sem tema
+  // nenhum — que foi exatamente o que aconteceu na primeira publicação.
+  const bruto = settings.get('noticiasTemas')?.trim() || TEMAS_PADRAO;
   return bruto.split('\n')
     .map((linha) => {
       const [label, ...resto] = linha.split('|');
