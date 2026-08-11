@@ -11,6 +11,7 @@
 
 import * as cofre from '../core/cofre.js';
 import * as settings from '../core/settings.js';
+import { lerTopicos } from '../core/outline.js';
 import { on, emit } from '../core/bus.js';
 import { el, uid, truncate } from '../core/util.js';
 import { layout, ramoInteiro } from '../ui/arvore.js';
@@ -83,6 +84,7 @@ function barra() {
       text: truncate(c.nome || 'sem nome', 24),
     })),
     el('button', { class: 'btn sm', text: '+ mapa', onclick: () => novoCofre() }),
+    el('button', { class: 'btn sm', text: '↓ importar', title: 'Colar um mapa de acessos exportado de outro lugar', onclick: () => importar() }),
     el('div', { class: 'spacer' }),
     el('span', { class: 'cofre-selo', text: '🔓 aberto' }),
     el('button', {
@@ -584,6 +586,70 @@ async function excluirNo(c, node) {
   c.nodes = (c.nodes ?? []).filter((n) => !remover.has(n.id));
   selecionado = null;
   await salvar(c);
+}
+
+/**
+ * Importa um mapa de acessos colado de fora (XMind, Obsidian, uma lista escrita
+ * à mão). Tudo acontece aqui dentro: o texto é interpretado pelo seu navegador
+ * e cifrado com a sua senha-mestra antes de encostar no disco. Ninguém mais vê.
+ */
+function importar() {
+  const entrada = el('textarea', {
+    rows: 12, spellcheck: 'false',
+    placeholder: 'Cole aqui o conteúdo exportado.\n\nEx.:\n# Trabalho\n- Universidade\n  - Portal do professor\n    - usuário: thiago.emidio\n    - senha: ...\n    - url: https://portal...\n  - E-mail institucional\n    - usuário: ...\n    - senha: ...',
+  });
+
+  const previa = el('div', { class: 'tiny dim', style: 'margin-top:10px' });
+  let lido = null;
+
+  const analisar = () => {
+    lido = lerTopicos(entrada.value, uid);
+    previa.className = 'tiny dim';
+    previa.textContent = lido.nodes.length
+      ? `${lido.nodes.length} item(ns) reconhecido(s), ${lido.comAcesso} com usuário ou senha. Mapa: "${lido.nome}".`
+      : 'Nada reconhecido ainda — cole o texto acima.';
+  };
+  entrada.addEventListener('input', analisar);
+
+  modal({
+    title: 'Importar acessos',
+    wide: true,
+    render: () => el('div', {},
+      el('p', { class: 'muted', style: 'margin-top:0' },
+        'No XMind: ', el('strong', { text: 'Exportar → Markdown' }), ' (ou OPML), abrir o arquivo e colar o conteúdo aqui. '
+        + 'Lista indentada escrita à mão também serve.'),
+      el('div', { class: 'cofre-alerta' },
+        el('strong', { text: 'O texto não sai deste navegador. ' }),
+        'Ele é interpretado aqui e cifrado com a sua senha-mestra antes de ser gravado. '
+        + 'Nada disso passa por mim nem pela nuvem em texto claro — é por isso que a importação é colar, e não me mandar o link.'),
+      el('div', { class: 'field' },
+        el('label', { text: 'Conteúdo exportado' }),
+        entrada),
+      el('p', { class: 'tiny dim', style: 'margin:0' },
+        'Linhas como "senha: …", "usuário: …", "url: …" e "2FA: …" viram campos do item acima delas, em vez de virarem itens soltos.'),
+      previa),
+    footer: (close) => [
+      el('button', { class: 'btn', text: 'Cancelar', onclick: () => close() }),
+      el('button', {
+        class: 'btn primary', text: 'Importar',
+        onclick: async () => {
+          analisar();
+          if (!lido?.nodes.length) return toast('Não reconheci nenhum item nesse texto.', 'bad');
+          const id = uid();
+          await cofre.gravar(id, { nome: lido.nome, nodes: lido.nodes });
+          abertos.push({ id, nome: lido.nome, nodes: lido.nodes });
+          ativo = id;
+          selecionado = null;
+          resetView();
+          close();
+          toast(`${lido.nodes.length} item(ns) importado(s) e cifrado(s).`, 'ok');
+          emit('nav:refresh');
+        },
+      }),
+    ],
+  });
+
+  analisar();
 }
 
 async function novoCofre() {

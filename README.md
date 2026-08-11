@@ -413,6 +413,18 @@ do sistema com criptografia própria.
 - No desenho do mapa aparecem só os **nomes** — mostrar a tela ou compartilhar a janela
   não vaza credencial. No celular o mapa vira lista, que é o que serve para procurar.
 
+**Trazer acessos de outro lugar**
+
+O botão *↓ importar* aceita um mapa exportado do XMind (**Exportar → Markdown** ou OPML),
+do Obsidian, ou uma lista indentada escrita à mão. A hierarquia vira a árvore do cofre, e
+linhas no formato `senha: …`, `usuário: …`, `url: …`, `2FA: …` e `obs: …` viram **campos do
+item acima delas** em vez de virarem itens soltos.
+
+Você cola o texto; o seu navegador interpreta e cifra com a sua senha-mestra antes de
+gravar. **Nada disso passa por mim nem sobe em texto claro** — e é exatamente por isso que
+a importação é colar, e não me mandar o link do arquivo. Para eu escrever no cofre eu
+precisaria da sua senha-mestra, e se eu pudesse ter essa senha o cofre não protegeria nada.
+
 **O JARBAS não enxerga o cofre.** A coleção não entra no contexto que vai junto das suas
 perguntas, não existe ferramenta que a leia, e ela não aparece na busca global. É o único
 módulo invisível para ele, e é intencional: o que vira contexto sai da sua máquina.
