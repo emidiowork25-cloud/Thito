@@ -104,7 +104,8 @@ function renderNav() {
 function badgeFor(view) {
   switch (view) {
     case 'agenda': {
-      const hoje = store.eventsOn(store.today()).length + store.openTasks().filter((t) => t.due && t.due <= store.today()).length;
+      const hoje = store.agendaOn(store.today()).length
+        + store.openTasks().filter((t) => t.due && t.due <= store.today()).length;
       return hoje || null;
     }
     case 'compras': {
@@ -114,11 +115,9 @@ function badgeFor(view) {
     case 'reunioes': return store.openActionItems().length || null;
     // Freela conta o que está a receber; Eventos, as pendências do que ainda vem.
     // Badge é lembrete do que trava, não contador de linhas.
-    case 'freela': {
-      const t = store.today();
-      const abertos = ['proposta', 'fechado', 'em andamento', 'entregue'];
-      return store.list('freelas', (f) => !f.pago && abertos.includes(f.status ?? 'proposta')).length || null;
-    }
+    // Só o que foi fechado. Proposta pendente não é pendência sua — a bola
+    // está com o cliente, e contá-la aqui faz o selo cobrar o que não existe.
+    case 'freela': return store.freelasAReceber().length || null;
     case 'eventos': {
       const t = store.today();
       const futuros = store.list('producoes', (e) => !e.date || e.date >= t);

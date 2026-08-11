@@ -39,11 +39,11 @@ export function build() {
   if (perfil?.trim()) parts.push(`\n## Quem é ${name || 'ele'}\n${perfil.trim()}\n`);
 
   /* --- agenda --- */
-  const hoje = store.eventsOn(t);
+  const hoje = store.agendaOn(t);
   parts.push(section('Agenda de hoje', hoje.map((e) =>
     `${e.time ? fmtTime(e.time) : 'sem hora'} — ${e.title}${e.category ? ` [${e.category}]` : ''}${e.notes ? ` (${truncate(e.notes, 80)})` : ''}`)));
 
-  const proximos = store.eventsBetween(addDays(t, 1), addDays(t, 7));
+  const proximos = store.agendaBetween(addDays(t, 1), addDays(t, 7));
   parts.push(section('Próximos 7 dias', proximos.map((e) =>
     `${fmtDate(e.occurrence, { weekday: true })} ${e.time ? fmtTime(e.time) : ''} — ${e.title}`)));
 
@@ -167,7 +167,6 @@ export function build() {
   }
 
   /* --- freelas --- */
-  const abertosFreela = ['proposta', 'fechado', 'em andamento', 'entregue'];
   parts.push(section('Freelas', store.list('freelas')
     .sort((a, b) => (a.pagaEm || '9999').localeCompare(b.pagaEm || '9999'))
     .slice(0, 20)

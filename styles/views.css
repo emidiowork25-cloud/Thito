@@ -212,6 +212,11 @@
 .mm-text { fill: var(--txt); pointer-events: none; user-select: none; }
 .color-dot { width: 24px; height: 24px; border-radius: 50%; border: 0; cursor: pointer; }
 
+/* Compromisso que veio de outro módulo: a borda tracejada avisa que ele não
+   nasceu aqui e que clicar leva embora, em vez de abrir o editor. */
+.tl-row.derivado { border-left: 2px dashed var(--line-2); padding-left: 8px; }
+.tl-row.derivado .tl-time { color: var(--acc); }
+
 /* ================= próximo compromisso (dia vazio) ================= */
 .prox { margin-top: 14px; }
 .prox-rot {

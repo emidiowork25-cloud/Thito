@@ -58,7 +58,7 @@ function calendario() {
   }
 
   const fim = addDays(inicio, total - 1);
-  const eventos = store.eventsBetween(inicio, fim);
+  const eventos = store.agendaBetween(inicio, fim);
   const porDia = {};
   for (const e of eventos) (porDia[e.occurrence] ||= []).push(e);
 
@@ -99,7 +99,7 @@ function legenda() {
 /* ---------- painel do dia ---------- */
 
 function painelDia() {
-  const evs = store.eventsOn(selected);
+  const evs = store.agendaOn(selected);
   const body = el('div', { class: 'timeline' });
 
   // Dia vazio não termina a conversa: mostra o que vem depois dele, com um
@@ -111,18 +111,24 @@ function painelDia() {
       relDay,
       fmtDate,
       fmtTime,
-      onOpen: (data) => { selected = data; cursor = data; emit('nav:refresh'); },
+      onOpen: (data, ev) => { if (ev?.virtual) return emit('nav:go', { view: ev.origem.view, id: ev.origem.id }); selected = data; cursor = data; emit('nav:refresh'); },
     });
     if (bloco) body.append(bloco);
   }
 
   for (const e of evs) {
-    body.append(el('div', { class: 'tl-row clickable', onclick: () => editarEvento(e) },
-      el('div', { class: 'tl-time mono', text: e.time ? fmtTime(e.time) : '—' }),
-      el('div', { class: 'tl-body' },
-        el('div', { class: 'tl-title', text: e.title }),
-        el('div', { class: 'tiny dim', text: [e.endTime ? `até ${fmtTime(e.endTime)}` : '', e.recur ? `repete ${e.recur}` : '', e.notes].filter(Boolean).join(' · ') })),
-      e.category ? el('span', { class: `pill cat-${e.category}`, text: e.category }) : null));
+    // Compromisso vindo de outro módulo não se edita aqui: clicar abre o dono,
+    // onde estão o valor, o cliente e o resto que a agenda não guarda.
+    body.append(el('div', {
+      class: `tl-row clickable ${e.virtual ? 'derivado' : ''}`,
+      title: e.virtual ? `Vem do módulo ${e.origem.view === 'freela' ? 'Freela' : 'Eventos'} — clique para abrir lá` : '',
+      onclick: () => (e.virtual ? emit('nav:go', { view: e.origem.view, id: e.origem.id }) : editarEvento(e)),
+    },
+    el('div', { class: 'tl-time mono', text: e.time ? fmtTime(e.time) : e.virtual ? '↗' : '—' }),
+    el('div', { class: 'tl-body' },
+      el('div', { class: 'tl-title', text: e.title }),
+      el('div', { class: 'tiny dim', text: [e.endTime ? `até ${fmtTime(e.endTime)}` : '', e.recur ? `repete ${e.recur}` : '', e.notes].filter(Boolean).join(' · ') })),
+    e.category ? el('span', { class: `pill cat-${e.category}`, text: e.category }) : null));
   }
 
   const titulo = `${weekdayName(selected)}, ${fmtDate(selected, { year: true })}`;

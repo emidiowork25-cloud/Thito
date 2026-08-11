@@ -205,8 +205,8 @@ export function proximoCompromisso(ev, { relDay, fmtDate, fmtTime, onOpen } = {}
   return el('div', { class: 'prox' },
     el('div', { class: 'prox-rot', text: 'Próximo compromisso' }),
     el('button', {
-      class: 'prox-corpo', onclick: () => onOpen?.(quando),
-      title: onOpen ? 'Abrir esse dia na agenda' : '',
+      class: 'prox-corpo', onclick: () => onOpen?.(quando, ev),
+      title: ev.virtual ? 'Vem de outro módulo — clique para abrir lá' : (onOpen ? 'Abrir esse dia na agenda' : ''),
     },
     el('div', { class: 'prox-quando mono' },
       el('span', { text: fmtDate(quando, { weekday: true }) }),

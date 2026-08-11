@@ -5,7 +5,7 @@ import * as db from './db.js';
 import { emit } from './bus.js';
 import {
   uid, now, today, isoDate, parseDate, addDays, addMonths, monthKey,
-  diffDays, sum, norm,
+  diffDays, sum, norm, money,
 } from './util.js';
 
 const cache = new Map(); // collection -> Map(id, record)
@@ -158,6 +158,73 @@ export function upcoming(days = 7) {
   return eventsBetween(today(), addDays(today(), days));
 }
 
+/* ---------- compromissos derivados de outros módulos ---------- */
+
+/**
+ * Entrega de freela e data de evento também são compromissos — só não estavam
+ * na agenda porque nasceram em outro módulo. O calendário que ignora isso
+ * mostra uma quinta-feira livre no dia em que você tem uma entrega.
+ *
+ * São eventos virtuais: têm a mesma forma dos de verdade, mas não existem na
+ * coleção `events`. Não se editam pela agenda — clicar leva ao módulo dono,
+ * que é onde a informação completa mora.
+ */
+export function derivedEvents(from, to) {
+  const dentro = (d) => d && d >= from && d <= to;
+  const out = [];
+
+  for (const f of list('freelas')) {
+    const status = freelaStatus(f);
+    if (status === 'cancelado') continue;
+
+    // Entrega: só do que está de pé e ainda não foi entregue.
+    if (dentro(f.entregaEm) && status !== 'entregue') {
+      out.push(virtual({
+        chave: `freela:${f.id}:entrega`, date: f.entregaEm,
+        title: `Entrega — ${f.title || 'freela'}`,
+        notes: [f.client, f.role].filter(Boolean).join(' · '),
+        category: 'trabalho', view: 'freela', id: f.id,
+      }));
+    }
+
+    // Pagamento: só do que já é contratado. Data de proposta é chute, e chute
+    // no calendário vira compromisso falso.
+    if (dentro(f.pagaEm) && !f.pago && FREELA_CONTRATADOS.includes(status)) {
+      out.push(virtual({
+        chave: `freela:${f.id}:paga`, date: f.pagaEm,
+        title: `Recebe — ${f.title || 'freela'}`,
+        notes: `${money(f.valor)}${f.client ? ` · ${f.client}` : ''}`,
+        category: 'financeiro', view: 'freela', id: f.id,
+      }));
+    }
+  }
+
+  for (const e of list('producoes')) {
+    if (!dentro(e.date)) continue;
+    out.push(virtual({
+      chave: `evento:${e.id}`, date: e.date,
+      title: e.title || 'Evento',
+      notes: [e.local, (Number(e.cache) || 0) ? money(e.cache) : null].filter(Boolean).join(' · '),
+      category: 'trabalho', view: 'eventos', id: e.id,
+    }));
+  }
+
+  return out;
+}
+
+const virtual = ({ chave, date, title, notes, category, view, id }) => ({
+  id: chave, date, occurrence: date, title, notes, category,
+  virtual: true, origem: { view, id },
+});
+
+/** A agenda de verdade: o que você marcou mais o que os outros módulos marcaram. */
+export function agendaBetween(from, to) {
+  return [...eventsBetween(from, to), ...derivedEvents(from, to)]
+    .sort((a, b) => (a.occurrence + (a.time || '')).localeCompare(b.occurrence + (b.time || '')));
+}
+
+export const agendaOn = (date) => agendaBetween(date, date);
+
 /**
  * O próximo compromisso depois de uma data — o que preencher a tela quando o
  * dia está vazio. "Nada marcado" e ponto final é verdade inútil: quem abre a
@@ -170,7 +237,7 @@ export function upcoming(days = 7) {
 export function nextEventAfter(date = today()) {
   const inicio = addDays(date, 1);
   for (const janela of [14, 60, 365]) {
-    const achados = eventsBetween(inicio, addDays(date, janela));
+    const achados = agendaBetween(inicio, addDays(date, janela));
     if (achados.length) return achados[0];
   }
   return null;
@@ -183,8 +250,8 @@ export function nextEventAfter(date = today()) {
 export function nextEvent() {
   const t = today();
   const agora = new Date().toTimeString().slice(0, 5);
-  // eventsOn já devolve cada item com `occurrence` preenchido.
-  return eventsOn(t).find((e) => !e.time || e.time >= agora) ?? nextEventAfter(t);
+  // agendaOn já devolve cada item com `occurrence` preenchido.
+  return agendaOn(t).find((e) => !e.time || e.time >= agora) ?? nextEventAfter(t);
 }
 
 /* ================= TAREFAS ================= */
@@ -281,6 +348,37 @@ export function openActionItems() {
   }
   return out.sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
 }
+
+/* ================= FREELA ================= */
+
+/**
+ * Proposta não é dinheiro. É orçamento enviado que pode nunca virar trabalho —
+ * e somá-lo ao "a receber" faz o topo do módulo prometer um caixa que não
+ * existe. Contratado é o que alguém já se comprometeu a pagar.
+ *
+ * Estas listas moram aqui porque estavam copiadas em quatro arquivos, e cada
+ * cópia é uma chance de as telas discordarem sobre o mesmo dinheiro.
+ */
+export const FREELA_CONTRATADOS = ['fechado', 'em andamento', 'entregue'];
+export const FREELA_VIVOS = ['proposta', ...FREELA_CONTRATADOS];
+
+export const freelaStatus = (f) => f.status ?? 'proposta';
+
+/** Trabalho fechado e ainda não pago: a única cifra que alguém te deve. */
+export const freelasAReceber = () =>
+  list('freelas', (f) => !f.pago && FREELA_CONTRATADOS.includes(freelaStatus(f)));
+
+/** Vencido: contratado, com data de pagamento no passado, e não pago. */
+export const freelasAtrasadas = () =>
+  freelasAReceber().filter((f) => f.pagaEm && f.pagaEm < today());
+
+/** Orçamento enviado, aguardando resposta. Conta à parte, e é de propósito. */
+export const freelasEmProposta = () =>
+  list('freelas', (f) => !f.pago && freelaStatus(f) === 'proposta');
+
+/** Tudo que ainda está de pé — inclui proposta. Serve para listar, não para somar. */
+export const freelasVivas = () =>
+  list('freelas', (f) => !f.pago && FREELA_VIVOS.includes(freelaStatus(f)));
 
 /* ================= ROTINA ================= */
 

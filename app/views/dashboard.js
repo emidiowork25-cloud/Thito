@@ -152,7 +152,7 @@ function tileRotina(t) {
 }
 
 function tileAgenda(t) {
-  const hoje = store.eventsOn(t);
+  const hoje = store.agendaOn(t);
   const proximo = hoje.find((e) => !e.time || e.time >= new Date().toTimeString().slice(0, 5));
 
   // Com o dia vazio, o rodapé aponta para o próximo compromisso em vez de
@@ -188,15 +188,14 @@ function tileTarefas(t) {
  * há nada a receber: quadro zerado no topo é ruído com aparência de dado.
  */
 function tileReceber() {
-  const abertos = ['proposta', 'fechado', 'em andamento', 'entregue'];
-  const freelas = store.list('freelas', (f) => !f.pago && abertos.includes(f.status ?? 'proposta'));
+  const freelas = store.freelasAReceber();
   const eventos = store.list('producoes', (e) => !e.pago && (Number(e.cache) || 0) > 0);
   const total = freelas.reduce((a, f) => a + (Number(f.valor) || 0), 0)
     + eventos.reduce((a, e) => a + (Number(e.cache) || 0), 0);
   if (!total) return null;
 
   const t = today();
-  const vencidos = freelas.filter((f) => f.pagaEm && f.pagaEm < t).length
+  const vencidos = store.freelasAtrasadas().length
     + eventos.filter((e) => e.date && e.date < t).length;
 
   return statTile({
@@ -210,7 +209,7 @@ function tileReceber() {
 /** O próximo compromisso com consequência: entrega de freela ou evento. */
 function tileProximaEntrega(t) {
   const candidatos = [
-    ...store.list('freelas', (f) => f.entregaEm && f.entregaEm >= t && f.status !== 'entregue' && f.status !== 'cancelado')
+    ...store.list('freelas', (f) => f.entregaEm && f.entregaEm >= t && store.freelaStatus(f) !== 'entregue' && store.freelaStatus(f) !== 'cancelado')
       .map((f) => ({ quando: f.entregaEm, o_que: f.title, tipo: 'entrega' })),
     ...store.list('producoes', (e) => e.date && e.date >= t)
       .map((e) => ({ quando: e.date, o_que: e.title, tipo: 'evento' })),
@@ -229,7 +228,7 @@ function tileProximaEntrega(t) {
 /* ---------- cartões ---------- */
 
 function cardHoje(t) {
-  const eventos = store.eventsOn(t);
+  const eventos = store.agendaOn(t);
   const tarefas = store.openTasks().filter((x) => x.due && x.due <= t);
   const body = el('div', { class: 'timeline' });
 
@@ -245,7 +244,7 @@ function cardHoje(t) {
       relDay,
       fmtDate,
       fmtTime,
-      onOpen: (date) => emit('nav:go', { view: 'agenda', date }),
+      onOpen: (date, ev) => emit('nav:go', ev?.virtual ? { view: ev.origem.view, id: ev.origem.id } : { view: 'agenda', date }),
     });
     if (bloco) body.append(bloco);
   }
@@ -277,7 +276,7 @@ function cardHoje(t) {
 }
 
 function cardProximos(t) {
-  const proximos = store.eventsBetween(addDays(t, 1), addDays(t, 7));
+  const proximos = store.agendaBetween(addDays(t, 1), addDays(t, 7));
   const body = el('div', { class: 'list-plain' });
   if (!proximos.length) body.append(emptyState('Nada nos próximos 7 dias.'));
   for (const e of proximos.slice(0, 8)) {

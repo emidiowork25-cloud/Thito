@@ -210,7 +210,7 @@ O JARBAS acumula três camadas de contexto:
 | **Reuniões** | Pauta, anotações, decisões e encaminhamentos com responsável e prazo — que aparecem no Painel até serem fechados. |
 | **Apresentações** | De um tópico a um deck navegável. Modo de exibição em tela cheia, roteiro de fala, exportação em HTML (que vira PDF com `Ctrl+P`). |
 | **Copywriter** | Escrita para redes, roteiros e campanhas, com contador por plataforma, variações A/B, voz de marca e leitura de métricas do Meta Business. |
-| **Freela** | O que é o trabalho, para quem, qual a sua função, quanto paga, quando paga. Marcar como pago lança a entrada no financeiro sozinho. |
+| **Freela** | O que é o trabalho, para quem, qual a sua função, quanto paga, quando paga. Marcar como pago lança a entrada no financeiro sozinho. Entregas e recebimentos aparecem na Agenda. |
 | **Eventos** | Orçamento, cachê, equipe (contratada ou da qual você faz parte) e checklist editável de antes, durante e depois. |
 | **Rotina** | O que se repete toda semana, com a grade de dias sempre à vista e editável. [Detalhes abaixo](#rotina--o-que-se-repete-toda-semana). |
 | **Senhas e acessos** | O cofre. Mapa mental por dentro, criptografia de ponta a ponta por fora. [Detalhes abaixo](#senhas-e-acessos--o-cofre). |
@@ -290,6 +290,26 @@ o código da sala. A aba **Exibidor & link** testa isso sozinha e avisa se ainda
 | `Ctrl + Espaço` | Segurar para falar |
 | `1` a `9`, `0` | Pular direto para uma seção |
 | `Esc` | Fechar painel ou janela |
+
+---
+
+## A Agenda mostra o que nasceu em outros módulos
+
+Entrega de freela, recebimento combinado e data de evento **aparecem no calendário**, sem
+você recopiar nada. Antes o calendário mostrava uma quinta-feira livre no dia em que havia
+uma entrega marcada — a informação existia, só estava no módulo errado.
+
+São compromissos virtuais: têm a mesma forma dos que você marca, mas continuam morando no
+módulo dono. Vêm com borda tracejada e **clicar leva ao Freela ou ao Eventos**, onde estão o
+valor, o cliente e o resto que a agenda não guarda.
+
+O que entra e o que não entra:
+
+| Entra | Não entra |
+|---|---|
+| Entrega de freela ainda não entregue | Freela cancelado |
+| Recebimento de trabalho **fechado** | Data de pagamento de **proposta** — é estimativa, e estimativa no calendário vira compromisso falso |
+| Data de evento | |
 
 ---
 

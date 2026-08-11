@@ -7,11 +7,10 @@
 import * as store from '../core/store.js';
 import * as jarbas from '../assistant/jarbas.js';
 import { emit } from '../core/bus.js';
-import { el, money, today, addDays, fmtDate, relDay, parseMoney, sum, truncate } from '../core/util.js';
+import { el, money, today, addDays, fmtDate, relDay, parseMoney, sum, monthName, parseDate } from '../core/util.js';
 import { sectionCard, emptyState, formModal, confirmDialog, statTile, toast } from '../ui/components.js';
 
 export const SITUACOES = ['proposta', 'fechado', 'em andamento', 'entregue', 'cancelado'];
-const ABERTOS = ['proposta', 'fechado', 'em andamento', 'entregue'];
 
 let selecionado = null;
 let filtro = 'abertos';
@@ -22,14 +21,15 @@ export function render(root, params = {}) {
   const todos = store.list('freelas').sort(ordenar);
   const visiveis = todos.filter((f) => (
     filtro === 'todos' ? true
-      : filtro === 'receber' ? (!f.pago && ABERTOS.includes(f.status ?? 'proposta'))
-        : ABERTOS.includes(f.status ?? 'proposta')
+      : filtro === 'receber' ? (!f.pago && store.FREELA_CONTRATADOS.includes(store.freelaStatus(f)))
+        : filtro === 'propostas' ? store.freelaStatus(f) === 'proposta' && !f.pago
+          : store.FREELA_VIVOS.includes(store.freelaStatus(f))
   ));
 
   if (!visiveis.some((f) => f.id === selecionado)) selecionado = visiveis[0]?.id ?? null;
 
   root.append(el('div', { class: 'toolbar' },
-    ...[['abertos', 'Em aberto'], ['receber', 'A receber'], ['todos', 'Todos']].map(([k, rot]) =>
+    ...[['abertos', 'Em aberto'], ['receber', 'A receber'], ['propostas', 'Propostas'], ['todos', 'Todos']].map(([k, rot]) =>
       el('button', {
         class: `chip ${filtro === k ? 'on' : ''}`, text: rot,
         onclick: () => { filtro = k; emit('nav:refresh'); },
@@ -55,47 +55,65 @@ export function render(root, params = {}) {
 
 /* ---------- números do topo ---------- */
 
-export function aReceber(lista = store.list('freelas')) {
-  return lista.filter((f) => !f.pago && ABERTOS.includes(f.status ?? 'proposta'));
-}
-
-/** Recebimento vencido: entregue, com data de pagamento no passado, e não pago. */
-export function atrasados(lista = store.list('freelas')) {
-  const t = today();
-  return aReceber(lista).filter((f) => f.pagaEm && f.pagaEm < t);
-}
-
+/**
+ * O topo responde "quem me deve" — e por isso proposta fica de fora da conta.
+ * Orçamento enviado não é dinheiro a receber: somá-lo ao total faz o quadro
+ * prometer um caixa que ninguém aprovou. Propostas ganham quadro próprio.
+ */
 function indicadores(todos) {
-  const receber = aReceber(todos);
-  const vencidos = atrasados(todos);
-  const emAndamento = todos.filter((f) => f.status === 'em andamento' || f.status === 'fechado');
-  const recebidoNoMes = todos.filter((f) => f.pago && (f.pagoEm ?? '').slice(0, 7) === today().slice(0, 7));
+  const receber = store.freelasAReceber();
+  const vencidos = store.freelasAtrasadas();
+  const propostas = store.freelasEmProposta();
+  const t = today();
 
-  return [
+  const emAndamento = todos.filter((f) => ['em andamento', 'fechado'].includes(store.freelaStatus(f)));
+  const comEntrega = emAndamento.filter((f) => f.entregaEm && f.entregaEm >= t);
+  const recebidoNoMes = todos.filter((f) => f.pago && (f.pagoEm ?? '').slice(0, 7) === t.slice(0, 7));
+
+  const tiles = [
     statTile({
       label: 'A receber',
       value: money(sum(receber, (f) => Number(f.valor) || 0)),
-      sub: `${receber.length} freela${receber.length === 1 ? '' : 's'}`,
+      sub: receber.length
+        ? `${receber.length} trabalho${receber.length === 1 ? '' : 's'} fechado${receber.length === 1 ? '' : 's'}`
+        : 'ninguém te deve nada',
     }),
     statTile({
       label: 'Atrasado',
       value: money(sum(vencidos, (f) => Number(f.valor) || 0)),
       tone: vencidos.length ? 'bad' : '',
-      sub: vencidos.length ? `${vencidos.length} vencido(s)` : 'nada vencido',
+      sub: vencidos.length ? `${vencidos.length} vencido(s) — cobre` : 'nada vencido',
     }),
     statTile({
       label: 'Em andamento',
       value: String(emAndamento.length),
-      sub: emAndamento.length ? 'com entrega pela frente' : 'nada em produção',
+      sub: comEntrega.length
+        ? `${comEntrega.length} com entrega marcada`
+        : emAndamento.length ? 'sem data de entrega' : 'nada em produção',
     }),
     statTile({
-      label: `Recebido em ${today().slice(0, 7)}`,
+      label: `Recebido em ${nomeDoMes(t)}`,
       value: money(sum(recebidoNoMes, (f) => Number(f.valor) || 0)),
       tone: recebidoNoMes.length ? 'ok' : '',
       sub: `${recebidoNoMes.length} pagamento(s)`,
     }),
   ];
+
+  // Some quando não há proposta pendente: quadro zerado é ruído com cara de dado.
+  if (propostas.length) {
+    tiles.splice(1, 0, statTile({
+      label: 'Em proposta',
+      value: money(sum(propostas, (f) => Number(f.valor) || 0)),
+      sub: `${propostas.length} aguardando resposta`,
+    }));
+  }
+  return tiles;
 }
+
+const nomeDoMes = (data) => {
+  const m = monthName(parseDate(data).getMonth());
+  return `${m[0].toUpperCase()}${m.slice(1)}`;
+};
 
 /* ---------- lista ---------- */
 
@@ -130,7 +148,18 @@ function cardLista(lista) {
     ));
   }
 
-  return sectionCard(`Freelas · ${lista.length}`, null, body);
+  return sectionCard(rotuloDaLista(lista.length), null, body);
+}
+
+/**
+ * O título diz qual recorte está na tela e quantos existem ao todo. "Freelas ·
+ * 4" com o filtro ligado se lê como "eu tenho 4 freelas", e não é isso que a
+ * tela está mostrando.
+ */
+function rotuloDaLista(visiveis) {
+  const total = store.list('freelas').length;
+  const nome = { abertos: 'Em aberto', receber: 'A receber', propostas: 'Propostas', todos: 'Todos' }[filtro];
+  return visiveis === total ? `Freelas · ${total}` : `${nome} · ${visiveis} de ${total}`;
 }
 
 /* ---------- detalhe ---------- */
