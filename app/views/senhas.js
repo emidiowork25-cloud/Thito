@@ -11,7 +11,8 @@
 
 import * as cofre from '../core/cofre.js';
 import * as settings from '../core/settings.js';
-import { lerTopicos } from '../core/outline.js';
+import { lerTopicos, deArvore } from '../core/outline.js';
+import { lerXmind } from '../core/xmind.js';
 import { on, emit } from '../core/bus.js';
 import { el, uid, truncate } from '../core/util.js';
 import { layout, ramoInteiro } from '../ui/arvore.js';
@@ -602,28 +603,62 @@ function importar() {
   const previa = el('div', { class: 'tiny dim', style: 'margin-top:10px' });
   let lido = null;
 
+  const mostrar = (vazio) => {
+    previa.className = 'tiny dim';
+    previa.textContent = lido?.nodes.length
+      ? `${lido.nodes.length} item(ns) reconhecido(s), ${lido.comAcesso} com usuário ou senha. Mapa: "${lido.nome}".`
+      : vazio;
+  };
+
   const analisar = () => {
     lido = lerTopicos(entrada.value, uid);
-    previa.className = 'tiny dim';
-    previa.textContent = lido.nodes.length
-      ? `${lido.nodes.length} item(ns) reconhecido(s), ${lido.comAcesso} com usuário ou senha. Mapa: "${lido.nome}".`
-      : 'Nada reconhecido ainda — cole o texto acima.';
+    mostrar('Nada reconhecido ainda — escolha o arquivo ou cole o texto.');
   };
   entrada.addEventListener('input', analisar);
+
+  // Arquivo .xmind: o formato é um ZIP com um content.json dentro, e o
+  // navegador dá conta dos dois sozinho. É o caminho de quem não tem o plano
+  // pago do XMind — exportar para Markdown ou OPML é recurso cobrado, mas o
+  // arquivo do mapa é seu desde sempre.
+  const arquivo = el('input', {
+    type: 'file', accept: '.xmind,.json,.opml,.md,.txt',
+    onchange: async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      previa.textContent = `Lendo ${f.name}…`;
+      try {
+        if (/\.xmind$/i.test(f.name)) {
+          lido = deArvore(await lerXmind(await f.arrayBuffer()), uid);
+          entrada.value = '';
+          mostrar('O arquivo abriu, mas não tinha nenhum tópico dentro.');
+        } else {
+          entrada.value = await f.text();
+          analisar();
+        }
+      } catch (err) {
+        lido = null;
+        previa.className = 'cofre-forca bad';
+        previa.textContent = `Não consegui ler ${f.name}: ${err.message}`;
+      }
+    },
+  });
 
   modal({
     title: 'Importar acessos',
     wide: true,
     render: () => el('div', {},
       el('p', { class: 'muted', style: 'margin-top:0' },
-        'No XMind: ', el('strong', { text: 'Exportar → Markdown' }), ' (ou OPML), abrir o arquivo e colar o conteúdo aqui. '
-        + 'Lista indentada escrita à mão também serve.'),
+        'Escolha o arquivo ', el('strong', { text: '.xmind' }), ' (no XMind: Arquivo → Salvar/Baixar no dispositivo) '
+        + 'ou cole o conteúdo de um Markdown, OPML ou lista indentada. '),
       el('div', { class: 'cofre-alerta' },
-        el('strong', { text: 'O texto não sai deste navegador. ' }),
-        'Ele é interpretado aqui e cifrado com a sua senha-mestra antes de ser gravado. '
-        + 'Nada disso passa por mim nem pela nuvem em texto claro — é por isso que a importação é colar, e não me mandar o link.'),
+        el('strong', { text: 'Nada sai deste navegador. ' }),
+        'O arquivo é aberto aqui, na memória da aba, e cifrado com a sua senha-mestra antes de ser gravado. '
+        + 'Não passa por mim nem sobe em texto claro — é por isso que a importação é o arquivo, e não o link do mapa.'),
       el('div', { class: 'field' },
-        el('label', { text: 'Conteúdo exportado' }),
+        el('label', { text: 'Arquivo do mapa' }),
+        arquivo),
+      el('div', { class: 'field' },
+        el('label', { text: 'Ou cole o conteúdo' }),
         entrada),
       el('p', { class: 'tiny dim', style: 'margin:0' },
         'Linhas como "senha: …", "usuário: …", "url: …" e "2FA: …" viram campos do item acima delas, em vez de virarem itens soltos.'),
@@ -633,8 +668,10 @@ function importar() {
       el('button', {
         class: 'btn primary', text: 'Importar',
         onclick: async () => {
-          analisar();
-          if (!lido?.nodes.length) return toast('Não reconheci nenhum item nesse texto.', 'bad');
+          // Só reinterpreta a caixa se ela tiver algo. Reanalisar sempre
+          // apagava o que veio do arquivo .xmind, que não passa pela caixa.
+          if (entrada.value.trim()) analisar();
+          if (!lido?.nodes.length) return toast('Não reconheci nenhum item para importar.', 'bad');
           const id = uid();
           await cofre.gravar(id, { nome: lido.nome, nodes: lido.nodes });
           abertos.push({ id, nome: lido.nome, nodes: lido.nodes });

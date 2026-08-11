@@ -415,8 +415,13 @@ do sistema com criptografia própria.
 
 **Trazer acessos de outro lugar**
 
-O botão *↓ importar* aceita um mapa exportado do XMind (**Exportar → Markdown** ou OPML),
-do Obsidian, ou uma lista indentada escrita à mão. A hierarquia vira a árvore do cofre, e
+O botão *↓ importar* aceita o **arquivo `.xmind`** direto (no XMind: *Arquivo → Salvar/Baixar
+no dispositivo*) — exportar para Markdown ou OPML é recurso pago, mas o arquivo do mapa é seu.
+Um `.xmind` é um ZIP com um `content.json` dentro, e o app abre os dois sozinho, sem
+biblioteca nenhuma. Também aceita Markdown, OPML e lista indentada coladas na caixa.
+
+Do arquivo do XMind ele lê **título, subtópicos, notas e etiquetas** — porque credencial em
+mapa mental real aparece nos três lugares. Tópicos soltos (*detached*) entram junto. A hierarquia vira a árvore do cofre, e
 linhas no formato `senha: …`, `usuário: …`, `url: …`, `2FA: …` e `obs: …` viram **campos do
 item acima delas** em vez de virarem itens soltos.
 

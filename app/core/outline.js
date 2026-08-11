@@ -53,12 +53,15 @@ function nivelDe(linha, nivelDoTitulo) {
   const titulo = linha.match(/^(#{1,6})\s+/);
   if (titulo) return { nivel: titulo[1].length - 1, titulo: true, texto: linha.slice(titulo[0].length) };
 
-  const bruto = linha.match(/^[ \t]*/)[0].replace(/\t/g, '    ').length;
+  const recuo = linha.match(/^[ \t]*/)[0];
   const texto = linha.replace(/^[ \t]*(?:[-*+•]|\d+[.)])?\s*/, '');
-  // Dois espaços por nível é a convenção do markdown; quatro também aparece.
-  // Dividir por dois e arredondar para baixo lida com os dois casos sem
-  // transformar um recuo de quatro em dois níveis errados na maioria dos casos.
-  return { nivel: nivelDoTitulo + 1 + Math.floor(bruto / 2), titulo: false, texto };
+
+  // Tabulação conta um nível por tabulação — é o que sai ao copiar de um
+  // programa de tópicos direto para a área de transferência. Só quando não há
+  // tabulação vale a régua do markdown, de dois espaços por nível.
+  const tabs = (recuo.match(/\t/g) ?? []).length;
+  const degrau = tabs || Math.floor(recuo.length / 2);
+  return { nivel: nivelDoTitulo + 1 + degrau, titulo: false, texto };
 }
 
 function deTexto(texto) {
@@ -124,6 +127,16 @@ export function lerTopicos(texto, novoId) {
 
   let raizes = bruto.startsWith('<') ? deOpml(bruto) : null;
   if (!raizes?.length) raizes = deTexto(bruto);
+  return deArvore(raizes, novoId);
+}
+
+/**
+ * Mesma saída, partindo de uma árvore já montada — é por aqui que entra o
+ * leitor de .xmind, que produz { text, filhos } sem passar por texto.
+ */
+export function deArvore(raizesCruas, novoId) {
+  const raizes = raizesCruas ?? [];
+  if (!raizes.length) return { nodes: [], comAcesso: 0 };
   for (const r of raizes) extrair(r);
 
   // Uma raiz só vira o centro do mapa. Várias ganham um centro chamado
