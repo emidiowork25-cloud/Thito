@@ -212,6 +212,27 @@
 .mm-text { fill: var(--txt); pointer-events: none; user-select: none; }
 .color-dot { width: 24px; height: 24px; border-radius: 50%; border: 0; cursor: pointer; }
 
+/* ================= próximo compromisso (dia vazio) ================= */
+.prox { margin-top: 14px; }
+.prox-rot {
+  font: 400 10px/1 var(--sub); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--txt-3); margin-bottom: 7px;
+}
+.prox-corpo {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  padding: 11px 13px; cursor: pointer; color: var(--txt); font: inherit;
+  border: 1px solid var(--line-2); border-left: 3px solid var(--acc);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--acc) 8%, transparent);
+}
+.prox-corpo:hover { background: color-mix(in srgb, var(--acc) 15%, transparent); }
+.prox-quando {
+  display: flex; flex-direction: column; gap: 2px; flex: 0 0 auto;
+  font-size: 11.5px; color: var(--acc); line-height: 1.3;
+}
+.prox-meio { flex: 1; min-width: 0; }
+.prox-titulo { font-size: 14px; line-height: 1.35; }
+
 /* ================= rotina ================= */
 
 /* O painel do dia: número grande, barra, e um verde que só acende quando

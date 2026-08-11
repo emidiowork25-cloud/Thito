@@ -6,7 +6,7 @@ import * as noticias from '../core/noticias.js';
 import * as ctx from '../assistant/context.js';
 import * as jarbas from '../assistant/jarbas.js';
 import { el, money, fmtDate, fmtTime, relDay, today, addDays, monthKey, truncate } from '../core/util.js';
-import { statTile, meter, sectionCard, emptyState } from '../ui/components.js';
+import { statTile, meter, sectionCard, emptyState, proximoCompromisso } from '../ui/components.js';
 import { emit } from '../core/bus.js';
 
 export function render(root) {
@@ -67,8 +67,19 @@ async function atualizarNoticias(corpo, forcar) {
   }
 
   const comConteudo = (pacote.temas ?? []).filter((t) => t.itens?.length);
+  const falhou = (pacote.temas ?? []).filter((t) => t.erro);
+
+  // Quando tudo falha é justamente quando o motivo importa. A versão anterior
+  // saía por aqui com "nenhuma manchete veio" e engolia os erros de cada tema,
+  // deixando o único diagnóstico útil sem chegar à tela.
   if (!comConteudo.length) {
-    corpo.append(el('div', { class: 'tiny dim', text: 'Nenhuma manchete veio. Tente de novo em alguns minutos.' }));
+    corpo.append(el('div', { class: 'tiny dim', text: 'Nenhuma manchete veio.' }));
+    for (const t of falhou) {
+      corpo.append(el('div', { class: 'tiny dim', style: 'margin-top:4px', text: `· ${t.label}: ${t.erro}` }));
+    }
+    if (!falhou.length) {
+      corpo.append(el('div', { class: 'tiny dim', style: 'margin-top:4px', text: 'Os feeds responderam, mas sem nenhuma notícia dentro.' }));
+    }
     return;
   }
 
@@ -83,7 +94,6 @@ async function atualizarNoticias(corpo, forcar) {
     }
   }
 
-  const falhou = (pacote.temas ?? []).filter((t) => t.erro);
   if (falhou.length) {
     corpo.append(el('div', { class: 'tiny dim', style: 'margin-top:10px', text: `Não veio: ${falhou.map((t) => `${t.label} (${t.erro})`).join(', ')}.` }));
   }
@@ -144,13 +154,22 @@ function tileRotina(t) {
 function tileAgenda(t) {
   const hoje = store.eventsOn(t);
   const proximo = hoje.find((e) => !e.time || e.time >= new Date().toTimeString().slice(0, 5));
-  return statTile({
-    label: 'Hoje na agenda',
-    value: String(hoje.length),
-    sub: proximo
-      ? `próximo: ${truncate(proximo.title, 26)}${proximo.time ? ` ${fmtTime(proximo.time)}` : ''}`
-      : hoje.length ? 'tudo já passou' : 'nada marcado',
-  });
+
+  // Com o dia vazio, o rodapé aponta para o próximo compromisso em vez de
+  // repetir "nada marcado" — que é a mesma informação do número grande.
+  let sub;
+  if (proximo) {
+    sub = `próximo: ${truncate(proximo.title, 26)}${proximo.time ? ` ${fmtTime(proximo.time)}` : ''}`;
+  } else if (hoje.length) {
+    sub = 'tudo já passou';
+  } else {
+    const futuro = store.nextEventAfter(t);
+    sub = futuro
+      ? `próximo ${relDay(futuro.occurrence)}: ${truncate(futuro.title, 22)}`
+      : 'nada marcado';
+  }
+
+  return statTile({ label: 'Hoje na agenda', value: String(hoje.length), sub });
 }
 
 function tileTarefas(t) {
@@ -217,6 +236,18 @@ function cardHoje(t) {
   if (!eventos.length && !tarefas.length) {
     body.append(emptyState('Dia livre. Aproveite — ou planeje algo.', 'Novo compromisso',
       () => emit('action:new-event')));
+  }
+
+  // Sem compromisso hoje, o cartão mostra o próximo. Vale mesmo quando há
+  // tarefas: elas não respondem "quando é meu próximo compromisso?".
+  if (!eventos.length) {
+    const bloco = proximoCompromisso(store.nextEventAfter(t), {
+      relDay,
+      fmtDate,
+      fmtTime,
+      onOpen: (date) => emit('nav:go', { view: 'agenda', date }),
+    });
+    if (bloco) body.append(bloco);
   }
 
   for (const e of eventos) {

@@ -288,7 +288,9 @@ export function init() {
   });
 
   // O JARBAS pede para abrir seções e recarregar a tela após agir.
-  on('nav:go', ({ view, id }) => go(view, id ? { id } : {}));
+  // `date` além de `id`: abrir a agenda num dia (o próximo compromisso, por
+  // exemplo) não é a mesma coisa que abrir um registro pelo identificador.
+  on('nav:go', ({ view, id, date }) => go(view, { ...(id ? { id } : {}), ...(date ? { date } : {}) }));
   on('nav:refresh', () => render());
   on('data:changed', debounce(() => { renderNav(); }, 200));
   on('cofre:estado', () => renderNav());

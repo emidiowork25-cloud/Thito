@@ -108,14 +108,34 @@ async function buscarTema(tema: Tema): Promise<{ id: string; label: string; iten
   try {
     const res = await fetch(urlDoTema(String(tema.q ?? '')), {
       signal: controle.signal,
-      headers: { 'User-Agent': 'JARBAS/1.0 (leitor de RSS pessoal)' },
+      headers: {
+        // Navegador de verdade: a partir de um datacenter, um User-Agent
+        // esquisito é o caminho mais curto para levar 403 ou página de captcha.
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+          + '(KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+        Accept: 'application/rss+xml, application/xml;q=0.9, */*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9',
+        // Pula o muro de consentimento do Google, que responde 200 com uma
+        // página HTML no lugar do feed — e HTML sem <item> é indistinguível
+        // de "não há notícias" para quem só conta itens.
+        Cookie: 'CONSENT=YES+cb; SOCS=CAI',
+      },
     });
     if (!res.ok) return { id, label, itens: [], erro: `feed respondeu ${res.status}` };
 
+    const corpo = await res.text();
     const vistos = new Set<string>();
-    const itens = parsear(await res.text())
+    const itens = parsear(corpo)
       .filter((i) => (vistos.has(i.titulo) ? false : (vistos.add(i.titulo), true)))
       .slice(0, POR_TEMA);
+
+    // Zero itens com HTTP 200 quase nunca é "não há notícias": é outra coisa no
+    // lugar do feed. O tipo e o tamanho do que veio dizem qual — e sem isso o
+    // erro chega na tela como "não veio nada", que não ajuda ninguém.
+    if (!itens.length) {
+      const tipo = res.headers.get('content-type')?.split(';')[0] ?? 'sem tipo';
+      return { id, label, itens: [], erro: `resposta sem notícias (${tipo}, ${Math.round(corpo.length / 1024)} KB)` };
+    }
     return { id, label, itens };
   } catch (e) {
     // Um tema que falha não pode derrubar os outros: o cartão mostra o que veio

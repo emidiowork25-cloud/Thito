@@ -192,6 +192,31 @@ export function meter(pct, tone) {
     el('span', { class: `meter-fill ${t}`, style: `width:${Math.min(100, clamped * 100)}%` }));
 }
 
+/**
+ * O "e depois?" de um dia vazio: mostra o próximo compromisso com data, hora e
+ * a distância em dias. `onOpen` leva para o dia dele.
+ *
+ * Vive aqui e não em cada view porque a Agenda e o Painel dizem a mesma coisa,
+ * e dizer a mesma coisa de dois jeitos é como as duas telas passam a divergir.
+ */
+export function proximoCompromisso(ev, { relDay, fmtDate, fmtTime, onOpen } = {}) {
+  if (!ev) return null;
+  const quando = ev.occurrence ?? ev.date;
+  return el('div', { class: 'prox' },
+    el('div', { class: 'prox-rot', text: 'Próximo compromisso' }),
+    el('button', {
+      class: 'prox-corpo', onclick: () => onOpen?.(quando),
+      title: onOpen ? 'Abrir esse dia na agenda' : '',
+    },
+    el('div', { class: 'prox-quando mono' },
+      el('span', { text: fmtDate(quando, { weekday: true }) }),
+      ev.time ? el('span', { text: fmtTime(ev.time) }) : null),
+    el('div', { class: 'prox-meio' },
+      el('div', { class: 'prox-titulo', text: ev.title }),
+      el('div', { class: 'tiny dim', text: relDay(quando) })),
+    ev.category ? el('span', { class: `pill cat-${ev.category}`, text: ev.category }) : null));
+}
+
 export function emptyState(text, actionLabel, onAction) {
   const node = el('div', { class: 'empty' }, el('div', { text }));
   if (actionLabel) {

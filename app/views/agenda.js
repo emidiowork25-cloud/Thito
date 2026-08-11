@@ -7,12 +7,13 @@ import {
   el, today, isoDate, parseDate, addDays, addMonths, daysInMonth, monthName,
   fmtDate, fmtTime, relDay, weekdayName,
 } from '../core/util.js';
-import { sectionCard, emptyState, formModal, confirmDialog, toast } from '../ui/components.js';
+import { sectionCard, emptyState, proximoCompromisso, formModal, confirmDialog, toast } from '../ui/components.js';
 
 let cursor = today();     // mês exibido
 let selected = today();   // dia selecionado
 
 export function render(root, params = {}) {
+  if (params.date) { selected = params.date; cursor = params.date; }
   if (params.id) {
     const ev = store.get('events', params.id);
     if (ev?.date) { selected = ev.date; cursor = ev.date; }
@@ -101,7 +102,19 @@ function painelDia() {
   const evs = store.eventsOn(selected);
   const body = el('div', { class: 'timeline' });
 
-  if (!evs.length) body.append(emptyState('Nada marcado neste dia.', '+ Compromisso', () => editarEvento({ date: selected })));
+  // Dia vazio não termina a conversa: mostra o que vem depois dele, com um
+  // clique para pular direto para lá.
+  if (!evs.length) {
+    body.append(emptyState('Nada marcado neste dia.', '+ Compromisso', () => editarEvento({ date: selected })));
+    const prox = store.nextEventAfter(selected);
+    const bloco = proximoCompromisso(prox, {
+      relDay,
+      fmtDate,
+      fmtTime,
+      onOpen: (data) => { selected = data; cursor = data; emit('nav:refresh'); },
+    });
+    if (bloco) body.append(bloco);
+  }
 
   for (const e of evs) {
     body.append(el('div', { class: 'tl-row clickable', onclick: () => editarEvento(e) },

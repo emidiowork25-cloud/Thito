@@ -158,6 +158,35 @@ export function upcoming(days = 7) {
   return eventsBetween(today(), addDays(today(), days));
 }
 
+/**
+ * O próximo compromisso depois de uma data — o que preencher a tela quando o
+ * dia está vazio. "Nada marcado" e ponto final é verdade inútil: quem abre a
+ * agenda num dia livre quer saber o que vem.
+ *
+ * A janela cresce em degraus em vez de varrer o ano de uma vez: expandir um
+ * evento diário por 365 dias para descobrir que havia algo amanhã é trabalho
+ * jogado fora a cada desenho de tela.
+ */
+export function nextEventAfter(date = today()) {
+  const inicio = addDays(date, 1);
+  for (const janela of [14, 60, 365]) {
+    const achados = eventsBetween(inicio, addDays(date, janela));
+    if (achados.length) return achados[0];
+  }
+  return null;
+}
+
+/**
+ * O próximo compromisso a partir de agora: o que ainda não passou hoje e,
+ * se hoje já acabou, o primeiro dos dias seguintes.
+ */
+export function nextEvent() {
+  const t = today();
+  const agora = new Date().toTimeString().slice(0, 5);
+  // eventsOn já devolve cada item com `occurrence` preenchido.
+  return eventsOn(t).find((e) => !e.time || e.time >= agora) ?? nextEventAfter(t);
+}
+
 /* ================= TAREFAS ================= */
 
 export function openTasks() {
