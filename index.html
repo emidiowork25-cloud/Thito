@@ -177,6 +177,9 @@
         try {
           reg = await navigator.serviceWorker.register('sw.js');
         } catch { return; }
+        // Nem todo navegador rejeita quando o worker é barrado: alguns
+        // resolvem com nada, e aí `reg.update()` estoura no meio do boot.
+        if (!reg) return;
 
         const avisar = () => {
           if (document.getElementById('update-bar')) return;

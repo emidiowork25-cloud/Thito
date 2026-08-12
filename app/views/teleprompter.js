@@ -256,7 +256,8 @@ function abaExibidor(script) {
 
   corpo.append(el('p', { class: 'tiny dim', style: 'margin-top:0' },
     'Aponte a câmera do celular para o código. A página abre já espelhada e acompanha, ao vivo, '
-    + 'tudo o que você mudar aqui: texto, velocidade, tamanho da fonte e rolagem.'));
+    + 'tudo o que você mudar aqui: texto, velocidade, tamanho da fonte e rolagem. '
+    + 'Não há nada a publicar: o exibidor vai junto do hub.'));
 
   // Confere se a página do exibidor já está no ar e, se não estiver, diz exatamente o que fazer.
   const diagnostico = el('div', { class: 'tiny dim', style: 'margin-bottom:12px', text: 'verificando o exibidor…' });
@@ -264,14 +265,11 @@ function abaExibidor(script) {
   verificarExibidor(url).then((r) => {
     if (r.ok) {
       diagnostico.className = 'ok-box tiny';
-      diagnostico.textContent = 'Exibidor publicado e respondendo. Pode ler o QR.';
+      diagnostico.textContent = 'Exibidor no ar e respondendo como página. Pode ler o QR.';
       return;
     }
     diagnostico.className = 'aviso';
-    diagnostico.replaceChildren(
-      el('div', { style: 'margin-bottom:6px', text: r.motivo }),
-      el('div', { class: 'mono tiny', style: 'user-select:all', text: 'supabase functions deploy prompter --no-verify-jwt' }),
-    );
+    diagnostico.textContent = r.motivo;
   });
 
   /* QR */
@@ -609,29 +607,69 @@ function exportar(script) {
 
 /* ============================ auxiliares ============================ */
 
+/**
+ * O exibidor é um arquivo estático servido pelo mesmo endereço do hub.
+ *
+ * Já foi uma Edge Function do Supabase, e não funcionava: o gateway deles
+ * reescreve a resposta para `text/plain` e injeta um CSP de sandbox — é a
+ * proteção contra usar função como hospedagem de página. O celular lia o QR e
+ * recebia o código-fonte na tela, em texto puro, em vez do teleprompter.
+ *
+ * Como arquivo estático o servidor manda `text/html` e a página abre. E
+ * sumiram dois passos manuais que só existiam para chegar até aqui: publicar
+ * a função e lembrar do `--no-verify-jwt`.
+ *
+ * O projeto e a chave só entram na URL quando fogem do padrão embutido na
+ * página — QR curto é QR que a câmera lê de primeira.
+ */
 function urlDoExibidor(script) {
-  const base = String(settings.get('supabaseUrl') || '').replace(/\/+$/, '');
-  return `${base}/functions/v1/prompter?s=${encodeURIComponent(script.sala ?? '')}`;
+  const url = new URL('exibidor.html', `${location.origin}${location.pathname.replace(/[^/]*$/, '')}`);
+  url.searchParams.set('s', script.sala ?? '');
+
+  const projeto = String(settings.get('supabaseUrl') || '').replace(/\/+$/, '');
+  const chave = String(settings.get('supabaseKey') || '');
+  if (projeto && projeto !== PROJETO_PADRAO) url.searchParams.set('p', projeto);
+  if (chave && chave !== CHAVE_PADRAO) url.searchParams.set('k', chave);
+  return url.toString();
 }
+
+// Os mesmos valores embutidos em exibidor.html. Se um dia divergirem, o QR
+// passa a carregá-los explicitamente — que é o certo, só mais comprido.
+const PROJETO_PADRAO = 'https://kikedkajnytdjncrkoxf.supabase.co';
+const CHAVE_PADRAO = 'sb_publishable_XbwfA-SmyYnbIW9o9gm6hQ_XTbAX22m';
 
 /**
  * Bate na página do exibidor para saber se ela já foi publicada.
  * Um 401 significa que a função existe mas exige login — que é justamente o
  * que impede o celular de abrir o link.
  */
+/**
+ * Confere se o exibidor abre — e, principalmente, se abre como PÁGINA.
+ *
+ * Responder 200 não basta: foi exatamente assim que a versão anterior falhou.
+ * O servidor entregava a página com `text/plain`, o navegador não a
+ * interpretava, e o celular mostrava o código-fonte na tela. Um verificador
+ * que só olhasse o número teria dito "tudo certo".
+ */
 async function verificarExibidor(url) {
   try {
     const res = await fetch(url, { method: 'GET', cache: 'no-store' });
-    if (res.ok) return { ok: true };
-    if (res.status === 401 || res.status === 403) {
-      return { ok: false, motivo: 'O exibidor exige login, então o celular não consegue abrir. Republique-o como página pública:' };
+    if (!res.ok) {
+      return res.status === 404
+        ? { ok: false, motivo: 'O arquivo exibidor.html não está publicado neste endereço. Ele vive junto do hub — se você publicou o JARBAS agora, espere o site atualizar.' }
+        : { ok: false, motivo: `O exibidor respondeu ${res.status}.` };
     }
-    if (res.status === 404) {
-      return { ok: false, motivo: 'A página do exibidor ainda não foi publicada no seu projeto. Rode uma vez, na pasta do JARBAS:' };
+    const tipo = res.headers.get('content-type') ?? '';
+    if (!/text\/html/i.test(tipo)) {
+      return {
+        ok: false,
+        motivo: `O servidor está entregando o exibidor como "${tipo.split(';')[0] || 'tipo desconhecido'}" em vez de página. `
+          + 'Assim o celular mostra o código-fonte em vez do texto.',
+      };
     }
-    return { ok: false, motivo: `O exibidor respondeu ${res.status}. Tente publicar de novo:` };
+    return { ok: true };
   } catch {
-    return { ok: false, motivo: 'Não consegui falar com o exibidor (sem internet ou função não publicada). Se for o segundo caso, rode:' };
+    return { ok: false, motivo: 'Não consegui falar com o exibidor. Verifique a internet.' };
   }
 }
 

@@ -1,23 +1,4 @@
-// Edge Function "prompter" — serve a página do exibidor do teleprompter.
-//
-// É pública de propósito: o celular precisa abrir o link sem login, apontando a
-// câmera para um QR. A página em si não contém roteiro nenhum — o texto chega
-// depois, pelo canal Realtime, e só para quem tem o código da sala.
-//
-// Deploy:  supabase functions deploy prompter --no-verify-jwt
-
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-};
-
-/** Escapa para inserir com segurança dentro de um <script type="application/json">. */
-const seguro = (s: string) =>
-  JSON.stringify(s).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
-
-function pagina(url: string, chave: string, sala: string): string {
-  return `<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -113,12 +94,36 @@ function pagina(url: string, chave: string, sala: string): string {
     <p id="dica">Conectando ao editor. Deixe esta tela aberta — o texto aparece sozinho.</p>
   </div>
 
-<script id="cfg" type="application/json">${seguro(JSON.stringify({ url, chave, sala }))}</script>
+<script>
+/* A configuracao vem da URL, e nao de um servidor.
+ *
+ * Esta pagina era servida por uma Edge Function do Supabase, e nao funcionava:
+ * o gateway deles reescreve a resposta para text/plain e injeta um CSP de
+ * sandbox — e a protecao contra usar funcao como hospedagem de pagina. O
+ * celular recebia o codigo-fonte na tela em vez do teleprompter.
+ *
+ * Como arquivo estatico na Vercel, o servidor manda text/html e a pagina abre.
+ * De quebra sumiram o deploy da funcao e o "--no-verify-jwt", que eram dois
+ * passos manuais so para chegar ate aqui.
+ *
+ * O projeto e a chave publicavel ficam embutidos: a chave e publica por
+ * desenho — quem protege os dados e a politica do banco. Os parametros p e k
+ * na URL permitem apontar para outro projeto sem mexer neste arquivo.
+ */
+window.__cfg = (function () {
+  var q = new URLSearchParams(location.search);
+  return {
+    url: q.get('p') || 'https://kikedkajnytdjncrkoxf.supabase.co',
+    chave: q.get('k') || 'sb_publishable_XbwfA-SmyYnbIW9o9gm6hQ_XTbAX22m',
+    sala: (q.get('s') || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 32)
+  };
+}());
+</script>
 <script>
 (function () {
   'use strict';
 
-  var cfg = JSON.parse(JSON.parse(document.getElementById('cfg').textContent));
+  var cfg = window.__cfg;
   var palco = document.getElementById('palco');
   var trilho = document.getElementById('trilho');
   var espera = document.getElementById('espera');
@@ -155,11 +160,11 @@ function pagina(url: string, chave: string, sala: string): string {
   var assinaturaTexto = null;
 
   function montarTexto() {
-    var linhas = (st.texto || '').split('\\n');
+    var linhas = (st.texto || '').split('\n');
     trilho.innerHTML = '';
     for (var i = 0; i < linhas.length; i++) {
       var p = document.createElement('p');
-      var ehCue = /^\\s*\\[.*\\]\\s*$/.test(linhas[i]);
+      var ehCue = /^\s*\[.*\]\s*$/.test(linhas[i]);
       if (ehCue) p.className = 'cue';
       p.textContent = linhas[i] || ' ';
       trilho.appendChild(p);
@@ -226,7 +231,7 @@ function pagina(url: string, chave: string, sala: string): string {
   function conectar() {
     estadoTxt.textContent = 'conectando';
     luz.classList.remove('on');
-    var endpoint = cfg.url.replace(/^http/, 'ws').replace(/\\/+$/, '')
+    var endpoint = cfg.url.replace(/^http/, 'ws').replace(/\/+$/, '')
       + '/realtime/v1/websocket?apikey=' + encodeURIComponent(cfg.chave) + '&vsn=1.0.0';
 
     try { ws = new WebSocket(endpoint); } catch (e) { reagendar(); return; }
@@ -324,33 +329,4 @@ function pagina(url: string, chave: string, sala: string): string {
 })();
 </script>
 </body>
-</html>`;
-}
-
-Deno.serve((req: Request) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-
-  const url = new URL(req.url);
-  const sala = (url.searchParams.get('s') ?? '').replace(/[^A-Za-z0-9]/g, '').slice(0, 32);
-
-  const projeto = Deno.env.get('SUPABASE_URL') ?? '';
-  const chave = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-
-  if (!projeto || !chave) {
-    return new Response('Exibidor sem configuração do projeto.', {
-      status: 500,
-      headers: { ...CORS, 'Content-Type': 'text/plain; charset=utf-8' },
-    });
-  }
-
-  return new Response(pagina(projeto, chave, sala), {
-    headers: {
-      ...CORS,
-      'Content-Type': 'text/html; charset=utf-8',
-      // a página é estática; o conteúdo do roteiro chega pelo Realtime
-      'Cache-Control': 'public, max-age=300',
-      'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'no-referrer',
-    },
-  });
-});
+</html>

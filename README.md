@@ -263,18 +263,19 @@ início e pular parágrafo.
 > o resto com o próprio relógio. Um estado completo é reenviado a cada 5 segundos, então um
 > celular que entrou no meio ou reconectou se alinha sozinho.
 
-### Publicar o exibidor (uma vez só)
+### O exibidor não precisa de publicação nenhuma
 
-A página do exibidor mora numa função do seu projeto Supabase, para o celular abrir de qualquer
-lugar. Rode uma vez, na pasta do JARBAS:
+A página do exibidor é o arquivo `exibidor.html`, servido junto do hub. Nada a rodar, nada a
+configurar: se o JARBAS está no ar, o exibidor está.
 
-```bash
-supabase functions deploy prompter --no-verify-jwt
-```
+Já morou numa Edge Function do Supabase, e não funcionava. O gateway deles reescreve a resposta
+para `text/plain` e injeta um CSP de sandbox — é a proteção contra usar função como hospedagem
+de página. O celular lia o QR e recebia o **código-fonte na tela**, em texto puro. Não há como
+contornar de dentro da função; a saída é servir a página de onde páginas são servidas.
 
-O `--no-verify-jwt` é proposital: é o que permite abrir o link só com a câmera, sem login. A
-página em si não carrega roteiro nenhum — o texto chega depois pelo canal, e só para quem tem
-o código da sala. A aba **Exibidor & link** testa isso sozinha e avisa se ainda faltar publicar.
+A página não carrega roteiro nenhum — o texto chega depois pelo canal, e só para quem tem o
+código da sala. A aba **Exibidor & link** confere sozinha, e confere o tipo do conteúdo, não só
+o código de resposta: foi um 200 servido como texto que causou o problema acima.
 
 > Quem tiver o link vê o seu roteiro. O código tem 14 caracteres aleatórios; se vazar, o botão
 > **Trocar código** invalida o antigo na hora.
@@ -491,7 +492,7 @@ inteiro, nas mãos de outra pessoa, entrega tudo menos o cofre.
 | "A chave da Anthropic foi recusada" | O segredo `ANTHROPIC_API_KEY` está errado ou não foi definido. Veja *Ligar o cérebro do JARBAS*. |
 | O JARBAS fica mudo mas o resto funciona | É o esperado sem internet. Seus dados continuam todos acessíveis. |
 | O celular abre o exibidor e fica em "conectando" | O editor precisa estar aberto na aba do Teleprompter. Confira também se você entrou na conta em Ajustes. |
-| O link do exibidor dá erro no celular | Falta publicar a função uma vez: `supabase functions deploy prompter --no-verify-jwt`. |
+| O celular mostra código-fonte em vez do teleprompter | O servidor está entregando `exibidor.html` como texto em vez de página. A aba **Exibidor & link** detecta e diz qual tipo veio. |
 | A voz corta no meio de textos longos | Bug conhecido do Chrome; o app já contorna. Se persistir, reduza a velocidade da fala em Ajustes. |
 
 ---
@@ -516,8 +517,9 @@ app/
 styles/       base (tokens e casca), views (cada tela)
 supabase/
   functions/jarbas/    a função que guarda a chave e chama o Claude
-  functions/prompter/  a página do exibidor do teleprompter
 ```
+
+`exibidor.html`, na raiz, é a página que o celular abre no teleprompter.
 
 O laço de ferramentas roda **no seu navegador**: o Claude pede uma ação, o app executa
 localmente sobre os seus dados e devolve o resultado. A função na nuvem é só um porteiro
