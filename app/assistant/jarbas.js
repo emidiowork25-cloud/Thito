@@ -357,13 +357,29 @@ function wireControls() {
       : 'Escuta contínua ligada. Diga “Jarbas, …” para falar comigo.');
   });
 
-  // Push-to-talk pelo botão do microfone
-  const start = (e) => { e.preventDefault(); beginPTT(); };
-  const end = (e) => { e.preventDefault(); endPTT(); };
+  // Push-to-talk pelo botão do microfone.
+  //
+  // O fim da gravação é ouvido no window, e não no botão, porque o dedo quase
+  // sempre escorrega para fora antes de soltar — e soltar fora do botão tem que
+  // encerrar a fala do mesmo jeito.
+  //
+  // O que este ouvinte não pode fazer é chamar preventDefault. Em `touchend`,
+  // preventDefault cancela o clique que o navegador sintetizaria a partir do
+  // toque; num ouvinte do window, isso cancelava o clique de TODOS os botões do
+  // app. No celular a tela abria e nada respondia; no PC funcionava tudo,
+  // porque preventDefault em `mouseup` não cancela clique nenhum. Foi por essa
+  // fresta que o problema atravessou todos os testes feitos com mouse.
+  //
+  // A trava `segurando` também impede o outro desperdício: antes, encerrar a
+  // gravação era tentado a cada toque em qualquer lugar da página.
+  let segurando = false;
+  const start = (e) => { e.preventDefault(); segurando = true; beginPTT(); };
+  const end = () => { if (!segurando) return; segurando = false; endPTT(); };
   ui.mic.addEventListener('mousedown', start);
   ui.mic.addEventListener('touchstart', start, { passive: false });
   window.addEventListener('mouseup', end);
   window.addEventListener('touchend', end);
+  window.addEventListener('touchcancel', end);
 
   // Push-to-talk por atalho: Ctrl+Espaço
   let pttKey = false;
