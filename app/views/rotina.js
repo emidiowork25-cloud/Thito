@@ -17,6 +17,7 @@ import * as jarbas from '../assistant/jarbas.js';
 import { on, emit } from '../core/bus.js';
 import { el, today, addDays, parseDate, truncate } from '../core/util.js';
 import { sectionCard, emptyState, formModal, confirmDialog, meter, toast } from '../ui/components.js';
+import { iconePlataforma, detectarPlataforma, OPCOES_PLATAFORMA, PLATAFORMAS } from '../ui/icones.js';
 
 // As regras de domínio (quais tarefas caem em que dia, o que está feito, onde
 // começa a semana) moram no store — o contexto do JARBAS e o Painel leem de lá
@@ -25,10 +26,10 @@ const { DIAS_SEMANA: DIAS, rotinasAtivas: ativas, rotinasDoDia: doDia, rotinaFei
 
 /** Sugestões de partida, para a tela não abrir vazia pedindo inspiração. */
 const EXEMPLOS = [
-  { title: 'Checar o Trello — tarefas da semana em dia?', contexto: 'Trabalho', dias: [1, 2, 3, 4, 5], horario: '09:00' },
-  { title: 'Postagens da Universidade conforme a programação', contexto: 'Universidade', dias: [1, 3, 5] },
-  { title: 'Postagens do Seminário Pernambucano de Autismo', contexto: 'Seminário', dias: [2, 4] },
-  { title: 'Acompanhar o perfil do Kadu.lins', contexto: 'Kadu', dias: [1, 2, 3, 4, 5], link: 'https://instagram.com/kadu.lins' },
+  { title: 'Checar o Trello — tarefas da semana em dia?', contexto: 'Trabalho', dias: [1, 2, 3, 4, 5], horario: '09:00', plataforma: 'trello' },
+  { title: 'Postagens da Universidade conforme a programação', contexto: 'Universidade', dias: [1, 3, 5], plataforma: 'instagram' },
+  { title: 'Postagens do Seminário Pernambucano de Autismo', contexto: 'Seminário', dias: [2, 4], plataforma: 'instagram' },
+  { title: 'Acompanhar o perfil do Kadu.lins', contexto: 'Kadu', dias: [1, 2, 3, 4, 5], link: 'https://instagram.com/kadu.lins', plataforma: 'instagram' },
 ];
 
 let semanaBase = null; // segunda-feira da semana exibida; null = a semana atual
@@ -78,8 +79,11 @@ function hoje(t) {
       onclick: () => alternar(r, t),
     }));
 
+    const marca = iconePlataforma(r.plataforma, { tamanho: 15 });
     const meio = el('div', { class: 'rot-meio' },
-      el('div', { class: 'rot-titulo', text: r.title }),
+      el('div', { class: 'rot-titulo' },
+        marca ? el('span', { class: 'rot-plat' }, marca) : null,
+        el('span', { text: r.title })),
       el('div', { class: 'rot-meta' },
         r.horario ? el('span', { class: 'mono', text: r.horario }) : null,
         r.contexto ? el('span', { class: 'pill', text: r.contexto }) : null,
@@ -145,7 +149,9 @@ function grade(t) {
   });
 
   for (const r of itens) {
+    const marcaLinha = iconePlataforma(r.plataforma, { tamanho: 14 });
     tabela.append(el('div', { class: 'rot-gl' },
+      marcaLinha ? el('span', { class: 'rot-plat' }, marcaLinha) : null,
       el('span', { class: 'rot-gl-tit', text: r.title, title: r.title }),
       r.contexto ? el('span', { class: 'pill sm', text: r.contexto }) : null));
 
@@ -155,14 +161,21 @@ function grade(t) {
       const cumprida = marcada && feito(r, data);
       const passado = data < t;
 
-      tabela.append(el('button', {
+      // Numa célula de 34px o ícone da plataforma diz mais rápido que
+      // qualquer texto o que aquele dia pede. O ✓ ganha do ícone quando a
+      // tarefa já foi feita — aí o que importa é que acabou.
+      const cel = el('button', {
         class: `rot-cel ${marcada ? 'on' : ''} ${cumprida ? 'ok' : ''} ${marcada && passado && !cumprida ? 'perdida' : ''} ${data === t ? 'hoje' : ''}`,
         title: marcada
           ? `${r.title} — ${d.longo}. Clique para tirar deste dia.`
           : `${r.title} — clique para incluir na ${d.longo}.`,
-        text: cumprida ? '✓' : marcada ? '·' : '',
         onclick: () => alternarDia(r, d.n),
-      }));
+      });
+      const glifo = !cumprida && marcada ? iconePlataforma(r.plataforma, { tamanho: 17 }) : null;
+      if (cumprida) cel.textContent = '✓';
+      else if (glifo) cel.append(glifo);
+      else if (marcada) cel.textContent = '·';
+      tabela.append(cel);
     });
   }
 
@@ -225,6 +238,7 @@ async function editar(r) {
     values: {
       titulo: r?.title ?? '',
       contexto: r?.contexto ?? '',
+      plataforma: r?.plataforma ?? '',
       horario: r?.horario ?? '',
       link: r?.link ?? '',
       notas: r?.notes ?? '',
@@ -233,6 +247,11 @@ async function editar(r) {
     fields: [
       { name: 'titulo', label: 'O que fazer', required: true, placeholder: 'Checar o Trello, postar no perfil da Universidade…' },
       { name: 'contexto', label: 'Contexto', inline: true, placeholder: 'Universidade, Seminário, Kadu…' },
+      {
+        name: 'plataforma', label: 'Plataforma', type: 'select', inline: true,
+        options: OPCOES_PLATAFORMA,
+        hint: 'Vira o ícone na grade da semana.',
+      },
       { name: 'horario', label: 'Horário', type: 'time', inline: true },
       { name: 'link', label: 'Link', placeholder: 'https://trello.com/… (abre direto da lista)' },
       { name: 'notas', label: 'Observação', type: 'textarea', rows: 2 },
@@ -256,10 +275,16 @@ async function editar(r) {
   const dias = DIAS.filter((d) => v[`d${d.n}`]).map((d) => d.n);
   if (!dias.length) return toast('Escolha pelo menos um dia da semana.', 'bad');
 
+  // Sem escolha explícita, o texto decide: "postar no Instagram" já traz o
+  // ícone certo sem ninguém abrir o seletor. O campo continua editável porque
+  // adivinhação erra, e quem manda é quem escreveu a tarefa.
+  const plataforma = v.plataforma || detectarPlataforma(v.titulo, v.contexto, v.link) || null;
+
   await store.save('rotinas', {
     id: r?.id,
     title: v.titulo.trim(),
     contexto: v.contexto?.trim() || null,
+    plataforma,
     horario: v.horario || null,
     link: v.link?.trim() || null,
     notes: v.notas?.trim() || null,

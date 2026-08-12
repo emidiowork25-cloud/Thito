@@ -341,7 +341,12 @@ Setas navegam entre semanas — dá para olhar para trás e ver o que vem caindo
 **Outros detalhes**
 
 - Cada tarefa aceita **horário**, **contexto** (Universidade, Seminário, Kadu…),
-  **link** (abre o Trello ou o perfil direto da lista) e observação.
+  **link** (abre o Trello ou o perfil direto da lista), observação e **plataforma**.
+- A **plataforma vira ícone colorido na grade**: Instagram, Stories, Reels, YouTube,
+  Shorts, Meta Ads, TikTok, Facebook, LinkedIn, WhatsApp, Trello, e-mail, site e reunião.
+  Numa célula de 34px o desenho diz mais rápido que qualquer texto o que aquele dia pede.
+  Ele é **adivinhado pelo título** ("Postar Reels da Universidade" já vem com o ícone certo)
+  e continua editável, porque adivinhação erra.
 - 🔥 aparece quando você fecha a mesma tarefa duas semanas seguidas ou mais. A conta
   ignora a semana corrente — ela ainda está acontecendo, e zerar a sequência de quem
   só não chegou na sexta seria mentira.

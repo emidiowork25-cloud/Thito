@@ -283,7 +283,12 @@
 .rot-check.on { background: var(--ok); border-color: var(--ok); color: var(--bg); }
 
 .rot-meio { flex: 1; min-width: 0; }
-.rot-titulo { font-size: 14px; line-height: 1.35; }
+.rot-titulo { font-size: 14px; line-height: 1.35; display: flex; align-items: center; gap: 7px; }
+.rot-plat { display: inline-flex; flex: 0 0 auto; }
+.ico-plat { display: block; }
+/* Na célula da grade o ícone é o conteúdo inteiro: centraliza e não deixa
+   herdar o alinhamento de texto do botão. */
+.rot-cel .ico-plat { margin: 0 auto; }
 .rot-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .rot-meta .mono { font-size: 11px; color: var(--txt-3); }
 .rot-seq { font-size: 11px; color: var(--warn); }
