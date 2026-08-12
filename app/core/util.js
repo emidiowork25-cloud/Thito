@@ -85,9 +85,23 @@ export const fmtTime = (t) => (t || '').slice(0, 5);
 /* ---------- números / moeda ---------- */
 
 const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-export const money = (n) => BRL.format(Number(n) || 0);
-export const num = (n, d = 0) =>
-  new Intl.NumberFormat('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(Number(n) || 0);
+
+/**
+ * Troca o espaço inquebrável (U+00A0) por um espaço comum.
+ *
+ * O Intl separa "R$" do número com U+00A0. É a coisa certa para quebra de
+ * linha e a coisa errada para nós: as fontes do app são subconjuntos enxutos,
+ * e quando falta o desenho desse caractere específico o navegador troca de
+ * fonte só nele. O espaço vira um vão enorme, e o número é empurrado para
+ * fora da caixa — "R$" sozinho num quadro, o valor cortado no outro.
+ *
+ * Um espaço comum existe em qualquer fonte. A quebra de linha entre símbolo e
+ * valor não é problema aqui: cifra de painel não quebra linha.
+ */
+const semVaoEstranho = (texto) => texto.replace(/ /g, ' ');
+export const money = (n) => semVaoEstranho(BRL.format(Number(n) || 0));
+export const num = (n, d = 0) => semVaoEstranho(
+  new Intl.NumberFormat('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(Number(n) || 0));
 
 /** Aceita "1.234,56", "1234.56", "R$ 12,90" e devolve Number. */
 export function parseMoney(v) {

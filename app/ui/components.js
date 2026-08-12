@@ -61,7 +61,10 @@ export function confirmDialog(message, { title = 'Confirmar', danger = false, ok
     const settle = (v) => { if (!answered) { answered = true; resolve(v); } };
     const m = modal({
       title,
-      render: () => el('p', { class: 'muted', text: message, style: 'margin:0' }),
+      // pre-line: uma confirmação que lista o que vai acontecer precisa das
+      // quebras de linha. Sem isto vira parágrafo corrido, e ninguém lê um
+      // parágrafo corrido antes de apertar "Confirmar".
+      render: () => el('p', { class: 'muted', text: message, style: 'margin:0;white-space:pre-line' }),
       onClose: () => settle(false),
       footer: (close) => [
         el('button', { class: 'btn', text: 'Cancelar', onclick: () => { settle(false); close(); } }),

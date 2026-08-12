@@ -101,14 +101,82 @@ export async function reload() {
 
 /* ================= sementes ================= */
 
+/**
+ * As sementes têm id fixo, e não sorteado.
+ *
+ * Elas nascem em todo aparelho que abre o app com o banco vazio. Com id
+ * sorteado, cada aparelho criava a SUA "Conta corrente" e a SUA "Dinheiro", e
+ * a sincronização — que junta por id — guardava todas: quatro aparelhos, oito
+ * contas iguais, e o saldo espalhado entre elas sem ninguém ter feito nada
+ * errado. Com id fixo, os aparelhos semeiam a mesma linha e a fusão devolve
+ * uma só.
+ *
+ * Isto conserta daqui para a frente. As duplicatas que já existem se juntam
+ * pelo botão "Juntar duplicadas", em Finanças › Contas.
+ */
 async function seedIfEmpty() {
   if (list('accounts').length === 0) {
-    await save('accounts', { name: 'Conta corrente', kind: 'corrente', initial: 0 }, { silent: true });
-    await save('accounts', { name: 'Dinheiro', kind: 'carteira', initial: 0 }, { silent: true });
+    await save('accounts', { id: 'conta-corrente', name: 'Conta corrente', kind: 'corrente', initial: 0 }, { silent: true });
+    await save('accounts', { id: 'dinheiro', name: 'Dinheiro', kind: 'carteira', initial: 0 }, { silent: true });
   }
   if (list('lists').length === 0) {
-    await save('lists', { name: 'Mercado', archived: false }, { silent: true });
+    await save('lists', { id: 'lista-mercado', name: 'Mercado', archived: false }, { silent: true });
   }
+}
+
+/**
+ * Junta contas de mesmo nome numa só: os lançamentos passam para a
+ * sobrevivente, os saldos iniciais se somam e as demais são apagadas.
+ *
+ * Devolve um relatório do que fez — quem chama mostra antes de confirmar,
+ * porque isto mexe em lançamento financeiro e não pode ser feito às escuras.
+ */
+export function planoDeFusaoDeContas() {
+  const porNome = new Map();
+  for (const a of list('accounts')) {
+    const chave = norm(a.name).trim();
+    if (!porNome.has(chave)) porNome.set(chave, []);
+    porNome.get(chave).push(a);
+  }
+
+  const grupos = [];
+  for (const iguais of porNome.values()) {
+    if (iguais.length < 2) continue;
+    // Fica a mais antiga: é a que tem mais chance de estar em uso e de
+    // aparecer como padrão nos formulários.
+    const ordenadas = [...iguais].sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || ''));
+    const fica = ordenadas[0];
+    const somem = ordenadas.slice(1);
+    grupos.push({
+      fica,
+      somem,
+      lancamentos: list('transactions', (t) => somem.some((s) => s.id === t.accountId)).length,
+      inicialSomado: sum(iguais, (a) => Number(a.initial) || 0),
+    });
+  }
+  return grupos;
+}
+
+export async function fundirContasDuplicadas() {
+  const grupos = planoDeFusaoDeContas();
+  let movidos = 0;
+  let apagadas = 0;
+
+  for (const g of grupos) {
+    for (const velha of g.somem) {
+      for (const t of list('transactions', (x) => x.accountId === velha.id)) {
+        await save('transactions', { id: t.id, accountId: g.fica.id });
+        movidos += 1;
+      }
+      await remove('accounts', velha.id);
+      apagadas += 1;
+    }
+    // O saldo inicial das que sumiram não pode evaporar junto com elas.
+    if (g.inicialSomado !== (Number(g.fica.initial) || 0)) {
+      await save('accounts', { id: g.fica.id, initial: g.inicialSomado });
+    }
+  }
+  return { grupos: grupos.length, movidos, apagadas };
 }
 
 /* ================= AGENDA ================= */

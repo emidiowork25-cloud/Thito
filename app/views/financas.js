@@ -129,9 +129,47 @@ function cardContas() {
       el('span', { class: `mono ${saldo < 0 ? 'bad' : ''}`, text: money(saldo) })));
   }
   if (!store.list('accounts').length) body.append(emptyState('Nenhuma conta.', '+ Conta', () => editarConta()));
+
+  // O botão só existe quando há o que juntar. Botão que não faz nada em 99%
+  // das visitas é enfeite que ocupa o lugar do que faz.
+  const duplicadas = store.planoDeFusaoDeContas();
+
   return sectionCard('Contas', [
+    duplicadas.length
+      ? el('button', {
+        class: 'btn sm', text: 'Juntar duplicadas',
+        title: `${duplicadas.length} nome(s) repetido(s)`,
+        onclick: () => juntarContas(duplicadas),
+      })
+      : null,
     el('button', { class: 'btn sm', text: '+', onclick: () => editarConta() }),
-  ], body);
+  ].filter(Boolean), body);
+}
+
+/**
+ * Contas repetidas aparecem sozinhas: cada aparelho que abria o app com o
+ * banco vazio criava as suas, e a sincronização guardava todas. Juntar move
+ * lançamento e soma saldo inicial — por isso a tela mostra o plano inteiro
+ * antes, em vez de simplesmente fazer.
+ */
+async function juntarContas(grupos) {
+  const linhas = grupos.map((g) => {
+    const quantos = g.somem.length;
+    const lanc = g.lancamentos
+      ? `, levando ${g.lancamentos} lançamento${g.lancamentos === 1 ? '' : 's'}`
+      : ', sem nenhum lançamento para mover';
+    return `· "${g.fica.name}": ${quantos + 1} viram 1${lanc}.`;
+  });
+
+  const ok = await confirmDialog(
+    `${linhas.join('\n')}\n\nOs saldos iniciais são somados. Nenhum lançamento é apagado.`,
+    { title: 'Juntar contas repetidas', okLabel: 'Juntar' },
+  );
+  if (!ok) return;
+
+  const r = await store.fundirContasDuplicadas();
+  toast(`${r.apagadas} conta(s) a menos · ${r.movidos} lançamento(s) remanejado(s).`, 'ok');
+  emit('nav:refresh');
 }
 
 /* ---------- categorias ---------- */
