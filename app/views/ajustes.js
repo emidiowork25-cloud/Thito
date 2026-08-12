@@ -143,6 +143,10 @@ function cardPerfil() {
     (v) => settings.set({ startView: v }),
   )));
 
+  body.append(el('div', { class: 'tiny dim', style: 'margin-top:14px' },
+    'Estas preferências acompanham a sua conta e aparecem igual em todo aparelho onde você entrar. '
+    + 'A voz escolhida e a configuração da nuvem não viajam: elas descrevem o aparelho, não você.'));
+
   return sectionCard('Perfil e aparência', null, body);
 }
 

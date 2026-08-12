@@ -25,7 +25,7 @@ export function available() {
   return settings.isCloudConfigured() && sb.isSignedIn();
 }
 
-/** Executa um ciclo completo (enviar + receber). Nunca lança: reporta pelo barramento. */
+/** Executa um ciclo completo (receber + enviar). Nunca lança: reporta pelo barramento. */
 export async function run({ full = false } = {}) {
   if (!available()) { status('local'); return { ok: false, reason: 'offline' }; }
   if (running) { queued = true; return { ok: false, reason: 'busy' }; }
@@ -33,9 +33,20 @@ export async function run({ full = false } = {}) {
   running = true;
   status('sync');
   try {
-    const pushed = await push({ full });
-    const pulled = await pull();
+    // Receber antes de enviar, e não o contrário.
+    //
+    // O envio é um upsert cego: quem escreve por último no servidor vence, sem
+    // olhar carimbo. Enviando primeiro, um aparelho que ficou dias parado
+    // empurraria seus registros velhos por cima dos novos — e um `full` (que é
+    // o que acontece a cada login) empurraria TODOS eles. Editar no celular e
+    // depois abrir o computador apagaria a edição.
+    //
+    // Recebendo primeiro, a fusão acontece aqui, onde o carimbo é comparado
+    // (applyRemote), e o que sai depois já é o estado reconciliado.
+    const vindosDeFora = await pull();
+    const pushed = await push({ full, pular: vindosDeFora });
     await db.kvSet(LAST_PUSH, new Date().toISOString());
+    const pulled = vindosDeFora.size;
     status('ok', `↑${pushed} ↓${pulled}`);
     return { ok: true, pushed, pulled };
   } catch (err) {
@@ -48,7 +59,7 @@ export async function run({ full = false } = {}) {
   }
 }
 
-async function push({ full = false } = {}) {
+async function push({ full = false, pular = new Set() } = {}) {
   const since = full ? null : await db.kvGet(LAST_PUSH, null);
   const changed = store.changedSince(since);
   const userId = sb.getUser()?.id;
@@ -57,6 +68,8 @@ async function push({ full = false } = {}) {
   const rows = [];
   for (const [collection, records] of Object.entries(changed)) {
     for (const r of records) {
+      // O que acabou de chegar do servidor não precisa voltar para lá.
+      if (pular.has(`${collection}/${r.id}`)) continue;
       rows.push({
         user_id: userId,
         collection,
@@ -75,10 +88,12 @@ async function push({ full = false } = {}) {
   return rows.length;
 }
 
+/** Recebe e funde. Devolve as chaves "coleção/id" que vieram de fora. */
 async function pull() {
+  const aplicados = new Set();
   const since = await db.kvGet(LAST_PULL, null);
   const rows = await sb.pullRecords(since);
-  if (!Array.isArray(rows) || !rows.length) return 0;
+  if (!Array.isArray(rows) || !rows.length) return aplicados;
 
   const byCollection = {};
   let newest = since;
@@ -88,13 +103,14 @@ async function pull() {
     if (!newest || row.updated_at > newest) newest = row.updated_at;
   }
 
-  let applied = 0;
   for (const [collection, records] of Object.entries(byCollection)) {
     if (!db.COLLECTIONS.includes(collection)) continue;
-    applied += await store.applyRemote(collection, records);
+    for (const id of await store.applyRemote(collection, records)) {
+      aplicados.add(`${collection}/${id}`);
+    }
   }
   if (newest) await db.kvSet(LAST_PULL, newest);
-  return applied;
+  return aplicados;
 }
 
 /** Reenvia tudo e rebaixa os marcadores — usado após trocar de conta/dispositivo. */

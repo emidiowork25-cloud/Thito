@@ -79,7 +79,9 @@ export async function applyRemote(collection, records) {
     await db.putMany(collection, toWrite);
     emit('data:changed', { collection, action: 'remote' });
   }
-  return toWrite.length;
+  // Devolve os ids aplicados, e não a contagem: a sync usa esta lista para não
+  // devolver ao servidor, no envio seguinte, exatamente o que acabou de receber.
+  return toWrite.map((r) => r.id);
 }
 
 /** Registros alterados desde um carimbo — o que a sync precisa enviar. */

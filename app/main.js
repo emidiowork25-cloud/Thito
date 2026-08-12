@@ -3,6 +3,7 @@
 import * as db from './core/db.js';
 import * as settings from './core/settings.js';
 import * as store from './core/store.js';
+import * as prefs from './core/prefs.js';
 import * as sb from './core/supabase.js';
 import * as sync from './core/sync.js';
 import * as shell from './ui/shell.js';
@@ -23,6 +24,11 @@ async function boot() {
     passo('abrindo banco local…');
     await db.kvGet('settings');       // força a abertura/upgrade do IndexedDB
     await store.load();
+
+    // Depois do store e antes da interface: as preferências pessoais moram numa
+    // coleção, então precisam do store carregado, e a tela precisa nascer já
+    // com o tema e o nome certos.
+    await prefs.iniciar();
 
     passo('verificando sessão…');
     await sb.loadSession();

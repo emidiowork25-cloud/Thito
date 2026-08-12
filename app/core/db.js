@@ -5,7 +5,7 @@
 // JARBAS, mas trocar o nome aqui esconderia todos os dados que já estão gravados no
 // navegador de quem usou a versão anterior. Nome interno não é marca.
 const DB_NAME = 'thito';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export const COLLECTIONS = [
   'events',      // agenda
@@ -35,6 +35,13 @@ export const COLLECTIONS = [
 
   // v5 — módulo ROTINA (tarefas que se repetem toda semana).
   'rotinas',
+
+  // v6 — PREFERÊNCIAS que acompanham a pessoa, não o aparelho.
+  // Guarda um único registro. Existe porque os ajustes moravam fora das
+  // coleções e por isso nunca viajavam: entrar com a mesma conta no celular
+  // trazia agenda, finanças e tudo mais, e deixava o "Sobre você" em branco.
+  // Ver core/prefs.js para o que entra aqui e, principalmente, o que não entra.
+  'prefs',
 
   // v2 — módulos COPYWRITER e TELEPROMPTER
   'brands',      // vozes de marca (tom, público, o que evitar)
