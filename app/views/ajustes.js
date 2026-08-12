@@ -9,12 +9,81 @@ import * as noticias from '../core/noticias.js';
 import * as voice from '../assistant/voice.js';
 import { emit } from '../core/bus.js';
 import { el, download, pickFile, fmtDate } from '../core/util.js';
+import { encode as qrEncode, toSvg as qrToSvg } from '../core/qr.js';
 import { sectionCard, formModal, confirmDialog, toast } from '../ui/components.js';
 
 export function render(root) {
   root.append(el('div', { class: 'grid ajustes-grid' },
     el('div', { class: 'grid', style: 'align-content:start' }, cardPerfil(), cardAssistente(), cardVoz()),
-    el('div', { class: 'grid', style: 'align-content:start' }, cardNuvem(), cardNoticias(), cardBackup(), cardSobre())));
+    el('div', { class: 'grid', style: 'align-content:start' }, cardNuvem(), cardCelular(), cardNoticias(), cardBackup(), cardSobre())));
+}
+
+/* ---------- abrir no celular ---------- */
+
+/**
+ * A Vercel entrega dois tipos de endereço. O de produção é público. Os de
+ * pré-visualização — os que trazem o nome do branch ou o hash do deploy —
+ * ficam atrás do login da Vercel: no PC eles abrem porque o navegador já está
+ * logado lá, e no celular batem numa tela de login que não é do JARBAS.
+ *
+ * É o motivo mais comum de "abre aqui e não abre no iPhone", e sem apontar
+ * isso o dono do site fica tentando digitar melhor um endereço que não é o
+ * problema.
+ */
+export function ehPrevisualizacaoVercel(host) {
+  if (!host.endsWith('.vercel.app')) return false;
+  const nome = host.slice(0, -'.vercel.app'.length);
+  // branch deploy: projeto-git-nome-do-branch-escopo
+  if (nome.includes('-git-')) return true;
+  // deploy por commit: projeto-<hash>-escopo, com um pedaço longo e embaralhado
+  return nome.split('-').some((p) => p.length >= 8 && /[a-z]/.test(p) && /\d/.test(p));
+}
+
+function cardCelular() {
+  const body = el('div');
+  const endereco = `${location.origin}/`;
+  const previa = ehPrevisualizacaoVercel(location.hostname);
+
+  body.append(el('p', { class: 'tiny dim', style: 'margin-top:0' },
+    'Aponte a câmera do iPhone para o código — não precisa digitar nada. '
+    + 'Depois toque em Compartilhar › Adicionar à Tela de Início e o JARBAS abre como aplicativo, em tela cheia.'));
+
+  if (previa) {
+    body.append(el('div', { class: 'aviso' },
+      el('div', { style: 'margin-bottom:6px' },
+        'Este endereço é de pré-visualização e a própria Vercel exige login nele — '
+        + 'por isso ele abre no PC (onde você já está logado na Vercel) e não abre no celular.'),
+      el('div', { text: 'Pegue o endereço de produção no painel da Vercel, em Project › Domains, e use aquele no iPhone.' })));
+  }
+
+  const caixaQr = el('div', { class: 'tp-qr' });
+  try {
+    caixaQr.append(qrToSvg(qrEncode(endereco), { escala: 5, margem: 3 }));
+  } catch (err) {
+    caixaQr.append(el('div', { class: 'tiny dim', text: `Não consegui gerar o código (${err.message}). Use o endereço abaixo.` }));
+  }
+  body.append(caixaQr);
+
+  const campo = el('input', { type: 'text', value: endereco, readonly: true, class: 'mono tiny' });
+  campo.addEventListener('focus', () => campo.select());
+  body.append(campo);
+
+  body.append(el('div', { class: 'row', style: 'margin-top:10px' },
+    el('button', {
+      class: 'btn sm', text: 'Copiar endereço',
+      onclick: async () => {
+        try { await navigator.clipboard.writeText(endereco); toast('Endereço copiado.', 'ok'); }
+        catch { campo.select(); toast('Não consegui copiar — o endereço está selecionado, use Ctrl+C.', 'err'); }
+      },
+    })));
+
+  body.append(el('div', { class: 'tiny dim', style: 'margin-top:14px' },
+    el('div', { text: 'No iPhone, para ver os mesmos dados:' }),
+    el('div', { text: '• Abra Ajustes › Nuvem e sincronização e entre com o mesmo e-mail e senha daqui.' }),
+    el('div', { text: '• Os dados ficam guardados em cada aparelho; é a nuvem que os mantém iguais nos dois.' }),
+    el('div', { text: '• Sem entrar na conta, o iPhone abre o JARBAS vazio — e continua vazio.' })));
+
+  return sectionCard('Abrir no celular', null, body);
 }
 
 /* ---------- notícias ---------- */

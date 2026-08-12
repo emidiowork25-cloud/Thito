@@ -38,6 +38,11 @@ const vivo = {
   exibidores: 0,
   ultimoPing: 0,
   loop: null,
+  // Vários painéis desenham o mesmo roteiro ao mesmo tempo: o monitor do
+  // operador (sempre legível) e a miniatura do que o celular está vendo
+  // (espelhada). Antes era um só, e por isso o preview do editor herdava o
+  // espelhamento — quem escrevia ficava lendo o próprio texto de trás.
+  paineis: [],
 };
 
 /* ============================ tela ============================ */
@@ -82,6 +87,11 @@ export function render(root, params = {}) {
 
   if (vivo.aba === 'editor') root.append(abaEditor(script));
   else root.append(abaExibidor(script));
+
+  // Todo painel desta tela é desenhado pelo mesmo loop. Ligá-lo aqui, e não só
+  // ao navegar, cobre o caso de abrir o JARBAS já nesta URL — sem isso o
+  // roteiro aparecia parado até alguém mexer no transporte.
+  tocarLoop();
 }
 
 function statusConexao() {
@@ -91,6 +101,63 @@ function statusConexao() {
     ? `${vivo.exibidores} exibidor(es) ligado(s)`
     : rotulos[vivo.conexao] ?? vivo.conexao;
   return el('span', { class: `pill ${classe}`, text: texto });
+}
+
+/* ============================ painéis e transporte ============================ */
+
+/**
+ * Um painel de leitura. Todos mostram o mesmo estado ao mesmo tempo; o que
+ * muda é o lado do texto.
+ *
+ * `espelhar: false` é o monitor do operador — sempre legível, porque quem
+ * opera precisa ler para conferir, não para apresentar. `espelhar: true` é o
+ * retrato fiel do que o celular está exibindo atrás do vidro.
+ */
+function painel(script, { classe = '', espelhar, getTexto } = {}) {
+  const preview = el('div', { class: `tp-preview ${classe}`.trim() });
+  const trilho = el('div', { class: 'tp-track' });
+  preview.append(el('div', { class: 'tp-cue' }), trilho);
+
+  const texto = getTexto ?? (() => store.get('scripts', script.id)?.body ?? '');
+  const cfg = () => configDe(script.id);
+
+  // Registra sem limpar a lista aqui. A tela inteira é montada antes de entrar
+  // no documento, então neste instante os painéis irmãos ainda estão soltos —
+  // filtrar por `isConnected` agora descartaria o painel registrado uma linha
+  // acima. Quem varre os órfãos é o loop, quando todos já estão na página.
+  vivo.paineis = [...(vivo.paineis ?? []), { trilho, preview, getTexto: texto, getCfg: cfg, espelhar }];
+  // O primeiro quadro sai no próximo tique: antes disso o painel ainda não
+  // está no documento e `clientWidth` é 0, o que zeraria a escala da fonte.
+  setTimeout(() => pintar(trilho, preview, texto(), cfg(), posicaoAtual(cfg()), { miniatura: true, espelhar }), 0);
+
+  return preview;
+}
+
+const rotuloPlay = () => (vivo.rodando ? '⏸  Pausar' : '▶  Rolar');
+
+/**
+ * Barra de transporte. Aparece no editor e no monitor do operador, e os dois
+ * botões dizem a mesma coisa porque são reescritos juntos — um "Rolar" preso
+ * numa aba enquanto o texto já anda é o tipo de mentira que faz o operador
+ * apertar duas vezes e parar a leitura no ar.
+ */
+function transporte(scriptId) {
+  const btnPlay = el('button', { class: 'btn primary', text: rotuloPlay() });
+  btnPlay.addEventListener('click', () => alternarRolagem(scriptId));
+  // Mesma razão do painel: a varredura dos botões velhos fica em sincronizarPlay.
+  vivo.botoesPlay = [...(vivo.botoesPlay ?? []), btnPlay];
+
+  return el('div', { class: 'tp-transport' },
+    btnPlay,
+    el('button', { class: 'btn', text: '⏮  Início', onclick: () => irPara(scriptId, 0) }),
+    el('button', { class: 'btn', text: '−1 par.', onclick: () => pular(scriptId, -1) }),
+    el('button', { class: 'btn', text: '+1 par.', onclick: () => pular(scriptId, 1) }),
+  );
+}
+
+function sincronizarPlay() {
+  vivo.botoesPlay = (vivo.botoesPlay ?? []).filter((b) => b.isConnected);
+  for (const b of vivo.botoesPlay) b.textContent = rotuloPlay();
 }
 
 /* ============================ aba: editor ============================ */
@@ -108,8 +175,9 @@ function abaEditor(script) {
   area.addEventListener('input', () => {
     agendarSalvar(script.id, { body: area.value });
     atualizarContagem();
+    // O celular recebe a letra no mesmo instante em que ela é digitada — o
+    // salvamento é que espera; a transmissão, não.
     transmitir(script.id, { texto: area.value });
-    desenharPreview();
   });
 
   const contagem = el('div', { class: 'tp-count tiny dim' });
@@ -118,20 +186,6 @@ function abaEditor(script) {
     contagem.textContent = `${palavras} palavras · ${linhas} linhas · ~${formatarTempo(segundos)} no ar`;
   };
   atualizarContagem();
-
-  /* --- transporte --- */
-  const btnPlay = el('button', { class: 'btn primary', text: vivo.rodando ? '⏸  Pausar' : '▶  Rolar' });
-  btnPlay.addEventListener('click', () => {
-    alternarRolagem(script.id);
-    btnPlay.textContent = vivo.rodando ? '⏸  Pausar' : '▶  Rolar';
-  });
-
-  const transporte = el('div', { class: 'tp-transport' },
-    btnPlay,
-    el('button', { class: 'btn', text: '⏮  Início', onclick: () => irPara(script.id, 0) }),
-    el('button', { class: 'btn', text: '−1 par.', onclick: () => pular(script.id, -1) }),
-    el('button', { class: 'btn', text: '+1 par.', onclick: () => pular(script.id, 1) }),
-  );
 
   /* --- controles ao vivo --- */
   const controles = el('div', { class: 'tp-controls' },
@@ -147,14 +201,9 @@ function abaEditor(script) {
   );
 
   /* --- preview --- */
-  const preview = el('div', { class: 'tp-preview' });
-  const trilho = el('div', { class: 'tp-track' });
-  preview.append(el('div', { class: 'tp-cue' }), trilho);
-
-  const desenharPreview = () => pintar(trilho, preview, area.value, { ...cfg, ...(store.get('scripts', script.id)?.config ?? {}) }, vivo.pos, true);
-  vivo.desenharPreview = desenharPreview;
-  vivo.previewNodes = { trilho, preview, getTexto: () => area.value, getCfg: () => ({ ...PADRAO, ...(store.get('scripts', script.id)?.config ?? {}) }) };
-  setTimeout(desenharPreview, 0);
+  // Lê do textarea, não do banco: o salvamento tem meio segundo de espera e
+  // esse preview precisa acompanhar a digitação, letra por letra.
+  const preview = painel(script, { espelhar: false, getTexto: () => area.value });
 
   return el('div', { class: 'grid tp-grid' },
     sectionCard(script.title, [
@@ -163,7 +212,7 @@ function abaEditor(script) {
       el('button', { class: 'btn sm danger', text: 'Excluir', onclick: () => excluir(script) }),
     ], area, contagem),
     el('div', { class: 'grid', style: 'align-content:start' },
-      sectionCard('No ar', null, transporte, preview),
+      sectionCard('No ar', null, transporte(script.id), preview),
       sectionCard('Controles ao vivo', null, controles)));
 }
 
@@ -274,32 +323,48 @@ function abaExibidor(script) {
     'Quem tiver este link vê o seu roteiro. O código tem 14 caracteres aleatórios, '
     + 'mas se ele vazar é só trocar no botão acima.'));
 
+  // Monitor e espelho ficam na mesma coluna, um debaixo do outro: é assim que
+  // dá para conferir de relance que o celular está mostrando a mesma linha,
+  // só que virada. Separados por uma coluna, a comparação exigiria rolar.
   return el('div', { class: 'grid tp-grid' },
-    sectionCard('Abrir no celular', null, corpo),
-    sectionCard('O que o celular está vendo', null, painelEspelho(script)));
+    el('div', { class: 'grid', style: 'align-content:start' },
+      monitorOperador(script),
+      sectionCard('O que o celular está vendo', [
+        el('span', { class: 'tiny dim', text: espelhoLigado(script) ? 'espelhado' : 'sem espelho' }),
+      ], painel(script, { classe: 'fone', espelhar: true }))),
+    sectionCard('Abrir no celular', null, corpo));
 }
 
-/** Miniatura fiel do que o exibidor mostra agora. */
-function painelEspelho(script) {
-  const cfg = { ...PADRAO, ...(script.config ?? {}) };
-  const preview = el('div', { class: 'tp-preview grande' });
-  const trilho = el('div', { class: 'tp-track' });
-  preview.append(el('div', { class: 'tp-cue' }), trilho);
+const espelhoLigado = (script) => {
+  const cfg = configDe(script.id);
+  return cfg.espelhoH || cfg.espelhoV;
+};
 
-  vivo.previewNodes = {
-    trilho, preview,
-    getTexto: () => store.get('scripts', script.id)?.body ?? '',
-    getCfg: () => ({ ...PADRAO, ...(store.get('scripts', script.id)?.config ?? {}) }),
-  };
-  setTimeout(() => pintar(trilho, preview, script.body ?? '', cfg, vivo.pos, true), 0);
+/**
+ * O monitor do operador: a mesma leitura que está no ar, do lado certo.
+ *
+ * É a peça que faltava para gravar sozinho. O celular fica atrás do vidro e
+ * mostra o texto invertido, como tem que ser; aqui do lado de cá dá para
+ * acompanhar a linha, corrigir uma palavra e mandar rolar sem precisar
+ * decifrar o próprio roteiro de trás para frente.
+ */
+function monitorOperador(script) {
+  const caixa = el('div', { class: 'tp-monitor' }, painel(script, { classe: 'monitor', espelhar: false }));
 
-  const btn = el('button', { class: 'btn primary', style: 'width:100%;margin-top:12px', text: vivo.rodando ? '⏸  Pausar' : '▶  Rolar' });
-  btn.addEventListener('click', () => {
-    alternarRolagem(script.id);
-    btn.textContent = vivo.rodando ? '⏸  Pausar' : '▶  Rolar';
+  const btnTela = el('button', {
+    class: 'btn sm', text: '⛶  Tela cheia',
+    title: 'Joga o monitor em tela cheia — use num segundo monitor durante a gravação',
+    onclick: () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else caixa.requestFullscreen?.().catch((e) => toast(`A tela cheia foi recusada (${e.message}).`, 'err'));
+    },
   });
 
-  return el('div', {}, preview, btn);
+  return sectionCard('Monitor do operador', [btnTela],
+    el('p', { class: 'tiny dim', style: 'margin-top:0' },
+      'Esta tela nunca espelha. O espelho é do vidro do teleprompter — ele vale para o celular, não para quem opera.'),
+    caixa,
+    transporte(script.id));
 }
 
 /* ============================ rolagem ============================ */
@@ -321,6 +386,7 @@ function alternarRolagem(scriptId) {
     vivo.rodando = true;
   }
   transmitirEstado(scriptId);
+  sincronizarPlay();
   tocarLoop();
 }
 
@@ -341,10 +407,12 @@ function pular(scriptId, direcao) {
 function tocarLoop() {
   cancelAnimationFrame(vivo.loop);
   const passo = () => {
-    const nodes = vivo.previewNodes;
-    if (nodes?.trilho?.isConnected) {
-      const cfg = nodes.getCfg();
-      pintar(nodes.trilho, nodes.preview, nodes.getTexto(), cfg, posicaoAtual(cfg), true);
+    // Painéis que saíram da tela são descartados aqui: trocar de aba sem isso
+    // deixaria o loop desenhando em nós órfãos para sempre.
+    vivo.paineis = (vivo.paineis ?? []).filter((p) => p.trilho.isConnected);
+    for (const p of vivo.paineis) {
+      const cfg = p.getCfg();
+      pintar(p.trilho, p.preview, p.getTexto(), cfg, posicaoAtual(cfg), { miniatura: true, espelhar: p.espelhar });
     }
     vivo.loop = requestAnimationFrame(passo);
   };
@@ -355,7 +423,7 @@ function tocarLoop() {
  * Desenha o texto no trilho e o desloca conforme a posição.
  * A mesma função é usada no preview e (numa cópia) na página do exibidor.
  */
-function pintar(trilho, caixa, texto, cfg, pos, miniatura) {
+function pintar(trilho, caixa, texto, cfg, pos, { miniatura = false, espelhar = true } = {}) {
   const escala = miniatura ? (caixa.clientWidth || 420) / 900 : 1;
   const fonte = cfg.fonte * escala;
   const alturaLinha = fonte * cfg.altura;
@@ -378,10 +446,13 @@ function pintar(trilho, caixa, texto, cfg, pos, miniatura) {
   }
 
   caixa.classList.toggle('fundo-claro', cfg.contraste === 'escuro');
+  // O espelho é do vidro do teleprompter, não do texto: só a tela que vai
+  // para o celular inverte. O monitor do operador desenha o mesmo estado
+  // sempre do lado certo, senão ele opera lendo de trás para frente.
   trilho.style.transform = [
     `translateY(${-pos * alturaLinha}px)`,
-    cfg.espelhoH ? 'scaleX(-1)' : '',
-    cfg.espelhoV ? 'scaleY(-1)' : '',
+    espelhar && cfg.espelhoH ? 'scaleX(-1)' : '',
+    espelhar && cfg.espelhoV ? 'scaleY(-1)' : '',
   ].filter(Boolean).join(' ');
 }
 
@@ -479,9 +550,8 @@ async function aplicarConfig(scriptId, patch) {
   const config = { ...PADRAO, ...(script?.config ?? {}), ...patch };
   await store.save('scripts', { id: scriptId, config });
   transmitir(scriptId, patch);
-  const nodes = vivo.previewNodes;
-  if (nodes?.trilho?.isConnected) {
-    pintar(nodes.trilho, nodes.preview, nodes.getTexto(), config, posicaoAtual(config), true);
+  for (const p of vivo.paineis ?? []) {
+    if (p.trilho.isConnected) pintar(p.trilho, p.preview, p.getTexto(), config, posicaoAtual(config), { miniatura: true, espelhar: p.espelhar });
   }
 }
 
@@ -600,7 +670,8 @@ on('nav:go', ({ view }) => {
   if (view !== 'teleprompter') {
     cancelAnimationFrame(vivo.loop);
     vivo.loop = null;
-    vivo.previewNodes = null;
+    vivo.paineis = [];
+    vivo.botoesPlay = [];
   } else {
     tocarLoop();
   }

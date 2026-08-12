@@ -502,7 +502,20 @@
   background: #000; color: #fff;
 }
 .tp-preview.grande { aspect-ratio: 9 / 14; max-height: 460px; margin: 0 auto; }
+/* retrato do celular: estreito de propósito, para lembrar o formato real */
+.tp-preview.fone { aspect-ratio: 9 / 15; max-height: 340px; margin: 0 auto; }
+/* monitor do operador: largo, é a tela que ele olha o tempo todo */
+.tp-preview.monitor { aspect-ratio: 16 / 9; }
 .tp-preview.fundo-claro { background: #fff; color: #000; }
+
+.tp-monitor { margin-bottom: 14px; }
+/* Em tela cheia o monitor ocupa tudo: a moldura do cartão sai de cena e o
+   texto cresce sozinho, porque a escala da fonte vem da largura da caixa. */
+.tp-monitor:fullscreen { display: grid; place-items: center; background: #000; }
+.tp-monitor:fullscreen .tp-preview {
+  width: 100vw; height: 100vh; aspect-ratio: auto;
+  max-height: none; border: 0; border-radius: 0;
+}
 
 .tp-cue {
   position: absolute; left: 0; right: 0; top: 42%; z-index: 2;
