@@ -1,9 +1,15 @@
 // Layout de árvore bilateral, compartilhado pelo Mind map e pelo Cofre.
 //
 // Modelo de entrada: lista plana de nós { id, text, parent, depth }.
-// Saída: { id -> {x, y} }. Nada de coordenadas guardadas em disco — o desenho
-// é recalculado a cada render, então dois aparelhos nunca discordam de onde
-// uma caixa deveria estar.
+// Saída: { id -> {x, y} }, recalculada a cada desenho.
+//
+// Um nó pode carregar `desloc: {x, y}` — o quanto ele foi arrastado à mão. É
+// deslocamento, e não coordenada absoluta, de propósito: assim o mapa continua
+// se auto-organizando quando você adiciona um tópico novo, e o que você moveu
+// continua onde você deixou, em relação ao resto. Guardar coordenada absoluta
+// congelaria o mapa inteiro no primeiro arrasto.
+//
+// E pode carregar `colapsado: true`, que esconde tudo abaixo dele.
 
 /** Índice de filhos por pai — a base de todos os cálculos da árvore. */
 export function indexar(nodes) {
@@ -57,6 +63,45 @@ export function layout(nodes, { coluna = 250, linha = 56 } = {}) {
     }
   }
 
+  return pos;
+}
+
+/**
+ * Os nós que devem aparecer: tudo, menos o que está abaixo de um nó colapsado.
+ * O nó colapsado em si continua na tela — é ele quem carrega o botão de abrir.
+ */
+export function visiveis(nodes) {
+  const filhosDe = indexar(nodes);
+  const fora = new Set();
+  const esconder = (n) => {
+    for (const f of filhosDe[n.id] ?? []) { fora.add(f.id); esconder(f); }
+  };
+  for (const n of nodes ?? []) if (n.colapsado) esconder(n);
+  return (nodes ?? []).filter((n) => !fora.has(n.id));
+}
+
+/** Quantos nós existem abaixo deste — o número que o botão de colapso mostra. */
+export const contarDescendentes = (nodes, id) => ramoInteiro(nodes, id).size - 1;
+
+/**
+ * Soma os deslocamentos manuais sobre as posições calculadas.
+ *
+ * O deslocamento de um nó vale para ele e para tudo o que vem abaixo: arrastar
+ * um tópico leva o ramo inteiro junto. É o que faz o arrasto parecer mover uma
+ * ideia, e não descolar uma caixa das suas próprias filhas.
+ */
+export function aplicarDeslocamentos(nodes, pos) {
+  const filhosDe = indexar(nodes);
+  const raiz = (filhosDe.__root ?? [])[0];
+  if (!raiz) return pos;
+
+  const andar = (n, dx, dy) => {
+    const ax = dx + (n.desloc?.x ?? 0);
+    const ay = dy + (n.desloc?.y ?? 0);
+    if (pos[n.id]) pos[n.id] = { x: pos[n.id].x + ax, y: pos[n.id].y + ay };
+    for (const f of filhosDe[n.id] ?? []) andar(f, ax, ay);
+  };
+  andar(raiz, 0, 0);
   return pos;
 }
 

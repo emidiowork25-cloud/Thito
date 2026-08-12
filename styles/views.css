@@ -206,11 +206,34 @@
 .mm-svg { width: 100%; height: 100%; cursor: grab; display: block; touch-action: pan-y; }
 .mm-svg:active { cursor: grabbing; }
 .mm-edge { fill: none; stroke-width: 1.6; opacity: .5; }
-.mm-node { cursor: pointer; }
+/* touch-action none só no nó: arrastar um tópico funciona nos dois eixos, e
+   arrastar o fundo continua rolando a página. Se fosse none no quadro inteiro,
+   o mapa prenderia o dedo no meio da tela do celular. */
+.mm-node { cursor: grab; touch-action: none; }
+.mm-node:active { cursor: grabbing; }
 .mm-node:hover rect { filter: brightness(1.35); }
 .mm-node.sel rect { filter: drop-shadow(0 0 8px currentColor); }
 .mm-text { fill: var(--txt); pointer-events: none; user-select: none; }
+
+/* botão de esconder/mostrar o ramo */
+.mm-toggle { cursor: pointer; }
+.mm-toggle-bola { fill: var(--bg-2); stroke-width: 1.3; }
+.mm-toggle:hover .mm-toggle-bola { filter: brightness(1.3); }
+.mm-toggle-txt { fill: var(--txt-2); pointer-events: none; user-select: none; font-weight: 600; }
+/* Fechado, a bola é da cor do ramo — a mesma nos dois temas, então o número
+   escuro por cima funciona tanto no claro quanto no escuro. */
+.mm-toggle.fechado .mm-toggle-txt { fill: #08161b; }
 .color-dot { width: 24px; height: 24px; border-radius: 50%; border: 0; cursor: pointer; }
+
+/* Esboço do que foi lido de um arquivo ou de uma foto, para conferir antes de
+   virar dado de verdade. Rola em vez de esticar o modal. */
+.previa {
+  font-family: var(--mono); font-size: 12px; line-height: 1.6;
+  margin: 0; padding: 12px; max-height: 46vh; overflow: auto;
+  white-space: pre; color: var(--txt-2);
+  background: rgba(0, 0, 0, .25); border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
 
 /* Compromisso que veio de outro módulo: a borda tracejada avisa que ele não
    nasceu aqui e que clicar leva embora, em vez de abrir o editor. */

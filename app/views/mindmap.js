@@ -6,10 +6,13 @@
 
 import * as store from '../core/store.js';
 import * as jarbas from '../assistant/jarbas.js';
+import * as visao from '../core/visao.js';
 import { on, emit } from '../core/bus.js';
-import { el, uid, download, truncate } from '../core/util.js';
-import { layout, indexar, ramoInteiro } from '../ui/arvore.js';
-import { sectionCard, emptyState, formModal, confirmDialog, toast } from '../ui/components.js';
+import { el, uid, download, truncate, pickFile } from '../core/util.js';
+import {
+  layout, indexar, ramoInteiro, visiveis, aplicarDeslocamentos, contarDescendentes,
+} from '../ui/arvore.js';
+import { sectionCard, emptyState, formModal, confirmDialog, modal, toast } from '../ui/components.js';
 
 let mapaAtivo = null;
 let selecionado = null;
@@ -30,6 +33,7 @@ export function render(root, params = {}) {
       text: truncate(m.title, 24),
     })),
     el('button', { class: 'btn sm', text: '+ mapa', onclick: () => novoMapa() }),
+    el('button', { class: 'btn sm', text: 'Ler de uma imagem', title: 'Transcreve um print, um quadro branco ou um mapa feito à mão', onclick: () => importarDeImagem() }),
     el('div', { class: 'spacer' }),
     el('button', { class: 'btn sm', text: 'Gerar com JARBAS', onclick: gerarComJarbas }),
   ));
@@ -51,8 +55,24 @@ const resetView = () => { zoom = 1; pan = { x: 0, y: 0 }; };
 
 /* ---------- desenho ---------- */
 
+const SVG = 'http://www.w3.org/2000/svg';
+const cria = (tag, attrs = {}) => {
+  const n = document.createElementNS(SVG, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  return n;
+};
+
+/** A curva de um pai até um filho. Isolada porque o arrasto a redesenha a cada quadro. */
+const curva = (a, b) => {
+  const mx = (a.x + b.x) / 2;
+  return `M ${a.x} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`;
+};
+
 function canvasMapa(mapa) {
-  const pos = layout(mapa.nodes ?? []);
+  const todos = mapa.nodes ?? [];
+  const nodes = visiveis(todos);
+  const filhosDe = indexar(todos);
+  const pos = aplicarDeslocamentos(nodes, layout(nodes));
   const cores = coresDosRamos(mapa);
 
   // A moldura acompanha o desenho: mapas grandes cabem inteiros, pequenos não ficam perdidos.
@@ -64,94 +84,185 @@ function canvasMapa(mapa) {
   const W = Math.max(700, Math.max(...xs, 0) + margem - minX);
   const H = Math.max(360, Math.max(...ys, 0) + margem * 0.5 - minY);
 
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', `${minX} ${minY} ${W} ${H}`);
-  svg.setAttribute('class', 'mm-svg');
-
-  const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-  g.setAttribute('transform', `translate(${pan.x} ${pan.y}) scale(${zoom})`);
+  const svg = cria('svg', { viewBox: `${minX} ${minY} ${W} ${H}`, class: 'mm-svg' });
+  const g = cria('g', { transform: `translate(${pan.x} ${pan.y}) scale(${zoom})` });
   svg.append(g);
 
+  const grupos = {};    // id -> <g> do nó
+  const arestas = {};   // id -> <path> que chega nele vindo do pai
+  const caixas = {};    // id -> { w, h }
+
   // arestas primeiro, para ficarem atrás dos nós
-  for (const n of mapa.nodes ?? []) {
-    if (!n.parent) continue;
-    const a = pos[n.parent];
-    const b = pos[n.id];
-    if (!a || !b) continue;
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    const mx = (a.x + b.x) / 2;
-    path.setAttribute('d', `M ${a.x} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`);
-    path.setAttribute('class', 'mm-edge');
-    path.setAttribute('stroke', n.color ?? cores[n.id] ?? PALETA[0]);
+  for (const n of nodes) {
+    if (!n.parent || !pos[n.parent] || !pos[n.id]) continue;
+    const path = cria('path', {
+      d: curva(pos[n.parent], pos[n.id]),
+      class: 'mm-edge',
+      stroke: n.color ?? cores[n.id] ?? PALETA[0],
+    });
+    arestas[n.id] = path;
     g.append(path);
   }
 
-  for (const n of mapa.nodes ?? []) {
+  /** Redesenha caixas e curvas a partir de `pos`. Chamada a cada quadro do arrasto. */
+  const reposicionar = () => {
+    for (const n of nodes) {
+      const p = pos[n.id];
+      const c = caixas[n.id];
+      if (p && c && grupos[n.id]) grupos[n.id].setAttribute('transform', `translate(${p.x - c.w / 2} ${p.y - c.h / 2})`);
+    }
+    for (const [id, path] of Object.entries(arestas)) {
+      const filho = pos[id];
+      const pai = pos[nodes.find((n) => n.id === id)?.parent];
+      if (filho && pai) path.setAttribute('d', curva(pai, filho));
+    }
+  };
+
+  // Quantos pixels da tela valem uma unidade do desenho. Sem isso o nó anda mais
+  // (ou menos) que o dedo, e arrastar vira adivinhação.
+  const porPixel = () => {
+    const r = svg.getBoundingClientRect();
+    return r.width ? (W / r.width) / zoom : 1;
+  };
+
+  let arrastou = false;   // um arrasto termina em "click"; este é o freio dele
+
+  for (const n of nodes) {
     const p = pos[n.id];
     if (!p) continue;
     const cor = n.color ?? cores[n.id] ?? PALETA[0];
     const largura = Math.min(230, Math.max(80, n.text.length * 7.6 + 26));
     const altura = n.depth === 0 ? 46 : 34;
+    caixas[n.id] = { w: largura, h: altura };
 
-    const grupo = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    grupo.setAttribute('class', `mm-node ${selecionado === n.id ? 'sel' : ''} depth-${Math.min(3, n.depth)}`);
-    grupo.setAttribute('transform', `translate(${p.x - largura / 2} ${p.y - altura / 2})`);
-    grupo.addEventListener('click', (e) => { e.stopPropagation(); selecionado = n.id; emit('nav:refresh'); });
+    const grupo = cria('g', {
+      class: `mm-node ${selecionado === n.id ? 'sel' : ''} depth-${Math.min(3, n.depth)}`,
+      transform: `translate(${p.x - largura / 2} ${p.y - altura / 2})`,
+    });
+    grupo.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (arrastou) { arrastou = false; return; }
+      selecionado = n.id;
+      emit('nav:refresh');
+    });
     grupo.addEventListener('dblclick', (e) => { e.stopPropagation(); editarNo(mapa, n); });
+    grupo.addEventListener('mousedown', (e) => e.stopPropagation());   // o pan não é deste evento
+    grupo.addEventListener('pointerdown', (e) => iniciarArrasto(e, n));
 
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('width', largura);
-    rect.setAttribute('height', altura);
-    rect.setAttribute('rx', altura / 2);
-    rect.setAttribute('fill', `${cor}22`);
-    rect.setAttribute('stroke', cor);
-    rect.setAttribute('stroke-width', selecionado === n.id ? 2.4 : 1.2);
-    grupo.append(rect);
+    grupo.append(cria('rect', {
+      width: largura, height: altura, rx: altura / 2,
+      fill: `${cor}22`, stroke: cor, 'stroke-width': selecionado === n.id ? 2.4 : 1.2,
+    }));
 
-    const texto = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    texto.setAttribute('x', largura / 2);
-    texto.setAttribute('y', altura / 2 + 4.5);
-    texto.setAttribute('text-anchor', 'middle');
-    texto.setAttribute('class', 'mm-text');
-    texto.setAttribute('font-size', n.depth === 0 ? 15 : 12.5);
+    const texto = cria('text', {
+      x: largura / 2, y: altura / 2 + 4.5, 'text-anchor': 'middle',
+      class: 'mm-text', 'font-size': n.depth === 0 ? 15 : 12.5,
+    });
     texto.textContent = truncate(n.text, 30);
     grupo.append(texto);
 
-    if (n.note) {
-      const marca = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      marca.setAttribute('cx', largura - 9);
-      marca.setAttribute('cy', 9);
-      marca.setAttribute('r', 3.4);
-      marca.setAttribute('fill', cor);
-      grupo.append(marca);
+    if (n.note) grupo.append(cria('circle', { cx: largura - 9, cy: 9, r: 3.4, fill: cor }));
+
+    if ((filhosDe[n.id] ?? []).length) {
+      // O botão vai na ponta de fora do nó — o lado para onde o ramo cresce.
+      // Do lado de dentro ele cairia em cima da curva que vem do pai.
+      const lado = pos[n.id].x >= (pos[n.parent]?.x ?? 0) ? 1 : -1;
+      grupo.append(botaoColapso(mapa, n, todos, largura, altura, cor, lado));
     }
 
+    grupos[n.id] = grupo;
     g.append(grupo);
   }
 
-  svg.addEventListener('click', () => { selecionado = null; emit('nav:refresh'); });
+  /**
+   * Arrastar um nó move ele e o ramo inteiro. O que fica guardado é o
+   * deslocamento em relação ao lugar calculado, não a coordenada — ver arvore.js.
+   */
+  function iniciarArrasto(e, n) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.stopPropagation();
+    const escala = porPixel();
+    const parentes = ramoInteiro(nodes, n.id);
+    const base = {};
+    for (const id of parentes) if (pos[id]) base[id] = { ...pos[id] };
+    const x0 = e.clientX;
+    const y0 = e.clientY;
+    arrastou = false;
 
-  // pan com arrastar
-  let arrastando = null;
-  svg.addEventListener('mousedown', (e) => { arrastando = { x: e.clientX - pan.x, y: e.clientY - pan.y }; });
-  window.addEventListener('mousemove', (e) => {
-    if (!arrastando) return;
-    pan = { x: e.clientX - arrastando.x, y: e.clientY - arrastando.y };
+    const aoMover = (ev) => {
+      const dx = (ev.clientX - x0) * escala;
+      const dy = (ev.clientY - y0) * escala;
+      if (!arrastou && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 3) arrastou = true;
+      if (!arrastou) return;
+      for (const id of parentes) if (base[id]) pos[id] = { x: base[id].x + dx, y: base[id].y + dy };
+      reposicionar();
+    };
+
+    const aoSoltar = async (ev) => {
+      window.removeEventListener('pointermove', aoMover);
+      window.removeEventListener('pointerup', aoSoltar);
+      window.removeEventListener('pointercancel', aoSoltar);
+      if (!arrastou) return;
+      // Lê o deslocamento do banco, e não do objeto capturado no fecho: entre um
+      // arrasto e o seguinte a tela não é redesenhada, e `n` ficaria velho.
+      const atual = store.get('mindmaps', mapa.id)?.nodes?.find((x) => x.id === n.id)?.desloc ?? { x: 0, y: 0 };
+      await atualizarNo(mapa, n.id, {
+        desloc: {
+          x: atual.x + (ev.clientX - x0) * escala,
+          y: atual.y + (ev.clientY - y0) * escala,
+        },
+      });
+    };
+
+    window.addEventListener('pointermove', aoMover);
+    window.addEventListener('pointerup', aoSoltar);
+    window.addEventListener('pointercancel', aoSoltar);
+  }
+
+  /* ---- pan e zoom do quadro ---- */
+
+  // Com captura de ponteiro, e não com ouvintes no window: os antigos eram
+  // registrados a cada desenho e nunca removidos, então depois de trocar de
+  // mapa algumas vezes havia uma pilha deles movendo o mesmo quadro.
+  let panBase = null;
+  svg.addEventListener('pointerdown', (e) => {
+    panBase = { x: e.clientX - pan.x, y: e.clientY - pan.y, moveu: false };
+    svg.setPointerCapture?.(e.pointerId);
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!panBase) return;
+    panBase.moveu = true;
+    pan = { x: e.clientX - panBase.x, y: e.clientY - panBase.y };
     g.setAttribute('transform', `translate(${pan.x} ${pan.y}) scale(${zoom})`);
   });
-  window.addEventListener('mouseup', () => { arrastando = null; });
+  const soltarPan = (e) => { svg.releasePointerCapture?.(e.pointerId); panBase = null; };
+  svg.addEventListener('pointerup', soltarPan);
+  svg.addEventListener('pointercancel', soltarPan);
+
+  svg.addEventListener('click', (e) => {
+    if (e.target !== svg && e.target !== g) return;   // clique no vazio, não num nó
+    selecionado = null;
+    emit('nav:refresh');
+  });
+
   svg.addEventListener('wheel', (e) => {
     e.preventDefault();
     zoom = Math.min(2.5, Math.max(0.35, zoom * (e.deltaY > 0 ? 0.92 : 1.08)));
     g.setAttribute('transform', `translate(${pan.x} ${pan.y}) scale(${zoom})`);
   }, { passive: false });
 
+  const movidos = todos.filter((n) => n.desloc).length;
   const acoes = [
     el('button', { class: 'btn sm', text: '−', title: 'Afastar', onclick: () => { zoom = Math.max(0.35, zoom * 0.85); emit('nav:refresh'); } }),
     el('button', { class: 'btn sm', text: '+', title: 'Aproximar', onclick: () => { zoom = Math.min(2.5, zoom * 1.18); emit('nav:refresh'); } }),
     el('button', { class: 'btn sm', text: 'Centralizar', onclick: () => { resetView(); emit('nav:refresh'); } }),
+    movidos ? el('button', {
+      class: 'btn sm', text: 'Reorganizar',
+      title: `Devolve ${movidos} nó(s) movido(s) ao lugar calculado`,
+      onclick: () => reorganizar(mapa),
+    }) : null,
     el('button', { class: 'btn sm', text: 'SVG', title: 'Exportar', onclick: () => exportarSvg(mapa, svg) }),
-  ];
+  ].filter(Boolean);
 
   // O quadro segue a proporção do próprio mapa, dentro de limites confortáveis:
   // mapas largos ficam baixos, mapas frondosos ficam altos.
@@ -161,7 +272,50 @@ function canvasMapa(mapa) {
   }, svg);
 
   return sectionCard(mapa.title, acoes, quadro,
-    el('div', { class: 'tiny dim', style: 'margin-top:8px', text: 'Clique para selecionar · duplo clique para editar · arraste para mover · roda do mouse para o zoom' }));
+    el('div', { class: 'tiny dim', style: 'margin-top:8px', text: 'Clique para selecionar · duplo clique para editar · arraste um nó para levá-lo (com o ramo) · o círculo na ponta esconde e mostra · arraste o fundo para deslocar · roda do mouse para o zoom' }));
+}
+
+/**
+ * O círculo na ponta do nó: fechado mostra quantos tópicos estão guardados ali,
+ * aberto é só um traço. É o gesto que deixa um mapa grande caber na cabeça —
+ * fecha o que já está resolvido e sobra o que ainda está em aberto.
+ */
+function botaoColapso(mapa, n, todos, largura, altura, cor, lado) {
+  const cx = lado > 0 ? largura + 10 : -10;
+  const fechado = !!n.colapsado;
+  const quantos = fechado ? contarDescendentes(todos, n.id) : 0;
+
+  const alvo = cria('g', { class: `mm-toggle ${fechado ? 'fechado' : ''}` });
+
+  // A cor do ramo vai no `style`, e não em atributo: atributo de apresentação
+  // perde para regra de CSS, e é o CSS que pinta o estado aberto conforme o tema.
+  const bola = cria('circle', { class: 'mm-toggle-bola', cx, cy: altura / 2, r: 8.5, stroke: cor });
+  if (fechado) bola.style.fill = cor;
+  alvo.append(bola);
+
+  const rotulo = cria('text', {
+    x: cx, y: altura / 2 + 3.4, 'text-anchor': 'middle',
+    class: 'mm-toggle-txt', 'font-size': fechado && quantos > 9 ? 8.5 : 10,
+  });
+  rotulo.textContent = fechado ? String(quantos) : '–';
+  alvo.append(rotulo);
+
+  const alternar = async (e) => {
+    e.stopPropagation();
+    await atualizarNo(mapa, n.id, { colapsado: !n.colapsado });
+    emit('nav:refresh');
+  };
+  alvo.addEventListener('click', alternar);
+  alvo.addEventListener('pointerdown', (e) => e.stopPropagation());   // não é arrasto
+  alvo.addEventListener('mousedown', (e) => e.stopPropagation());
+  return alvo;
+}
+
+async function reorganizar(mapa) {
+  const nodes = (mapa.nodes ?? []).map(({ desloc, ...resto }) => resto);
+  await store.save('mindmaps', { id: mapa.id, nodes });
+  toast('Mapa reorganizado.', 'ok');
+  emit('nav:refresh');
 }
 
 /** Cada ramo que sai da raiz recebe um tom, herdado por todos os seus descendentes. */
@@ -327,6 +481,158 @@ async function novoMapa() {
   selecionado = raiz.id;
   resetView();
   emit('nav:refresh');
+}
+
+/* ---------- transcrever de uma imagem ---------- */
+
+/**
+ * A ferramenta que o modelo preenche. Lista plana com um número de nível em vez
+ * de árvore aninhada: esquema recursivo depende de $ref, que é justamente a
+ * parte do JSON Schema em que dá para escorregar. Nível é a mesma informação,
+ * e é o formato que o resto do JARBAS já usa para ler tópicos indentados.
+ */
+const FERRAMENTA_MAPA = {
+  name: 'transcrever_mapa',
+  description: 'Registra a estrutura de tópicos lida na imagem, do centro para as pontas.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      titulo: { type: 'string', description: 'Nome do mapa. Use o título escrito na imagem; se não houver, resuma o assunto em até quatro palavras.' },
+      raiz: { type: 'string', description: 'O tópico central — o assunto do qual tudo mais sai.' },
+      topicos: {
+        type: 'array',
+        description: 'Todos os outros tópicos, na ordem de leitura.',
+        items: {
+          type: 'object',
+          properties: {
+            texto: { type: 'string', description: 'O texto do tópico, exatamente como está escrito na imagem.' },
+            nivel: { type: 'integer', description: '1 para os ramos que saem do centro, 2 para os filhos deles, e assim por diante.' },
+            nota: { type: 'string', description: 'Detalhe escrito perto do tópico que não é um tópico em si. Vazio quando não houver.' },
+          },
+          required: ['texto', 'nivel'],
+        },
+      },
+    },
+    required: ['raiz', 'topicos'],
+  },
+};
+
+const INSTRUCAO_MAPA = [
+  'Esta imagem tem uma estrutura de ideias: pode ser um mapa mental, um diagrama, um esquema',
+  'no quadro branco, uma lista com recuos ou um print de outro programa.',
+  'Transcreva a estrutura com a ferramenta transcrever_mapa.',
+  '',
+  'Regras: copie o texto como está escrito, no idioma em que está — não traduza, não melhore,',
+  'não resuma e não acrescente tópico que não esteja na imagem. Se algo estiver ilegível,',
+  'transcreva o que dá para ler e não invente o resto.',
+  '',
+  'Se a imagem não tiver estrutura nenhuma para transcrever, não use a ferramenta:',
+  'responda em uma frase dizendo o que você está vendo.',
+].join('\n');
+
+async function importarDeImagem() {
+  const file = await pickFile(visao.TIPOS);
+  if (!file) return;
+
+  const estado = el('div', { class: 'tiny dim', text: `Lendo "${truncate(file.name, 30)}"…` });
+  const corpo = el('div', {}, estado);
+  const m = modal({ title: 'Ler mapa de uma imagem', render: () => corpo, wide: true });
+
+  let lido;
+  try {
+    lido = await visao.lerImagem(file, { instrucao: INSTRUCAO_MAPA, ferramenta: FERRAMENTA_MAPA });
+  } catch (err) {
+    estado.className = 'aviso';
+    estado.textContent = visao.explicarFalha(err);
+    return;
+  }
+
+  // Sem estrutura na foto o modelo responde em palavras. Isso não é falha do
+  // programa: é o diagnóstico, e vale mais na tela do que um "erro" genérico.
+  if (lido.texto) {
+    estado.className = 'aviso';
+    estado.textContent = lido.texto;
+    return;
+  }
+
+  const nodes = nodesDeTopicos(lido.dados);
+  if (nodes.length < 2) {
+    estado.className = 'aviso';
+    estado.textContent = 'Li a imagem, mas não achei tópicos suficientes para montar um mapa.';
+    return;
+  }
+
+  const titulo = String(lido.dados.titulo || lido.dados.raiz || 'Mapa transcrito').trim();
+  m.close();
+
+  // A conferência e a decisão moram na mesma janela. Mostrar o esboço e só
+  // então perguntar noutra caixa esconderia justamente o que se está conferindo.
+  const criar = await new Promise((resolve) => {
+    let respondido = false;
+    const fim = (v) => { if (!respondido) { respondido = true; resolve(v); } };
+    modal({
+      title: `Transcrição de "${titulo}"`,
+      wide: true,
+      onClose: () => fim(false),
+      render: () => el('div', {},
+        el('p', { class: 'tiny dim', style: 'margin-top:0', text: `${nodes.length} tópicos lidos. Confira agora; depois de criado, dá para corrigir qualquer nó no próprio mapa.` }),
+        el('pre', { class: 'previa', text: esbocoTexto(nodes) })),
+      footer: (close) => [
+        el('button', { class: 'btn', text: 'Descartar', onclick: () => { fim(false); close(); } }),
+        el('button', { class: 'btn primary', text: 'Criar mapa', onclick: () => { fim(true); close(); } }),
+      ],
+    });
+  });
+  if (!criar) return;
+
+  const mapa = await store.save('mindmaps', { title: titulo, nodes });
+  mapaAtivo = mapa.id;
+  selecionado = null;
+  resetView();
+  toast(`Mapa "${titulo}" criado a partir da imagem.`, 'ok');
+  emit('nav:refresh');
+}
+
+/**
+ * Transforma a lista plana (texto + nível) em nós com pai.
+ *
+ * Um nível que pula degraus — de 1 direto para 3, coisa que acontece quando a
+ * foto está torta — é aparado para o primeiro degrau livre. O tópico entra no
+ * lugar mais próximo do certo em vez de virar órfão e sumir do desenho.
+ */
+function nodesDeTopicos({ raiz, topicos }) {
+  const raizNode = { id: uid(), text: String(raiz || 'Mapa').trim(), parent: null, depth: 0 };
+  const nodes = [raizNode];
+  const ultimo = { 0: raizNode };
+
+  for (const t of topicos ?? []) {
+    const texto = String(t?.texto ?? '').trim();
+    if (!texto) continue;
+    const livre = Math.max(...Object.keys(ultimo).map(Number)) + 1;
+    const nivel = Math.max(1, Math.min(Number(t.nivel) || 1, livre));
+    const pai = ultimo[nivel - 1] ?? raizNode;
+
+    const no = { id: uid(), text: truncate(texto, 120), parent: pai.id, depth: nivel };
+    if (String(t.nota ?? '').trim()) no.note = String(t.nota).trim();
+    nodes.push(no);
+
+    ultimo[nivel] = no;
+    for (const k of Object.keys(ultimo)) if (Number(k) > nivel) delete ultimo[k];
+  }
+  return nodes;
+}
+
+/** Esboço em texto indentado, para conferir a transcrição antes de criar o mapa. */
+function esbocoTexto(nodes) {
+  const filhosDe = indexar(nodes);
+  const linhas = [];
+  const andar = (n, recuo) => {
+    linhas.push(`${'  '.repeat(recuo)}${recuo ? '· ' : ''}${n.text}${n.note ? `   (${truncate(n.note, 40)})` : ''}`);
+    for (const f of filhosDe[n.id] ?? []) andar(f, recuo + 1);
+  };
+  const raiz = (filhosDe.__root ?? [])[0];
+  if (raiz) andar(raiz, 0);
+  return linhas.join('\n');
 }
 
 function gerarComJarbas() {
