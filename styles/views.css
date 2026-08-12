@@ -603,3 +603,62 @@
   .rot-hero { gap: 12px; padding: 14px; }
   .rot-hero-num { font-size: 32px; }
 }
+
+/* ================= bússola do Freela ================= */
+/* Um painel com hierarquia no lugar de cinco quadros iguais. O tamanho de cada
+   cifra acompanha a urgência dela: o mês em corpo de manchete, o que exige
+   atenção em corpo médio, e o arquivo em corpo de rodapé. */
+.bussola { padding: 0; overflow: hidden; margin-bottom: 14px; }
+
+.bus-topo { padding: 18px 20px 16px; }
+.bus-rot { font-family: var(--sub); font-size: 14px; letter-spacing: .13em; color: var(--txt-3); }
+.bus-num {
+  font-family: var(--display); font-size: 40px; font-weight: 700; line-height: 1.08;
+  margin-top: 4px; letter-spacing: -.015em; font-variant-numeric: tabular-nums;
+  text-shadow: var(--txt-shadow-forte);
+}
+.bus-sub { font-size: 12.5px; color: var(--txt-3); margin-top: 5px; }
+.bus-barra { margin-top: 14px; }
+.bus-barra-txt {
+  display: flex; justify-content: space-between; gap: 12px;
+  font-size: 11.5px; color: var(--txt-3); margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A fileira do meio divide o espaço por igual e ganha fios entre as colunas —
+   é o que faz três números lado a lado lerem como um grupo, e não como três
+   quadros que por acaso encostaram. */
+.bus-meio {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  border-top: 1px solid var(--line); background: rgba(0, 0, 0, .14);
+}
+.bus-item { padding: 13px 20px; border-left: 1px solid var(--line); }
+.bus-item:first-child { border-left: 0; }
+.bus-item-rot { font-family: var(--sub); font-size: 12.5px; letter-spacing: .1em; color: var(--txt-3); }
+.bus-item-num {
+  font-family: var(--display); font-size: 20px; font-weight: 700; margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.bus-item-num.bad { color: var(--bad); }
+.bus-item-nota { font-size: 11.5px; color: var(--txt-3); margin-top: 2px; }
+
+.bus-notas {
+  padding: 12px 20px 14px; border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--txt-3); display: grid; gap: 4px;
+}
+
+/* No celular a fileira vira duas colunas e ganha fio horizontal: com uma
+   coluna só, os três números viram uma pilha tão alta quanto o destaque. */
+@media (max-width: 560px) {
+  .bus-num { font-size: 34px; }
+  .bus-meio { grid-template-columns: repeat(2, 1fr); }
+  .bus-item { padding: 11px 14px; }
+  .bus-item:nth-child(odd) { border-left: 0; }
+  .bus-item:nth-child(n+3) { border-top: 1px solid var(--line); }
+  /* Um item sozinho na última linha ocupa as duas colunas. Sem isto ele fica
+     encolhido num canto e o fio acima dele para no meio do painel, parecendo
+     um traço esquecido em vez de uma divisão. */
+  .bus-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .bus-topo { padding: 16px 14px 14px; }
+  .bus-notas { padding: 11px 14px 12px; }
+}

@@ -8,7 +8,7 @@ import * as store from '../core/store.js';
 import * as jarbas from '../assistant/jarbas.js';
 import { emit } from '../core/bus.js';
 import { el, money, today, addDays, fmtDate, relDay, parseMoney, sum, monthName, parseDate } from '../core/util.js';
-import { sectionCard, emptyState, formModal, confirmDialog, statTile, toast } from '../ui/components.js';
+import { sectionCard, emptyState, formModal, confirmDialog, meter, toast } from '../ui/components.js';
 
 export const SITUACOES = ['proposta', 'fechado', 'em andamento', 'entregue', 'cancelado'];
 
@@ -39,7 +39,7 @@ export function render(root, params = {}) {
     el('button', { class: 'btn primary sm', text: '+ Freela', onclick: () => editar() }),
   ));
 
-  root.append(el('div', { class: 'grid dash-stats' }, ...indicadores(todos)));
+  root.append(bussola(todos));
 
   if (!todos.length) {
     root.append(el('div', { class: 'card' },
@@ -53,14 +53,21 @@ export function render(root, params = {}) {
   ));
 }
 
-/* ---------- números do topo ---------- */
+/* ---------- a bússola ---------- */
 
 /**
- * O topo responde "quem me deve" — e por isso proposta fica de fora da conta.
- * Orçamento enviado não é dinheiro a receber: somá-lo ao total faz o quadro
- * prometer um caixa que ninguém aprovou. Propostas ganham quadro próprio.
+ * Um painel só, com hierarquia, no lugar de cinco quadros do mesmo tamanho.
+ *
+ * Cinco cifras com o mesmo corpo obrigam a ler as cinco para descobrir qual
+ * importa — e a resposta é sempre a mesma: quanto entra este mês. Aqui esse
+ * número é o único grande; os outros descem de tamanho na proporção em que
+ * descem de urgência, e o que é só arquivo fica no rodapé.
+ *
+ * Proposta fica fora do número grande de propósito. Orçamento enviado não é
+ * dinheiro a receber: somá-lo faria o painel prometer um caixa que ninguém
+ * aprovou. Ela aparece na fileira do meio, onde é o que é — expectativa.
  */
-function indicadores(todos) {
+function bussola(todos) {
   const receber = store.freelasAReceber();
   const vencidos = store.freelasAtrasadas();
   const propostas = store.freelasEmProposta();
@@ -71,15 +78,9 @@ function indicadores(todos) {
   const recebidoNoMes = todos.filter((f) => f.pago && (f.pagoEm ?? '').slice(0, 7) === t.slice(0, 7));
 
   /*
-   * O que entra em destaque é o dinheiro deste mês — o que decide se a conta
-   * fecha agora. O que vence lá na frente, o que ainda não tem data e o que já
-   * caiu na conta continuam à vista, em corpo pequeno: são registro, não
-   * cobrança, e em corpo grande roubariam a atenção da única cifra que pede
-   * ação hoje.
-   *
    * "Até o fim do mês" e não "dentro do mês": o que venceu em julho e não foi
-   * pago continua sendo dinheiro que devia estar aqui agora, e some se a conta
-   * olhar só para agosto. O quadro Atrasado, ao lado, marca essa parte.
+   * pago continua sendo dinheiro que devia estar aqui agora, e sumiria de uma
+   * conta que olhasse só para agosto. A fileira do meio marca essa parte.
    *
    * Compara texto com texto: as datas são ISO (AAAA-MM-DD) e nenhum dia passa
    * de 31, então `<= '2026-08-31'` é o fim de agosto sem calendário nenhum.
@@ -91,54 +92,58 @@ function indicadores(todos) {
   const semData = receber.filter((f) => !f.pagaEm);
 
   const plural = (n, palavra) => `${n} ${palavra}${n === 1 ? '' : 's'}`;
+  const aReceberNoMes = sum(doMes, valor);
+  const jaRecebido = sum(recebidoNoMes, valor);
 
-  // As linhas de registro ficam atrás de um fio, separadas da legenda do número
-  // grande. Sem o fio, quatro linhas do mesmo tamanho parecem quatro versões da
-  // mesma frase; com ele, dá para ver de relance onde termina a explicação do
-  // destaque e começa o que é só arquivo.
+  // A barra responde "quanto do mês já caiu na conta". É a única leitura do
+  // painel que não é um número: dá o andamento antes de somar coisa nenhuma.
+  const previsto = jaRecebido + aReceberNoMes;
+
+  const item = (rotulo, cifra, { tom = '', nota = '' } = {}) => el('div', { class: 'bus-item' },
+    el('div', { class: 'bus-item-rot', text: rotulo }),
+    el('div', { class: `bus-item-num ${tom}`, text: cifra }),
+    nota ? el('div', { class: 'bus-item-nota', text: nota }) : null);
+
+  const meio = [
+    vencidos.length
+      ? item('Atrasado', money(sum(vencidos, valor)), { tom: 'bad', nota: `${plural(vencidos.length, 'trabalho')} — cobre` })
+      : item('Atrasado', money(0), { nota: 'nada vencido' }),
+    item('Em andamento', String(emAndamento.length), {
+      nota: comEntrega.length
+        ? `${plural(comEntrega.length, 'entrega')} marcada${comEntrega.length === 1 ? '' : 's'}`
+        : emAndamento.length ? 'sem data de entrega' : 'nada em produção',
+    }),
+    // Some quando não há proposta pendente: zero aqui é ruído com cara de dado.
+    propostas.length
+      ? item('Em proposta', money(sum(propostas, valor)), { nota: `${plural(propostas.length, 'orçamento')} aguardando` })
+      : null,
+  ].filter(Boolean);
+
   const registro = [
     outrosMeses.length ? `Meses seguintes · ${money(sum(outrosMeses, valor))} em ${plural(outrosMeses.length, 'trabalho')}` : null,
     semData.length ? `Sem data de pagamento · ${money(sum(semData, valor))} em ${plural(semData.length, 'trabalho')}` : null,
-    recebidoNoMes.length ? `Já recebido no mês · ${money(sum(recebidoNoMes, valor))} em ${plural(recebidoNoMes.length, 'pagamento')}` : null,
+    jaRecebido ? `Já recebido no mês · ${money(jaRecebido)} em ${plural(recebidoNoMes.length, 'pagamento')}` : null,
   ].filter(Boolean);
 
-  const tiles = [
-    statTile({
-      label: `A receber em ${nomeDoMes(t)}`,
-      value: money(sum(doMes, valor)),
-      sub: [
-        doMes.length
-          ? `${plural(doMes.length, 'trabalho')} com vencimento até o fim do mês`
-          : 'nada vencendo neste mês',
-        registro.length
-          ? el('div', { class: 'stat-notas' }, ...registro.map((linha) => el('div', { class: 'stat-sub', text: linha })))
-          : null,
-      ],
-    }),
-    statTile({
-      label: 'Atrasado',
-      value: money(sum(vencidos, (f) => Number(f.valor) || 0)),
-      tone: vencidos.length ? 'bad' : '',
-      sub: vencidos.length ? `${vencidos.length} vencido(s) — cobre` : 'nada vencido',
-    }),
-    statTile({
-      label: 'Em andamento',
-      value: String(emAndamento.length),
-      sub: comEntrega.length
-        ? `${comEntrega.length} com entrega marcada`
-        : emAndamento.length ? 'sem data de entrega' : 'nada em produção',
-    }),
-  ];
+  return el('div', { class: 'card bussola' },
+    el('div', { class: 'bus-topo' },
+      el('div', { class: 'bus-rot', text: `A receber em ${nomeDoMes(t)}` }),
+      el('div', { class: 'bus-num', text: money(aReceberNoMes) }),
+      el('div', { class: 'bus-sub', text: doMes.length
+        ? `${plural(doMes.length, 'trabalho')} com vencimento até o fim do mês`
+        : 'nada vencendo neste mês' }),
+      previsto
+        ? el('div', { class: 'bus-barra' },
+          meter(jaRecebido / previsto, 'ok'),
+          el('div', { class: 'bus-barra-txt' },
+            el('span', { text: `${money(jaRecebido)} já entrou` }),
+            el('span', { text: `${Math.round((jaRecebido / previsto) * 100)}% do mês` })))
+        : null),
 
-  // Some quando não há proposta pendente: quadro zerado é ruído com cara de dado.
-  if (propostas.length) {
-    tiles.splice(1, 0, statTile({
-      label: 'Em proposta',
-      value: money(sum(propostas, (f) => Number(f.valor) || 0)),
-      sub: `${propostas.length} aguardando resposta`,
-    }));
-  }
-  return tiles;
+    meio.length ? el('div', { class: 'bus-meio' }, ...meio) : null,
+    registro.length
+      ? el('div', { class: 'bus-notas' }, ...registro.map((linha) => el('div', { text: linha })))
+      : null);
 }
 
 const nomeDoMes = (data) => {
