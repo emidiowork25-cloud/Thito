@@ -2,6 +2,7 @@
 
 import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
+import * as prefs from '../core/prefs.js';
 import * as sb from '../core/supabase.js';
 import * as sync from '../core/sync.js';
 import * as db from '../core/db.js';
@@ -143,11 +144,39 @@ function cardPerfil() {
     (v) => settings.set({ startView: v }),
   )));
 
-  body.append(el('div', { class: 'tiny dim', style: 'margin-top:14px' },
-    'Estas preferências acompanham a sua conta e aparecem igual em todo aparelho onde você entrar. '
-    + 'A voz escolhida e a configuração da nuvem não viajam: elas descrevem o aparelho, não você.'));
+  body.append(estadoDasPreferencias());
 
   return sectionCard('Perfil e aparência', null, body);
+}
+
+/**
+ * Diz, na tela, se estas preferências já existem na conta.
+ *
+ * Sem isto, um campo vazio no celular tem duas causas indistinguíveis: ou a
+ * sincronização não trouxe, ou não havia nada para trazer. São problemas
+ * opostos — um se resolve mexendo no app, o outro se resolve escrevendo no
+ * campo — e ficar adivinhando qual dos dois é custa uma tarde.
+ */
+function estadoDasPreferencias() {
+  const registro = store.get('prefs', prefs.ID);
+  const nota = el('div', { class: 'tiny dim', style: 'margin-top:14px' });
+
+  if (!registro) {
+    nota.className = 'aviso';
+    nota.replaceChildren(
+      el('div', { style: 'margin-bottom:6px', text: 'A sua conta ainda não tem preferências guardadas.' }),
+      el('div', { text: 'Preencha os campos acima em um aparelho e eles aparecem nos outros. Enquanto nenhum aparelho tiver preenchido, todos mostram os campos em branco — não há nada para sincronizar.' }),
+    );
+    return nota;
+  }
+
+  nota.replaceChildren(
+    el('div', { text: `Guardadas na sua conta · última alteração ${fmtDate(registro.updatedAt, { weekday: false })}.` }),
+    el('div', { style: 'margin-top:6px' },
+      'Aparecem igual em todo aparelho onde você entrar. A voz escolhida e a configuração '
+      + 'da nuvem não viajam: elas descrevem o aparelho, não você.'),
+  );
+  return nota;
 }
 
 /* ---------- assistente ---------- */

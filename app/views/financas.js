@@ -4,7 +4,7 @@ import * as store from '../core/store.js';
 import * as jarbas from '../assistant/jarbas.js';
 import { on, emit } from '../core/bus.js';
 import {
-  el, money, today, monthKey, addMonths, fmtDate, parseMoney, norm, monthName, parseDate, download,
+  el, money, today, monthKey, addMonths, fmtDate, parseMoney, norm, monthName, parseDate, download, sum,
 } from '../core/util.js';
 import { statTile, meter, sectionCard, emptyState, formModal, confirmDialog, toast } from '../ui/components.js';
 
@@ -30,11 +30,39 @@ export function render(root) {
     statTile({ label: 'Saídas', value: money(resumo.expense), tone: 'bad' }),
     statTile({ label: 'Resultado', value: money(resumo.net), tone: resumo.net < 0 ? 'bad' : 'ok', sub: `${resumo.count} lançamentos` }),
     statTile({ label: 'Saldo total', value: money(store.totalBalance()), sub: `${store.list('accounts').length} conta(s)` }),
+    tileAReceber(),
   ));
 
   root.append(el('div', { class: 'grid fin-grid' },
     el('div', { class: 'grid', style: 'align-content:start' }, cardLancamentos(resumo)),
     el('div', { class: 'grid', style: 'align-content:start' }, cardContas(), cardCategorias(resumo), cardOrcamentos())));
+}
+
+/**
+ * Dinheiro que ainda não entrou: freelas fechados e eventos já feitos que não
+ * foram pagos. Fica aqui, e não no painel inicial, porque é um número que anda
+ * devagar — quem quer saber dele vem procurar, e vem procurar em Finanças.
+ *
+ * Soma as duas fontes de propósito: no módulo Freela aparece só a parte dos
+ * freelas, e quem quer saber quanto tem para receber quer o total, não a metade.
+ *
+ * Some quando não há nada a receber. Quadro zerado é ruído com cara de dado.
+ */
+function tileAReceber() {
+  const freelas = store.freelasAReceber();
+  const eventos = store.list('producoes', (e) => !e.pago && (Number(e.cache) || 0) > 0);
+  const total = sum(freelas, (f) => Number(f.valor) || 0) + sum(eventos, (e) => Number(e.cache) || 0);
+  if (!total) return null;
+
+  const hoje = today();
+  const vencidos = store.freelasAtrasadas().length + eventos.filter((e) => e.date && e.date < hoje).length;
+
+  return statTile({
+    label: 'A receber',
+    value: money(total),
+    tone: vencidos ? 'bad' : '',
+    sub: vencidos ? `${vencidos} já venceu — cobre` : `${freelas.length + eventos.length} trabalho(s)`,
+  });
 }
 
 const rotuloMes = () => {

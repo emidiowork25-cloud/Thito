@@ -17,11 +17,20 @@ export function render(root) {
   // O topo mostra o que precisa de você, não como você está indo. Saldo do mês
   // é boa informação e péssima manchete: some do painel e continua em Finanças,
   // onde alguém vai olhar querendo saber disso.
-  const tiles = [tileRotina(t), tileAgenda(t), tileTarefas(t), tileReceber(), tileProximaEntrega(t)].filter(Boolean);
+  //
+  // "A receber" e "Tarefas abertas" saíram pelo mesmo motivo: são números que
+  // ficam parados por semanas. Um número que não muda todo dia, num painel que
+  // se olha todo dia, vira paisagem — e paisagem no topo rouba o lugar do que
+  // realmente mudou desde ontem. Cada um continua no seu módulo, onde se vai
+  // justamente para olhar aquilo. "A receber" agora vive em Finanças.
+  const tiles = [tileRotina(t), tileAgenda(t), tileProximaEntrega(t)].filter(Boolean);
   root.append(el('div', { class: 'grid dash-stats' }, ...tiles));
 
+  // Compromissos antes das notícias, e não o contrário. O painel é para
+  // decidir o que fazer hoje: o que está marcado para você é a primeira coisa,
+  // e a manchete é a última — ela informa, mas não cobra nada de ninguém.
   root.append(el('div', { class: 'grid dash-main' },
-    el('div', { class: 'grid', style: 'align-content:start' }, cardNoticias(), cardHoje(t), cardProximos(t)),
+    el('div', { class: 'grid', style: 'align-content:start' }, cardHoje(t), cardProximos(t), cardNoticias()),
     el('div', { class: 'grid', style: 'align-content:start' }, cardSinais(), cardFinancas(), cardPendencias())));
 }
 
@@ -170,40 +179,6 @@ function tileAgenda(t) {
   }
 
   return statTile({ label: 'Hoje na agenda', value: String(hoje.length), sub });
-}
-
-function tileTarefas(t) {
-  const abertas = store.openTasks();
-  const atrasadas = abertas.filter((x) => x.due && x.due < t);
-  return statTile({
-    label: 'Tarefas abertas',
-    value: String(abertas.length),
-    sub: atrasadas.length ? `${atrasadas.length} atrasada(s)` : 'nada atrasado',
-    tone: atrasadas.length ? 'bad' : '',
-  });
-}
-
-/**
- * Dinheiro que alguém te deve — a única cifra que pede ação. Some quando não
- * há nada a receber: quadro zerado no topo é ruído com aparência de dado.
- */
-function tileReceber() {
-  const freelas = store.freelasAReceber();
-  const eventos = store.list('producoes', (e) => !e.pago && (Number(e.cache) || 0) > 0);
-  const total = freelas.reduce((a, f) => a + (Number(f.valor) || 0), 0)
-    + eventos.reduce((a, e) => a + (Number(e.cache) || 0), 0);
-  if (!total) return null;
-
-  const t = today();
-  const vencidos = store.freelasAtrasadas().length
-    + eventos.filter((e) => e.date && e.date < t).length;
-
-  return statTile({
-    label: 'A receber',
-    value: money(total),
-    tone: vencidos ? 'bad' : '',
-    sub: vencidos ? `${vencidos} já venceu — cobre` : `${freelas.length + eventos.length} trabalho(s)`,
-  });
 }
 
 /** O próximo compromisso com consequência: entrega de freela ou evento. */
