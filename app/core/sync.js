@@ -88,15 +88,50 @@ async function push({ full = false, pular = new Set() } = {}) {
   return rows.length;
 }
 
+/**
+ * Recuo de segurança do cursor de recebimento.
+ *
+ * O cursor é `updated_at > último_visto`, e os carimbos são gerados pelo
+ * relógio de CADA aparelho. Basta um estar alguns minutos adiantado para o
+ * cursor dele ficar à frente do que o outro acabou de gravar — e a linha nova
+ * some do filtro. Some de vez: o cursor nunca volta atrás, então nenhuma
+ * sincronização posterior a traz. Foi assim que um perfil preenchido no
+ * computador ficou invisível no celular, e apertar "Sincronizar agora" não
+ * adiantava nada, porque o pedido saía com o mesmo cursor envenenado.
+ *
+ * Pior: o veneno é auto-infligido. As próprias linhas do aparelho adiantado
+ * voltam no recebimento e empurram o cursor para o futuro dele.
+ *
+ * Uma hora de recuo cobre a diferença de relógio que se vê no mundo real. As
+ * linhas relidas custam quase nada — são pequenas, e applyRemote descarta em
+ * memória tudo o que não for mais novo que a cópia local.
+ */
+const MARGEM_RELOGIO_MS = 60 * 60 * 1000;
+
+/**
+ * E a primeira volta de cada sessão vem sem cursor nenhum.
+ *
+ * É o conserto de quem já está com o cursor estragado: abrir o app reconcilia
+ * tudo, sem depender de o dono descobrir que existe um botão "Reenviar tudo".
+ */
+let primeiraVolta = true;
+
 /** Recebe e funde. Devolve as chaves "coleção/id" que vieram de fora. */
 async function pull() {
   const aplicados = new Set();
-  const since = await db.kvGet(LAST_PULL, null);
+  const marcador = await db.kvGet(LAST_PULL, null);
+  const since = (primeiraVolta || !marcador)
+    ? null
+    : new Date(Date.parse(marcador) - MARGEM_RELOGIO_MS).toISOString();
+  primeiraVolta = false;
+
   const rows = await sb.pullRecords(since);
   if (!Array.isArray(rows) || !rows.length) return aplicados;
 
   const byCollection = {};
-  let newest = since;
+  // Parte do marcador guardado, e não do `since` recuado: o cursor só anda
+  // para a frente, senão o recuo viraria permanente e cresceria a cada volta.
+  let newest = marcador;
   for (const row of rows) {
     const record = { ...(row.data || {}), id: row.id, updatedAt: row.updated_at, deleted: !!row.deleted };
     (byCollection[row.collection] ||= []).push(record);
