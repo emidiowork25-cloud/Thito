@@ -56,7 +56,28 @@ export function render(root) {
 
 /* ---------- hoje ---------- */
 
-function hoje(t) {
+/**
+ * O mesmo cartão, aqui e no Painel.
+ *
+ * Exportado em vez de copiado de propósito: duas listas de "o que falta hoje"
+ * escritas separadamente divergem na primeira mudança, e aí a pergunta "já
+ * fiz?" passa a ter duas respostas diferentes dependendo da tela em que se
+ * está. Marcar num lugar marca no outro porque é o mesmo botão.
+ */
+export function cartaoHoje(t = today(), { titulo = 'Hoje' } = {}) {
+  if (!ativas().length) {
+    return sectionCard(titulo, null,
+      emptyState('Nenhuma rotina cadastrada. São as tarefas que se repetem toda semana — as que se esquece justamente por serem óbvias.',
+        'Montar minha rotina', () => semear()));
+  }
+  return hoje(t, titulo);
+}
+
+// O título é parâmetro porque o mesmo cartão vive em dois lugares. Dentro do
+// módulo Rotina, "Hoje" basta — o contexto está no menu. No Painel, ao lado do
+// cartão de compromissos que também se chama "Hoje", ele precisa dizer de qual
+// "hoje" está falando.
+function hoje(t, titulo = 'Hoje') {
   const itens = doDia(t);
   const prontos = itens.filter((r) => feito(r, t));
   const pct = itens.length ? prontos.length / itens.length : 0;
@@ -109,7 +130,7 @@ function hoje(t) {
       el('div', { class: 'tiny dim', text: completo ? 'Tudo riscado. Pode tocar a vida.' : `${itens.length - prontos.length} pendente(s)` }),
       meter(pct, completo ? 'ok' : 'warn')));
 
-  return sectionCard('Hoje', [
+  return sectionCard(titulo, [
     el('button', { class: 'btn sm', text: '+ tarefa', onclick: () => editar() }),
   ], cabecalho, corpo);
 }

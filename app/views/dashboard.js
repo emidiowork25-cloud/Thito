@@ -3,10 +3,11 @@
 import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
 import * as noticias from '../core/noticias.js';
+import * as rotina from './rotina.js';
 import * as ctx from '../assistant/context.js';
 import * as jarbas from '../assistant/jarbas.js';
-import { el, money, fmtDate, fmtTime, relDay, today, addDays, monthKey, truncate } from '../core/util.js';
-import { statTile, meter, sectionCard, emptyState, proximoCompromisso } from '../ui/components.js';
+import { el, fmtDate, fmtTime, relDay, today, addDays, truncate } from '../core/util.js';
+import { statTile, sectionCard, emptyState, proximoCompromisso } from '../ui/components.js';
 import { emit } from '../core/bus.js';
 
 export function render(root) {
@@ -23,15 +24,26 @@ export function render(root) {
   // se olha todo dia, vira paisagem — e paisagem no topo rouba o lugar do que
   // realmente mudou desde ontem. Cada um continua no seu módulo, onde se vai
   // justamente para olhar aquilo. "A receber" agora vive em Finanças.
-  const tiles = [tileRotina(t), tileAgenda(t), tileProximaEntrega(t)].filter(Boolean);
+  //
+  // O quadro da rotina saiu por outro motivo: o cartão da rotina, aqui embaixo,
+  // já traz o mesmo "0/3" com a barra e a lista do que falta. Repetir o número
+  // três vezes na mesma tela não o torna mais visível — torna a tela mais cheia.
+  const tiles = [tileAgenda(t), tileProximaEntrega(t)].filter(Boolean);
   root.append(el('div', { class: 'grid dash-stats' }, ...tiles));
 
-  // Compromissos antes das notícias, e não o contrário. O painel é para
-  // decidir o que fazer hoje: o que está marcado para você é a primeira coisa,
-  // e a manchete é a última — ela informa, mas não cobra nada de ninguém.
+  // Coluna da esquerda: compromissos antes das notícias. O painel é para
+  // decidir o que fazer hoje — o que está marcado para você vem primeiro, e a
+  // manchete por último; ela informa, mas não cobra nada de ninguém.
+  //
+  // Coluna da direita: a rotina do dia. É o mesmo cartão da aba Hoje do módulo
+  // Rotina, e não uma cópia dele — marcar aqui marca lá, porque é o mesmo
+  // botão. Ele tomou o lugar de Sinais, Gastos do mês e Encaminhamentos: os
+  // três respondiam "como você está indo", e este responde "o que falta fazer
+  // hoje", que é a pergunta que se leva para a primeira tela da manhã. Os três
+  // continuam inteiros nos seus módulos, que é onde se vai para olhá-los.
   root.append(el('div', { class: 'grid dash-main' },
     el('div', { class: 'grid', style: 'align-content:start' }, cardHoje(t), cardProximos(t), cardNoticias()),
-    el('div', { class: 'grid', style: 'align-content:start' }, cardSinais(), cardFinancas(), cardPendencias())));
+    el('div', { class: 'grid', style: 'align-content:start' }, rotina.cartaoHoje(t, { titulo: 'Rotina de hoje' }))));
 }
 
 /* ---------- notícias ---------- */
@@ -144,21 +156,6 @@ function hero() {
 
 /* ---------- indicadores ---------- */
 
-/**
- * A rotina do dia é o primeiro quadro porque é a única coisa do topo que você
- * resolve hoje mesmo, riscando. Some quando não há rotina para o dia — quadro
- * "0 de 0" é ruído com cara de dado.
- */
-function tileRotina(t) {
-  const r = store.rotinaResumo(t);
-  if (!r.total) return null;
-  return statTile({
-    label: 'Rotina de hoje',
-    value: `${r.feitos}/${r.total}`,
-    tone: r.completo ? 'ok' : '',
-    sub: r.completo ? 'tudo feito' : `${r.pendentes} pendente(s)`,
-  });
-}
 
 function tileAgenda(t) {
   const hoje = store.agendaOn(t);
@@ -263,76 +260,5 @@ function cardProximos(t) {
   return sectionCard('Próximos 7 dias', null, body);
 }
 
-function cardSinais() {
-  const sinais = store.insights();
-  const body = el('div', { class: 'list-plain' });
-  if (!sinais.length) {
-    body.append(el('div', { class: 'empty', text: 'Nada fora do lugar. Tudo sob controle.' }));
-  }
-  for (const s of sinais.slice(0, 6)) {
-    body.append(el('div', { class: `signal ${s.level}` },
-      el('span', { class: 'signal-kind', text: s.kind }),
-      el('span', { text: s.text })));
-  }
-  return sectionCard('Sinais', [
-    el('button', {
-      class: 'btn sm', text: 'Analisar',
-      onclick: () => jarbas.askFrom('Olhe os sinais detectados no meu contexto e me diga, em no máximo 5 linhas, o que eu deveria fazer hoje a respeito. Priorize pelo impacto.'),
-    }),
-  ], body);
-}
 
-function cardFinancas() {
-  const r = store.monthSummary();
-  const body = el('div');
-  const top = Object.entries(r.byCategory).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const maior = top[0]?.[1] || 1;
 
-  if (!top.length) body.append(emptyState('Nenhum gasto lançado neste mês.', 'Novo lançamento',
-    () => emit('action:new-transaction')));
-
-  for (const [cat, val] of top) {
-    body.append(el('div', { class: 'bar-row' },
-      el('span', { class: 'bar-label', text: cat }),
-      el('div', { class: 'bar-track' }, el('span', { class: 'bar-fill', style: `width:${(val / maior) * 100}%` })),
-      el('span', { class: 'bar-value mono', text: money(val) })));
-  }
-
-  const orcamentos = store.budgetStatus().slice(0, 3);
-  if (orcamentos.length) {
-    body.append(el('div', { class: 'tiny dim', style: 'margin:14px 0 6px', text: 'Orçamentos' }));
-    for (const b of orcamentos) {
-      body.append(el('div', { class: 'budget-row' },
-        el('div', { class: 'budget-top' },
-          el('span', { text: b.category }),
-          el('span', { class: 'mono tiny', text: `${money(b.spent)} / ${money(b.limit)}` })),
-        meter(b.pct)));
-    }
-  }
-
-  return sectionCard(`Gastos de ${monthKey(today())}`, [
-    el('button', { class: 'btn sm', text: '+ lançamento', onclick: () => emit('action:new-transaction') }),
-  ], body);
-}
-
-function cardPendencias() {
-  const acoes = store.openActionItems().slice(0, 6);
-  const body = el('div', { class: 'list-plain' });
-  if (!acoes.length) body.append(el('div', { class: 'empty', text: 'Sem encaminhamentos pendentes.' }));
-  for (const a of acoes) {
-    body.append(el('div', { class: 'lp-row' },
-      el('input', {
-        type: 'checkbox',
-        onchange: async () => {
-          const m = store.get('meetings', a.meetingId);
-          if (!m) return;
-          const actions = m.actions.map((x) => (x.id === a.id ? { ...x, done: true } : x));
-          await store.save('meetings', { id: m.id, actions });
-          emit('nav:refresh');
-        },
-      }),
-      el('span', { class: 'lp-main', text: a.text }),
-      el('span', { class: 'tiny dim', text: a.due ? relDay(a.due) : a.meetingTitle })));
-  }
-  return sectionCard('Encaminhamentos', null, body);
-}
