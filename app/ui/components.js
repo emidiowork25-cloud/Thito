@@ -177,12 +177,23 @@ export function formModal({ title, fields, values, okLabel = 'Salvar', wide = fa
 
 /* ---------- blocos visuais ---------- */
 
+/**
+ * `sub` aceita uma linha ou várias.
+ *
+ * Várias existem porque nem todo número merece o tamanho de manchete. Um quadro
+ * costuma ter uma cifra que pede ação e outras que só precisam ficar
+ * registradas — dar a todas o mesmo corpo faz o olho não saber onde pousar, e
+ * dar quadro próprio a cada uma enche a tela de caixas que ninguém lê.
+ */
 export function statTile({ label, value, sub, tone = '' }) {
-  return el('div', { class: 'stat' },
+  const node = el('div', { class: 'stat' },
     el('div', { class: 'stat-label', text: label }),
     el('div', { class: `stat-value ${tone}`, text: value }),
-    sub ? el('div', { class: 'stat-sub', text: sub }) : null,
   );
+  for (const linha of [sub].flat().filter(Boolean)) {
+    node.append(linha instanceof Node ? linha : el('div', { class: 'stat-sub', text: linha }));
+  }
+  return node;
 }
 
 export function meter(pct, tone) {

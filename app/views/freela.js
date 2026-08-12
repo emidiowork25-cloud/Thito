@@ -70,13 +70,50 @@ function indicadores(todos) {
   const comEntrega = emAndamento.filter((f) => f.entregaEm && f.entregaEm >= t);
   const recebidoNoMes = todos.filter((f) => f.pago && (f.pagoEm ?? '').slice(0, 7) === t.slice(0, 7));
 
+  /*
+   * O que entra em destaque é o dinheiro deste mês — o que decide se a conta
+   * fecha agora. O que vence lá na frente, o que ainda não tem data e o que já
+   * caiu na conta continuam à vista, em corpo pequeno: são registro, não
+   * cobrança, e em corpo grande roubariam a atenção da única cifra que pede
+   * ação hoje.
+   *
+   * "Até o fim do mês" e não "dentro do mês": o que venceu em julho e não foi
+   * pago continua sendo dinheiro que devia estar aqui agora, e some se a conta
+   * olhar só para agosto. O quadro Atrasado, ao lado, marca essa parte.
+   *
+   * Compara texto com texto: as datas são ISO (AAAA-MM-DD) e nenhum dia passa
+   * de 31, então `<= '2026-08-31'` é o fim de agosto sem calendário nenhum.
+   */
+  const fimDoMes = `${t.slice(0, 7)}-31`;
+  const valor = (f) => Number(f.valor) || 0;
+  const doMes = receber.filter((f) => f.pagaEm && f.pagaEm <= fimDoMes);
+  const outrosMeses = receber.filter((f) => f.pagaEm && f.pagaEm > fimDoMes);
+  const semData = receber.filter((f) => !f.pagaEm);
+
+  const plural = (n, palavra) => `${n} ${palavra}${n === 1 ? '' : 's'}`;
+
+  // As linhas de registro ficam atrás de um fio, separadas da legenda do número
+  // grande. Sem o fio, quatro linhas do mesmo tamanho parecem quatro versões da
+  // mesma frase; com ele, dá para ver de relance onde termina a explicação do
+  // destaque e começa o que é só arquivo.
+  const registro = [
+    outrosMeses.length ? `Meses seguintes · ${money(sum(outrosMeses, valor))} em ${plural(outrosMeses.length, 'trabalho')}` : null,
+    semData.length ? `Sem data de pagamento · ${money(sum(semData, valor))} em ${plural(semData.length, 'trabalho')}` : null,
+    recebidoNoMes.length ? `Já recebido no mês · ${money(sum(recebidoNoMes, valor))} em ${plural(recebidoNoMes.length, 'pagamento')}` : null,
+  ].filter(Boolean);
+
   const tiles = [
     statTile({
-      label: 'A receber',
-      value: money(sum(receber, (f) => Number(f.valor) || 0)),
-      sub: receber.length
-        ? `${receber.length} trabalho${receber.length === 1 ? '' : 's'} fechado${receber.length === 1 ? '' : 's'}`
-        : 'ninguém te deve nada',
+      label: `A receber em ${nomeDoMes(t)}`,
+      value: money(sum(doMes, valor)),
+      sub: [
+        doMes.length
+          ? `${plural(doMes.length, 'trabalho')} com vencimento até o fim do mês`
+          : 'nada vencendo neste mês',
+        registro.length
+          ? el('div', { class: 'stat-notas' }, ...registro.map((linha) => el('div', { class: 'stat-sub', text: linha })))
+          : null,
+      ],
     }),
     statTile({
       label: 'Atrasado',
@@ -90,12 +127,6 @@ function indicadores(todos) {
       sub: comEntrega.length
         ? `${comEntrega.length} com entrega marcada`
         : emAndamento.length ? 'sem data de entrega' : 'nada em produção',
-    }),
-    statTile({
-      label: `Recebido em ${nomeDoMes(t)}`,
-      value: money(sum(recebidoNoMes, (f) => Number(f.valor) || 0)),
-      tone: recebidoNoMes.length ? 'ok' : '',
-      sub: `${recebidoNoMes.length} pagamento(s)`,
     }),
   ];
 

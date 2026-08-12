@@ -45,6 +45,11 @@
 .stat-value.ok { color: var(--ok); }
 .stat-value.bad { color: var(--bad); }
 .stat-sub { font-size: 12px; color: var(--txt-3); margin-top: 4px; }
+/* Registros dentro de um quadro: números que ficam guardados, não cobrados.
+   O fio separa a legenda do número grande do que é só arquivo — sem ele,
+   linhas do mesmo tamanho parecem versões da mesma frase. */
+.stat-notas { margin-top: 9px; padding-top: 8px; border-top: 1px solid var(--line); }
+.stat-notas .stat-sub:first-child { margin-top: 0; }
 
 /* ================= listas genéricas ================= */
 .list-plain { display: flex; flex-direction: column; }
