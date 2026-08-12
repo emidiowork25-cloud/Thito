@@ -2,11 +2,13 @@
 
 import * as store from '../core/store.js';
 import * as jarbas from '../assistant/jarbas.js';
+import * as modelo from '../core/modelo.js';
+import * as redator from '../core/redator.js';
 import { on, emit } from '../core/bus.js';
 import {
   el, today, uid, truncate, norm, num, money, fmtDate, download, pickFile, sum,
 } from '../core/util.js';
-import { sectionCard, emptyState, formModal, confirmDialog, toast, statTile, meter } from '../ui/components.js';
+import { sectionCard, emptyState, formModal, modal, confirmDialog, toast, statTile, meter } from '../ui/components.js';
 
 /* Limites reais de cada superfície — o contador usa isso para avisar antes de cortar. */
 export const PLATAFORMAS = {
@@ -68,7 +70,8 @@ function abaPecas(root) {
   if (!pecas.some((p) => p.id === pecaAtiva)) pecaAtiva = pecas[0]?.id ?? null;
 
   root.append(el('div', { class: 'toolbar' },
-    el('button', { class: 'btn primary sm', text: '✦ Escrever com JARBAS', onclick: escreverComJarbas }),
+    el('button', { class: 'btn primary sm', text: '✦ De um link para post', onclick: () => deLink() }),
+    el('button', { class: 'btn sm', text: '✦ Escrever com JARBAS', onclick: escreverComJarbas }),
     el('button', { class: 'btn sm', text: '+ peça em branco', onclick: () => novaPeca() }),
     el('div', { class: 'spacer' }),
     el('select', {
@@ -81,8 +84,8 @@ function abaPecas(root) {
 
   if (!pecas.length) {
     root.append(el('div', { class: 'card' },
-      emptyState('Nenhuma peça ainda. Diga o que você quer comunicar e o JARBAS escreve a primeira versão.',
-        '✦ Escrever com JARBAS', escreverComJarbas)));
+      emptyState('Nenhuma peça ainda. Cole um link — notícia, vídeo, post — e ele vira carrossel, reels, card e legenda de uma vez.',
+        '✦ De um link para post', () => deLink())));
     return;
   }
 
@@ -745,3 +748,215 @@ function planejarCampanha() {
 
 on('action:new-copy', () => { aba = 'pecas'; novaPeca(); });
 on('action:new-campaign', () => { aba = 'campanhas'; editarCampanha(); });
+
+/* ============================ de um link para post ============================ */
+
+/**
+ * O formulário do pedido.
+ *
+ * O campo de texto colado não é acessório: Instagram exige login e quase nunca
+ * abre para um leitor automático. Deixá-lo escondido faria a pessoa tentar o
+ * link três vezes antes de descobrir o caminho que funciona.
+ */
+async function deLink() {
+  const marcas = store.list('brands');
+  const escolhidos = new Set(['carrossel', 'reels', 'estatico', 'legenda']);
+
+  const url = el('input', { type: 'url', placeholder: 'https://…  (notícia, YouTube, post)' });
+  const colado = el('textarea', { rows: 4, placeholder: 'Opcional — e obrigatório quando o link não abre. Cole aqui a matéria, a legenda ou a transcrição.' });
+  const objetivo = el('select', {}, ...Object.entries(redator.OBJETIVOS).map(([k, v]) => el('option', { value: k }, v)));
+  const publico = el('input', { type: 'text', placeholder: 'quem vai ler — ex.: pais de crianças autistas, alunos da Universidade' });
+  const extra = el('input', { type: 'text', placeholder: 'algo específico? ex.: puxar para a inscrição do seminário' });
+  const marca = el('select', {},
+    el('option', { value: '' }, 'sem voz de marca'),
+    ...marcas.map((m) => el('option', { value: m.id, selected: !!m.padrao }, m.name)));
+
+  const caixas = el('div', { class: 'cw-formatos' });
+  for (const [chave, f] of Object.entries(redator.FORMATOS)) {
+    const c = el('input', { type: 'checkbox' });
+    c.checked = escolhidos.has(chave);
+    c.addEventListener('change', () => (c.checked ? escolhidos.add(chave) : escolhidos.delete(chave)));
+    caixas.append(el('label', { class: 'cw-formato' }, c, el('span', { text: f.rotulo })));
+  }
+
+  const corpo = el('div', {},
+    el('div', { class: 'field' }, el('label', { text: 'Link' }), url),
+    el('div', { class: 'field' }, el('label', { text: 'Ou o texto, colado' }), colado,
+      el('div', { class: 'hint', text: 'Post do Instagram quase sempre exige login e não abre sozinho. Nesse caso, cole a legenda aqui — sem material de verdade, nada é escrito.' })),
+    el('div', { class: 'field' }, el('label', { text: 'Formatos' }), caixas),
+    el('div', { class: 'row' },
+      el('div', { class: 'field' }, el('label', { text: 'Objetivo' }), objetivo),
+      el('div', { class: 'field' }, el('label', { text: 'Voz de marca' }), marca)),
+    el('div', { class: 'field' }, el('label', { text: 'Público' }), publico),
+    el('div', { class: 'field' }, el('label', { text: 'Instrução extra' }), extra));
+
+  const pedido = await new Promise((resolve) => {
+    let respondido = false;
+    const fim = (v) => { if (!respondido) { respondido = true; resolve(v); } };
+    modal({
+      title: 'De um link para post',
+      wide: true,
+      onClose: () => fim(null),
+      render: () => corpo,
+      footer: (close) => [
+        el('button', { class: 'btn', text: 'Cancelar', onclick: () => { fim(null); close(); } }),
+        el('button', {
+          class: 'btn primary', text: 'Escrever',
+          onclick: () => {
+            if (!url.value.trim() && !colado.value.trim()) { toast('Cole um link ou o texto — um dos dois.', 'err'); return; }
+            if (!escolhidos.size) { toast('Escolha ao menos um formato.', 'err'); return; }
+            fim({
+              url: url.value.trim(),
+              colado: colado.value.trim(),
+              formatos: [...escolhidos],
+              objetivo: objetivo.value,
+              publico: publico.value.trim(),
+              extra: extra.value.trim(),
+              marcaId: marca.value,
+            });
+            close();
+          },
+        }),
+      ],
+    });
+  });
+  if (!pedido) return;
+
+  const m = store.get('brands', pedido.marcaId);
+  const vozDaMarca = m
+    ? [`Nome: ${m.name}`, m.voice && `Tom: ${m.voice}`, m.audience && `Público: ${m.audience}`,
+      m.avoid && `Evitar: ${m.avoid}`, m.examples && `Exemplos do jeito certo:\n${m.examples}`]
+      .filter(Boolean).join('\n')
+    : '';
+
+  const estado = el('div', { class: 'tiny dim' },
+    el('div', { text: pedido.url ? 'Abrindo o link e lendo o conteúdo…' : 'Lendo o material…' }),
+    el('div', { style: 'margin-top:6px', text: `${pedido.formatos.length} formato(s) de uma vez. Demora um pouco.` }));
+  const espera = modal({ title: 'Escrevendo', render: () => el('div', {}, estado) });
+
+  let saida;
+  try {
+    saida = await redator.gerar({ ...pedido, marca: vozDaMarca });
+  } catch (err) {
+    estado.className = 'aviso';
+    estado.textContent = modelo.explicarFalha(err);
+    return;
+  }
+
+  if (saida.texto) {
+    estado.className = 'aviso';
+    estado.textContent = saida.texto;
+    return;
+  }
+
+  // O modelo diz que não conseguiu ler — e não devolveu nada de útil. Isto é
+  // resposta, não falha: melhor voltar de mãos vazias do que publicar um post
+  // afirmando coisas sobre uma matéria que ninguém leu.
+  const variacoes = (saida.dados.variacoes ?? []).filter((v) => v?.corpo || v?.cards?.length);
+  if (!saida.dados.fonte_lida && !pedido.colado) {
+    estado.className = 'aviso';
+    estado.replaceChildren(
+      el('div', { style: 'margin-bottom:6px', text: 'Não consegui ler esse link — provavelmente exige login (é o caso do Instagram) ou bloqueia leitura automática.' }),
+      el('div', { text: 'Abra a página, copie o texto e cole no campo "Ou o texto, colado". Aí eu escrevo.' }));
+    return;
+  }
+  if (!variacoes.length) {
+    estado.className = 'aviso';
+    estado.textContent = 'Li a fonte, mas não consegui montar nenhuma variação a partir dela.';
+    return;
+  }
+
+  espera.close();
+  await escolherVariacoes(saida.dados, variacoes, pedido);
+}
+
+/** A vitrine: cada formato num cartão, com o texto inteiro à vista. */
+async function escolherVariacoes(dados, variacoes, pedido) {
+  const marcados = variacoes.map(() => true);
+  const corpo = el('div');
+
+  const cabecalho = el('div', { class: 'cw-fonte' });
+  if (dados.fonte_titulo) cabecalho.append(el('div', { class: 'cw-fonte-tit', text: dados.fonte_titulo }));
+  if (dados.fonte_resumo) cabecalho.append(el('div', { class: 'tiny dim', text: dados.fonte_resumo }));
+  if (dados.angulo) cabecalho.append(el('div', { class: 'cw-angulo', text: `Ângulo: ${dados.angulo}` }));
+  if (dados.palavras_chave?.length) {
+    cabecalho.append(el('div', { class: 'cw-chaves' },
+      ...dados.palavras_chave.map((k) => el('span', { class: 'pill', text: k }))));
+  }
+  if (!dados.fonte_lida) {
+    cabecalho.append(el('div', { class: 'aviso', style: 'margin-top:10px' },
+      'O link não abriu — isto foi escrito a partir do texto que você colou.'));
+  }
+  corpo.append(cabecalho);
+
+  const lista = el('div', { class: 'cw-variacoes' });
+  variacoes.forEach((v, i) => {
+    const f = redator.FORMATOS[v.formato] ?? { rotulo: v.formato, tipo: 'post' };
+    const caixa = el('input', { type: 'checkbox' });
+    caixa.checked = true;
+    caixa.addEventListener('change', () => { marcados[i] = caixa.checked; });
+
+    const texto = redator.montarCorpo(v);
+    lista.append(el('div', { class: 'cw-var' },
+      el('div', { class: 'cw-var-topo' },
+        el('label', { class: 'cw-formato' }, caixa, el('span', { text: f.rotulo })),
+        el('button', {
+          class: 'btn sm', text: 'Copiar',
+          onclick: async () => {
+            const completo = [texto, v.hashtags].filter(Boolean).join('\n\n');
+            try { await navigator.clipboard.writeText(completo); toast('Copiado.', 'ok'); }
+            catch { toast('O navegador não deixou copiar.', 'err'); }
+          },
+        })),
+      el('div', { class: 'cw-var-gancho', text: v.gancho ?? '' }),
+      el('pre', { class: 'previa', text: texto }),
+      v.hashtags ? el('div', { class: 'tiny dim', style: 'margin-top:6px', text: v.hashtags }) : null,
+      v.visual ? el('div', { class: 'tiny dim', style: 'margin-top:4px', text: `Visual: ${v.visual}` }) : null));
+  });
+  corpo.append(lista);
+
+  const confirmado = await new Promise((resolve) => {
+    let respondido = false;
+    const fim = (v) => { if (!respondido) { respondido = true; resolve(v); } };
+    modal({
+      title: `${variacoes.length} variação(ões) prontas`,
+      wide: true,
+      onClose: () => fim(false),
+      render: () => corpo,
+      footer: (close) => [
+        el('button', { class: 'btn', text: 'Descartar', onclick: () => { fim(false); close(); } }),
+        el('button', { class: 'btn primary', text: 'Guardar as marcadas', onclick: () => { fim(true); close(); } }),
+      ],
+    });
+  });
+  if (!confirmado) return;
+
+  const brief = [
+    dados.fonte_titulo && `Fonte: ${dados.fonte_titulo}`,
+    pedido.url && pedido.url,
+    dados.angulo && `Ângulo: ${dados.angulo}`,
+    dados.palavras_chave?.length && `Palavras-chave: ${dados.palavras_chave.join(', ')}`,
+  ].filter(Boolean).join('\n');
+
+  let ultima = null;
+  for (const [i, v] of variacoes.entries()) {
+    if (!marcados[i]) continue;
+    const f = redator.FORMATOS[v.formato] ?? { tipo: 'post' };
+    ultima = await store.save('copies', {
+      title: v.titulo_interno || `${f.rotulo ?? v.formato} — ${dados.fonte_titulo ?? 'sem título'}`,
+      kind: f.tipo,
+      platform: v.formato === 'youtube' ? 'youtube' : v.formato === 'thread' ? 'threads' : v.formato === 'reels' ? 'reels' : 'instagram',
+      body: redator.montarCorpo(v),
+      hashtags: v.hashtags ?? '',
+      brief,
+      status: 'rascunho',
+      variants: [],
+    });
+  }
+
+  if (!ultima) { toast('Nenhuma variação marcada.'); return; }
+  pecaAtiva = ultima.id;
+  aba = 'pecas';
+  toast(`${marcados.filter(Boolean).length} peça(s) guardadas.`, 'ok');
+  emit('nav:refresh');
+}
