@@ -2,11 +2,12 @@
 
 import * as store from '../core/store.js';
 import * as jarbas from '../assistant/jarbas.js';
+import * as visao from '../core/visao.js';
 import { on, emit } from '../core/bus.js';
 import {
-  el, money, today, monthKey, addMonths, fmtDate, parseMoney, norm, monthName, parseDate, download, sum,
+  el, money, today, monthKey, addMonths, fmtDate, parseMoney, norm, monthName, parseDate, download, sum, pickFile,
 } from '../core/util.js';
-import { statTile, meter, sectionCard, emptyState, formModal, confirmDialog, toast } from '../ui/components.js';
+import { statTile, meter, sectionCard, emptyState, formModal, modal, confirmDialog, toast } from '../ui/components.js';
 
 let mes = monthKey(today());
 let filtroCategoria = '';
@@ -21,6 +22,11 @@ export function render(root) {
     el('button', { class: 'btn sm', text: '›', onclick: () => { mes = monthKey(addMonths(`${mes}-01`, 1)); emit('nav:refresh'); } }),
     el('div', { class: 'spacer' }),
     el('button', { class: 'btn sm', text: 'Analisar com JARBAS', onclick: analisar }),
+    el('button', {
+      class: 'btn sm', text: 'Importar extrato (PDF)',
+      title: 'Lê o extrato do banco e traz os lançamentos, um a um, para você conferir',
+      onclick: () => importarExtrato(),
+    }),
     el('button', { class: 'btn sm', text: 'Exportar CSV', onclick: exportarCsv }),
     el('button', { class: 'btn primary sm', text: '+ Lançamento', onclick: () => editarTransacao() }),
   ));
@@ -63,6 +69,200 @@ function tileAReceber() {
     tone: vencidos ? 'bad' : '',
     sub: vencidos ? `${vencidos} já venceu — cobre` : `${freelas.length + eventos.length} trabalho(s)`,
   });
+}
+
+/* ---------- importar extrato em PDF ---------- */
+
+const FERRAMENTA_EXTRATO = {
+  name: 'ler_extrato',
+  description: 'Registra os lançamentos de um extrato bancário ou fatura de cartão.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      banco: { type: 'string', description: 'Nome do banco ou da instituição, como aparece no documento.' },
+      conta: { type: 'string', description: 'Identificação da conta ou do cartão, se houver (ex.: "ag 1234 / cc 56789-0" ou "final 4321").' },
+      lancamentos: {
+        type: 'array',
+        description: 'Uma entrada por linha de movimentação, na ordem em que aparecem.',
+        items: {
+          type: 'object',
+          properties: {
+            data: { type: 'string', description: 'Data no formato AAAA-MM-DD. Use o ano do extrato quando a linha só trouxer dia e mês.' },
+            descricao: { type: 'string', description: 'O histórico da linha, como está escrito. Não resuma nem reescreva.' },
+            valor: { type: 'number', description: 'Valor em reais, sempre POSITIVO. O sentido vai no campo tipo.' },
+            tipo: { type: 'string', description: '"entrada" quando o dinheiro entrou na conta (crédito, depósito, PIX recebido, salário) e "saida" quando saiu (débito, compra, pagamento, PIX enviado, tarifa).' },
+            categoria: { type: 'string', description: 'Uma destas: moradia, alimentação, transporte, saúde, educação, lazer, assinaturas, compras, impostos, salário, investimento, outro.' },
+            forma: { type: 'string', description: 'Como o dinheiro se moveu, quando o histórico disser: dinheiro, pix, transferência, boleto, cartão de crédito, cartão de débito, débito automático, outro.' },
+          },
+          required: ['data', 'descricao', 'valor', 'tipo'],
+        },
+      },
+    },
+    required: ['lancamentos'],
+  },
+};
+
+const INSTRUCAO_EXTRATO = [
+  'Este PDF é um extrato bancário ou uma fatura de cartão. Registre as movimentações com a ferramenta ler_extrato.',
+  '',
+  'Regras: copie data, histórico e valor como estão no documento, sem arredondar e sem reescrever a descrição.',
+  'Ignore o que não é movimentação — saldo anterior, saldo do dia, saldo final, totalizadores, subtotais de página,',
+  'cabeçalho, rodapé, aviso legal e propaganda. Uma linha de saldo não é um lançamento e lançá-la dobra o valor do mês.',
+  '',
+  'Preste atenção ao sinal: em extrato, "D" ou valor entre parênteses ou com sinal negativo é saída; "C" é entrada.',
+  'O campo valor vai sempre positivo — quem diz o sentido é o campo tipo.',
+  '',
+  'Se o PDF não for extrato nem fatura, não use a ferramenta: responda em uma frase o que ele é.',
+].join('\n');
+
+/** Digital de um lançamento, para reconhecer o que já entrou numa importação anterior. */
+const digital = (t) => [
+  t.date,
+  Math.round((Number(t.amount) || 0) * 100),
+  t.type,
+  norm(t.desc).replace(/[^a-z0-9]/g, '').slice(0, 24),
+].join('|');
+
+async function importarExtrato() {
+  const contas = store.list('accounts');
+  if (!contas.length) { toast('Crie uma conta antes — é nela que os lançamentos vão entrar.', 'err'); return; }
+
+  const file = await pickFile(visao.TIPOS_PDF);
+  if (!file) return;
+
+  const estado = el('div', { class: 'tiny dim' },
+    el('div', { text: `Lendo "${file.name}"…` }),
+    el('div', { style: 'margin-top:6px', text: 'Extrato longo demora e custa mais tokens — a leitura é por página.' }));
+  const m = modal({ title: 'Importar extrato', render: () => el('div', {}, estado) });
+
+  let lido;
+  try {
+    lido = await visao.lerArquivo(file, { instrucao: INSTRUCAO_EXTRATO, ferramenta: FERRAMENTA_EXTRATO });
+  } catch (err) {
+    estado.className = 'aviso';
+    estado.textContent = visao.explicarFalha(err);
+    return;
+  }
+
+  if (lido.texto) {
+    estado.className = 'aviso';
+    estado.textContent = lido.texto;
+    return;
+  }
+
+  const linhas = (lido.dados.lancamentos ?? [])
+    .map((l) => ({
+      date: /^\d{4}-\d{2}-\d{2}$/.test(String(l?.data ?? '')) ? l.data : null,
+      desc: String(l?.descricao ?? '').trim(),
+      amount: Math.abs(Number(l?.valor) || 0),
+      type: String(l?.tipo ?? '').toLowerCase().startsWith('entrada') ? 'in' : 'out',
+      category: store.CATEGORIES_FIN.includes(String(l?.categoria ?? '').toLowerCase())
+        ? String(l.categoria).toLowerCase() : 'outro',
+      forma: store.FORMAS_PAGAMENTO.includes(String(l?.forma ?? '').toLowerCase())
+        ? String(l.forma).toLowerCase() : 'outro',
+    }))
+    .filter((l) => l.date && l.desc && l.amount > 0);
+
+  if (!linhas.length) {
+    estado.className = 'aviso';
+    estado.textContent = 'Li o PDF, mas não consegui separar nenhuma movimentação nele.';
+    return;
+  }
+
+  m.close();
+  await conferirExtrato(lido.dados, linhas, contas);
+}
+
+/**
+ * A conferência do extrato.
+ *
+ * Extrato é o caso em que a importação silenciosa faz mais estrago: são
+ * dezenas de linhas de uma vez, e um erro no meio some no extrato do mês para
+ * aparecer só quando o saldo não fechar. Nada entra sem passar por aqui.
+ *
+ * O que já foi importado antes vem DESMARCADO, e não escondido: importar o
+ * mesmo PDF duas vezes é o acidente mais provável de todos, e esconder a
+ * repetição deixaria a pessoa achando que o arquivo veio pela metade.
+ */
+async function conferirExtrato(dados, linhas, contas) {
+  const existentes = new Set(store.list('transactions').map(digital));
+  const repetidas = linhas.filter((l) => existentes.has(digital(l))).length;
+
+  const marcados = linhas.map((l) => !existentes.has(digital(l)));
+  const corpo = el('div');
+
+  const cabecalho = [dados.banco, dados.conta].filter(Boolean).join(' · ');
+  corpo.append(el('p', { class: 'tiny dim', style: 'margin-top:0' },
+    `${cabecalho ? `${cabecalho} — ` : ''}${linhas.length} movimentação(ões) lidas. Desmarque o que não quiser trazer.`));
+
+  if (repetidas) {
+    corpo.append(el('div', { class: 'aviso' },
+      `${repetidas} lançamento(s) já existem no seu financeiro, com a mesma data, valor e histórico. `
+      + 'Vieram desmarcados para não dobrar. Se forem cobranças de verdade repetidas, marque de novo.'));
+  }
+
+  const campoConta = el('select', {}, ...contas.map((a) => el('option', { value: a.id }, a.name)));
+  const resumo = el('div', { class: 'tiny dim', style: 'margin-top:10px' });
+
+  const atualizarResumo = () => {
+    const sel = linhas.filter((_, i) => marcados[i]);
+    const entra = sum(sel.filter((l) => l.type === 'in'), (l) => l.amount);
+    const sai = sum(sel.filter((l) => l.type === 'out'), (l) => l.amount);
+    resumo.textContent = `${sel.length} selecionado(s) · entradas ${money(entra)} · saídas ${money(sai)} · resultado ${money(entra - sai)}`;
+  };
+
+  const lista = el('div', { class: 'list-plain previa-rolagem' });
+  linhas.forEach((l, idx) => {
+    const caixa = el('input', { type: 'checkbox' });
+    caixa.checked = marcados[idx];
+    caixa.addEventListener('change', () => { marcados[idx] = caixa.checked; atualizarResumo(); });
+    lista.append(el('div', { class: `item-row ${existentes.has(digital(l)) ? 'ja-existe' : ''}` },
+      caixa,
+      el('div', { class: 'item-main' },
+        el('div', { text: l.desc }),
+        el('div', { class: 'tiny dim', text: [fmtDate(l.date), l.category, l.forma].filter(Boolean).join(' · ') })),
+      el('span', { class: `mono tiny ${l.type === 'in' ? 'ok' : 'bad'}`, text: `${l.type === 'in' ? '+' : '−'} ${money(l.amount)}` })));
+  });
+  corpo.append(lista, resumo);
+  atualizarResumo();
+
+  corpo.append(el('div', { class: 'field', style: 'margin-top:14px' },
+    el('label', { text: 'Lançar na conta' }), campoConta));
+
+  const confirmado = await new Promise((resolve) => {
+    let respondido = false;
+    const fim = (v) => { if (!respondido) { respondido = true; resolve(v); } };
+    modal({
+      title: dados.banco ? `Extrato — ${dados.banco}` : 'Extrato',
+      wide: true,
+      onClose: () => fim(false),
+      render: () => corpo,
+      footer: (close) => [
+        el('button', { class: 'btn', text: 'Descartar', onclick: () => { fim(false); close(); } }),
+        el('button', { class: 'btn primary', text: 'Importar', onclick: () => { fim(true); close(); } }),
+      ],
+    });
+  });
+  if (!confirmado) return;
+
+  const escolhidas = linhas.filter((_, i) => marcados[i]);
+  for (const l of escolhidas) {
+    await store.save('transactions', {
+      desc: l.desc,
+      amount: l.amount,
+      type: l.type,
+      date: l.date,
+      category: l.category,
+      forma: l.forma,
+      accountId: campoConta.value,
+      // De onde veio. Serve para saber, meses depois, o que foi digitado à mão
+      // e o que veio de extrato — e para uma futura limpeza saber o que remover.
+      origem: 'extrato',
+    });
+  }
+
+  toast(`${escolhidas.length} lançamento(s) importado(s) do extrato.`, 'ok');
+  emit('nav:refresh');
 }
 
 const rotuloMes = () => {
@@ -113,7 +313,7 @@ function linhaTransacao(t) {
     el('span', { class: 'tx-date mono tiny', text: fmtDate(t.date) }),
     el('div', { class: 'tx-main' },
       el('div', { text: t.desc }),
-      el('div', { class: 'tiny dim', text: [t.category, conta?.name, t.recurring ? 'recorrente' : ''].filter(Boolean).join(' · ') })),
+      el('div', { class: 'tiny dim', text: [t.category, t.forma, conta?.name, t.recurring ? 'recorrente' : ''].filter(Boolean).join(' · ') })),
     el('span', { class: `tx-amount mono ${t.type === 'out' ? 'bad' : 'ok'}`, text: `${t.type === 'out' ? '−' : '+'} ${money(t.amount)}` }));
 }
 
@@ -227,6 +427,7 @@ async function editarTransacao(t = {}) {
       data: t.date ?? today(),
       categoria: t.category ?? 'outro',
       conta: t.accountId ?? contas[0].id,
+      forma: t.forma ?? 'pix',
       recorrente: !!t.recurring,
     },
     fields: [
@@ -235,7 +436,12 @@ async function editarTransacao(t = {}) {
       { name: 'tipo', label: 'Tipo', type: 'select', options: [['saida', 'saída'], ['entrada', 'entrada']], inline: true },
       { name: 'data', label: 'Data', type: 'date', inline: true },
       { name: 'categoria', label: 'Categoria', type: 'select', options: store.CATEGORIES_FIN, inline: true },
+      // Conta e forma são coisas diferentes, e por isso ficam lado a lado: a
+      // conta é ONDE o dinheiro está, a forma é COMO ele se moveu. Um PIX sai
+      // da conta corrente; sem o segundo campo, "conta corrente" tinha que
+      // responder pelos dois, e não responde.
       { name: 'conta', label: 'Conta', type: 'select', options: contas.map((a) => [a.id, a.name]), inline: true },
+      { name: 'forma', label: 'Forma de pagamento', type: 'select', options: store.FORMAS_PAGAMENTO, inline: true },
       { name: 'recorrente', label: 'É uma conta fixa mensal', type: 'checkbox' },
     ],
     extraButtons: novo ? null : (close) => [
@@ -264,6 +470,7 @@ async function editarTransacao(t = {}) {
     date: valores.data || today(),
     category: valores.categoria,
     accountId: valores.conta,
+    forma: valores.forma,
     recurring: valores.recorrente,
   });
   toast(novo ? 'Lançamento registrado.' : 'Lançamento atualizado.', 'ok');

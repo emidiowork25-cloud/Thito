@@ -335,6 +335,20 @@ export const overdueTasks = () => openTasks().filter((t) => t.due && t.due < tod
 
 /* ================= FINANCEIRO ================= */
 
+/**
+ * Forma de pagamento — COMO o dinheiro se moveu.
+ *
+ * Não confundir com a conta, que é ONDE ele está. Um PIX sai da conta
+ * corrente; o dinheiro vivo sai da carteira; a compra no crédito não sai de
+ * lugar nenhum hoje, sai na fatura. Guardar só a conta perdia essa metade da
+ * história — e é justamente a metade que se procura quando é preciso achar um
+ * pagamento no extrato do banco.
+ */
+export const FORMAS_PAGAMENTO = [
+  'dinheiro', 'pix', 'transferência', 'boleto',
+  'cartão de crédito', 'cartão de débito', 'débito automático', 'outro',
+];
+
 export const CATEGORIES_FIN = [
   'moradia', 'alimentação', 'transporte', 'saúde', 'educação', 'lazer',
   'assinaturas', 'compras', 'impostos', 'salário', 'investimento', 'outro',

@@ -662,3 +662,12 @@
   .bus-topo { padding: 16px 14px 14px; }
   .bus-notas { padding: 11px 14px 12px; }
 }
+
+/* ================= importação de extrato ================= */
+/* Extrato tem dezenas de linhas: a lista rola dentro do modal em vez de
+   empurrar os botões de confirmar para fora da tela. */
+.previa-rolagem { max-height: 44vh; overflow: auto; }
+/* Linha que já existe no financeiro — vem desmarcada, e apagada de propósito:
+   ainda é preciso poder ver que ela veio no arquivo. */
+.item-row.ja-existe { opacity: .5; }
+.item-row.ja-existe .item-main div:first-child { text-decoration: line-through; }

@@ -69,17 +69,50 @@ function paraBase64(blob) {
   });
 }
 
+/* ---------- PDF ---------- */
+
+export const TIPOS_PDF = 'application/pdf,.pdf';
+
+/** Teto por arquivo. Acima disso a requisição estoura antes de chegar ao modelo. */
+const PDF_MAX = 20 * 1024 * 1024;
+
 /**
- * Manda a foto com uma instrução e uma ferramenta, e devolve
+ * PDF vai inteiro, sem conversão.
+ *
+ * O modelo lê PDF direto — texto e desenho da página. Extrair o texto aqui
+ * daria um resultado pior: extrato de banco é tabela, e tabela sem as colunas
+ * vira uma fila de números soltos onde ninguém sabe qual é data e qual é valor.
+ */
+export async function prepararPdf(file) {
+  if (!file) throw new Error('Nenhum arquivo escolhido.');
+  const ehPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name ?? '');
+  if (!ehPdf) throw new Error(`"${file.name}" não é um PDF.`);
+  if (file.size > PDF_MAX) {
+    throw new Error(`O PDF tem ${Math.round(file.size / 1024 / 1024)} MB e o limite é 20 MB. Exporte um período menor.`);
+  }
+
+  return {
+    bloco: {
+      type: 'document',
+      source: { type: 'base64', media_type: 'application/pdf', data: await paraBase64(file) },
+    },
+    kb: Math.round(file.size / 1024),
+  };
+}
+
+/**
+ * Manda o arquivo com uma instrução e uma ferramenta, e devolve
  * `{ dados }` quando o modelo preencheu a ferramenta, ou
  * `{ texto }` quando ele respondeu com palavras — o que acontece, e deve
- * acontecer, quando a foto está tremida, cortada ou não é o que se esperava.
+ * acontecer, quando a foto está tremida, o PDF é outra coisa, ou o conteúdo
+ * não é o que se esperava.
  */
-export async function lerImagem(file, { instrucao, ferramenta, effort = 'high' }) {
+export async function lerArquivo(file, { instrucao, ferramenta, effort = 'high' }) {
   if (!settings.isCloudConfigured()) throw new Error('SEM_CONFIG');
   if (!sb.isSignedIn()) throw new Error('SEM_LOGIN');
 
-  const { bloco } = await prepararImagem(file);
+  const ehPdf = file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name ?? '');
+  const { bloco } = ehPdf ? await prepararPdf(file) : await prepararImagem(file);
 
   const resposta = await sb.invokeJarbas({
     messages: [{ role: 'user', content: [bloco, { type: 'text', text: instrucao }] }],
@@ -96,8 +129,11 @@ export async function lerImagem(file, { instrucao, ferramenta, effort = 'high' }
   if (chamada) return { dados: chamada.input ?? {} };
 
   const texto = blocos.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
-  return { texto: texto || 'O modelo não devolveu nada sobre essa imagem.' };
+  return { texto: texto || 'O modelo não devolveu nada sobre esse arquivo.' };
 }
+
+/** Nome antigo, mantido porque o mapa mental e a nota fiscal já o usam. */
+export const lerImagem = lerArquivo;
 
 /** Traduz as falhas de configuração para o que a pessoa precisa fazer. */
 export function explicarFalha(err) {
