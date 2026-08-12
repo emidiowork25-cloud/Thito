@@ -329,9 +329,21 @@ export function speakable(text) {
     .trim();
 }
 
+// Corte de frase feito com marcador, e não com lookbehind.
+//
+// `/(?<=[.!?…:])\s+/` é a forma natural de escrever isto, e foi como estava —
+// mas lookbehind é ERRO DE SINTAXE no Safari anterior ao 16.4. Erro de sintaxe
+// num módulo não falha só a função: derruba o módulo, e com ele todo o resto
+// que o importa. Este arquivo entra na cadeia do boot, então o preço era o app
+// inteiro em tela branca no iPhone, sem mensagem nenhuma explicando por quê.
+const MARCA = '';
+
 /** Quebra em frases para o sintetizador começar a falar antes do texto todo. */
 function chunk(text, max = 200) {
-  const parts = text.split(/(?<=[.!?…:])\s+/);
+  const parts = text
+    .replaceAll(MARCA, ' ')
+    .replace(/([.!?…:])\s+/g, `$1${MARCA}`)
+    .split(MARCA);
   const out = [];
   let buf = '';
   for (const p of parts) {

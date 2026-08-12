@@ -100,6 +100,68 @@
   <div id="modal-root"></div>
   <div id="toast-root" class="toast-root"></div>
 
+  <script>
+    /* Rede de segurança do boot.
+     *
+     * Script clássico e em sintaxe antiga de propósito: se o navegador for
+     * velho demais para o resto do app, esta parte ainda precisa rodar. Ela é
+     * a única coisa entre uma falha de carregamento e uma tela preta muda.
+     *
+     * No PC uma falha dessas aparece no console. No iPhone não aparece em lugar
+     * nenhum: o app simplesmente não abre, e não há como saber por quê. Foi
+     * exatamente o que aconteceu com um lookbehind de regex, que o Safari
+     * anterior ao 16.4 recusa ao ler o arquivo e derruba tudo o que o importa.
+     */
+    (function () {
+      var falhou = false;
+
+      function mostrar(titulo, detalhe) {
+        if (falhou) return;
+        falhou = true;
+        var boot = document.getElementById('boot');
+        if (!boot) return;
+        var anel = boot.querySelector('.boot-ring');
+        if (anel) anel.style.display = 'none';
+        var caixa = document.createElement('div');
+        caixa.style.cssText = 'max-width:640px;margin:18px auto 0;padding:16px;text-align:left;'
+          + 'border:1px solid #7a4a2a;border-radius:10px;background:rgba(120,70,20,.16);'
+          + 'color:#e6d5c2;font:13px/1.6 ui-monospace,Menlo,Consolas,monospace;word-break:break-word';
+        caixa.innerHTML = '<div style="font-weight:700;margin-bottom:8px">' + titulo + '</div>'
+          + '<div style="margin-bottom:10px">' + detalhe + '</div>'
+          + '<div style="opacity:.6;font-size:11px">' + navigator.userAgent + '</div>'
+          + '<div style="opacity:.6;font-size:11px;margin-top:8px">'
+          + 'Tire um print desta tela: é ela que diz o que falhou.</div>';
+        boot.appendChild(caixa);
+        var s = document.getElementById('boot-status');
+        if (s) s.textContent = 'o núcleo não subiu';
+      }
+
+      function escapar(t) {
+        return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      window.addEventListener('error', function (e) {
+        var onde = e.filename ? escapar(e.filename) + ':' + e.lineno : 'origem desconhecida';
+        mostrar('Falha ao carregar o JARBAS', escapar(e.message || 'erro sem mensagem') + '<br>' + onde);
+      });
+
+      window.addEventListener('unhandledrejection', function (e) {
+        mostrar('Falha ao iniciar o JARBAS', escapar((e.reason && e.reason.message) || e.reason || 'promessa rejeitada'));
+      });
+
+      // O caso mudo: nenhum evento de erro, e mesmo assim o app não apareceu.
+      setTimeout(function () {
+        var app = document.getElementById('app');
+        if (app && app.hasAttribute('hidden')) {
+          mostrar('O JARBAS não terminou de abrir',
+            'Passaram-se 12 segundos e o núcleo não assumiu a tela. '
+            + 'Costuma ser um arquivo que não chegou (rede) ou um recurso que este '
+            + 'navegador não tem. No iPhone, o Safari precisa ser 16.4 ou mais novo.');
+        }
+      }, 12000);
+    }());
+  </script>
+
   <script type="module" src="app/main.js"></script>
 
   <script>
