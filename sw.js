@@ -9,11 +9,14 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'jarbas-v33';
+const VERSAO = 'jarbas-v34';
 
 const CASCA = [
   './',
   './index.html',
+  // O exibidor é uma página à parte, e a gravação costuma ser justamente onde
+  // a rede é ruim. Guardado aqui, ele abre com o sinal caindo.
+  './exibidor.html',
   './styles/fontes.css',
   './styles/base.css',
   './styles/views.css',
@@ -24,13 +27,17 @@ const CASCA = [
   './app/core/outline.js',
   './app/core/xmind.js',
   './app/core/db.js',
+  './app/core/modelo.js',
+  './app/core/prefs.js',
   './app/core/qr.js',
   './app/core/realtime.js',
+  './app/core/redator.js',
   './app/core/settings.js',
   './app/core/store.js',
   './app/core/supabase.js',
   './app/core/sync.js',
   './app/core/util.js',
+  './app/core/visao.js',
   './app/ui/arvore.js',
   './app/ui/components.js',
   './app/ui/icones.js',
@@ -108,18 +115,41 @@ self.addEventListener('fetch', (evento) => {
   // Supabase, Anthropic e qualquer outra origem passam direto — nunca são guardados.
   if (url.origin !== self.location.origin) return;
 
-  // Navegação: cache primeiro, para abrir com o servidor desligado.
   if (req.mode === 'navigate') {
+    /*
+     * Nem toda navegação neste endereço é o hub.
+     *
+     * O exibidor do teleprompter mora em /exibidor.html, no mesmo domínio. A
+     * versão anterior devolvia o index.html guardado para QUALQUER navegação —
+     * então ler o QR no celular abria o Painel em vez do teleprompter, e o
+     * endereço na barra estava certo o tempo todo, o que tornava o engano
+     * difícil de enxergar.
+     *
+     * Só o hub tem direito à resposta pronta do cache. As outras páginas
+     * passam pela rede e caem no cache DELAS quando a rede falta.
+     */
+    const ehOHub = url.pathname === '/' || url.pathname.endsWith('/index.html');
+
     evento.respondWith((async () => {
-      const guardado = await caches.match('./index.html');
-      if (guardado) {
-        revalidar(req);
-        return guardado;
+      if (ehOHub) {
+        const casca = await caches.match('./index.html');
+        if (casca) { revalidar(req); return casca; }
+      } else {
+        // O código da sala vai na busca (?s=…) e muda a cada roteiro; sem
+        // ignoreSearch, cada sala viraria uma entrada nova e nenhuma seria achada.
+        const guardada = await caches.match(req, { ignoreSearch: true });
+        if (guardada) { revalidar(req); return guardada; }
       }
+
       try {
-        return await fetch(req);
+        const nova = await fetch(req);
+        // Guarda sem a busca, pelo mesmo motivo: uma cópia por página, não por sala.
+        if (nova.ok && !ehOHub) {
+          (await caches.open(VERSAO)).put(new Request(url.origin + url.pathname), nova.clone());
+        }
+        return nova;
       } catch {
-        return new Response('O JARBAS ainda não foi carregado uma vez neste navegador.', {
+        return new Response('Esta página do JARBAS ainda não foi carregada uma vez neste navegador.', {
           status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         });
       }
@@ -142,9 +172,11 @@ self.addEventListener('fetch', (evento) => {
 
 /** Atualiza o arquivo no cache sem segurar a resposta que já foi entregue. */
 function revalidar(req) {
+  const url = new URL(req.url);
+  const chave = req.mode === 'navigate' ? new Request(url.origin + url.pathname) : req;
   fetch(req)
     .then(async (nova) => {
-      if (nova.ok) (await caches.open(VERSAO)).put(req, nova);
+      if (nova.ok) (await caches.open(VERSAO)).put(chave, nova);
     })
     .catch(() => { /* offline: o que está no cache continua valendo */ });
 }
