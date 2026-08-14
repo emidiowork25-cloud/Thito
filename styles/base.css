@@ -153,12 +153,26 @@ a { color: var(--acc); }
   display: flex; align-items: center; gap: 12px;
   padding: calc(18px + env(safe-area-inset-top)) 18px 14px calc(18px + env(safe-area-inset-left));
 }
+/* O retrato do JARBAS. O arquivo já vem com as bordas desvanecidas no alfa —
+   não há caixa, moldura nem raio de canto a definir aqui, e é por isso que ele
+   assenta igual sobre o vidro escuro e sobre o branco do tema claro. O brilho
+   por baixo é do app, não da foto: no tema claro ele sai de cena sozinho. */
 .brand-core {
-  width: 12px; height: 12px; border-radius: 50%; flex: none;
-  background: var(--acc); box-shadow: 0 0 14px var(--acc), 0 0 26px rgba(94, 179, 196, .5);
-  animation: breathe 3.2s ease-in-out infinite;
+  width: 46px; height: 46px; flex: none; display: block;
+  animation: breathe 4.6s ease-in-out infinite;
 }
-@keyframes breathe { 50% { opacity: .5; transform: scale(.82); } }
+.brand-core, .topbar-core {
+  filter: drop-shadow(0 0 12px rgba(94, 179, 196, .34));
+}
+:root[data-theme="light"] .brand-core,
+:root[data-theme="light"] .topbar-core { filter: none; }
+/* Respirar é o sinal de que ele está ligado. Com uma foto no lugar do ponto,
+   sumir metade seria piscada: o que varia agora é só o halo. */
+@keyframes breathe { 50% { opacity: .78; transform: scale(.97); } }
+
+/* No computador a lateral está sempre à vista e já traz o retrato — repetir
+   na barra de cima seria dizer a mesma coisa duas vezes. */
+.topbar-core { display: none; width: 30px; height: 30px; flex: none; }
 .brand-text {
   font-family: var(--display); font-weight: 800; letter-spacing: .16em; font-size: 19px;
   line-height: 1.15; text-shadow: var(--txt-shadow-forte);
@@ -464,6 +478,7 @@ input[type=range] { padding: 0; accent-color: var(--acc); background: transparen
   }
   .sidebar.open { transform: none; }
   #btn-menu { display: grid; }
+  .topbar-core { display: block; }
   .view { padding: 14px; }
   .topbar-clock { display: none; }
   /* num celular não existe Ctrl: o atalho vira só ruído no botão de busca */

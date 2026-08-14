@@ -9,7 +9,7 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'jarbas-v34';
+const VERSAO = 'jarbas-v35';
 
 const CASCA = [
   './',
@@ -84,6 +84,7 @@ const CASCA = [
   './assets/fontes/montserrat-800-latin-ext.woff2',
   './assets/fontes/montserrat-800-latin.woff2',
   './assets/jarbas-retrato.png',
+  './assets/jarbas-cerebro.png',
   './assets/icone-180.png',
   './assets/icone-192.png',
   './assets/icone-512.png',

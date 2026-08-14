@@ -34,7 +34,8 @@
   <div id="app" hidden>
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-brand">
-        <span class="brand-core"></span>
+        <img class="brand-core" src="./assets/jarbas-cerebro.png" width="256" height="256"
+             alt="JARBAS" decoding="async">
         <div>
           <div class="brand-text">JARBAS</div>
           <div class="brand-sub">ao seu dispor</div>
@@ -52,6 +53,10 @@
       <header class="topbar">
         <div class="topbar-left">
           <button class="icon-btn" id="btn-menu" title="Menu" aria-label="Menu">☰</button>
+          <!-- No celular a lateral vira gaveta fechada: sem esta marca, o
+               cabeçalho ficaria sem o JARBAS na tela inteira do telefone. -->
+          <img class="topbar-core" src="./assets/jarbas-cerebro.png" width="256" height="256"
+               alt="JARBAS" decoding="async">
           <h1 id="view-title">Painel</h1>
           <span class="topbar-clock" id="clock"></span>
         </div>
