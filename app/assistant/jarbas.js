@@ -24,6 +24,7 @@ let chatId = null;
 let busy = false;
 let previousVoiceMode = 'off';
 let heardTimer = null;
+let perguntaFalada = false;   // a pergunta do turno atual veio pela boca?
 
 /* ============================ inicialização ============================ */
 
@@ -52,6 +53,7 @@ export function init() {
     volume: settings.get('voiceVolume'),
     voiceURI: settings.get('voiceURI'),
     allowBargeIn: settings.get('allowBargeIn'),
+    timbre: settings.get('voiceTimbre'),
   });
 
   ui.speakToggle.setAttribute('aria-pressed', String(!!settings.get('speakReplies')));
@@ -67,7 +69,7 @@ export function init() {
   on('settings:changed', (s) => {
     voice.configure({
       rate: s.voiceRate, pitch: s.voicePitch, volume: s.voiceVolume,
-      voiceURI: s.voiceURI, allowBargeIn: s.allowBargeIn,
+      voiceURI: s.voiceURI, allowBargeIn: s.allowBargeIn, timbre: s.voiceTimbre,
     });
     ui.speakToggle.setAttribute('aria-pressed', String(!!s.speakReplies));
   });
@@ -140,7 +142,7 @@ function textOf(content) {
 
 /* ============================ envio ============================ */
 
-export async function ask(text) {
+export async function ask(text, { viaVoz = false } = {}) {
   const pergunta = String(text || '').trim();
   if (!pergunta || busy) return;
 
@@ -149,6 +151,7 @@ export async function ask(text) {
   messages.push({ role: 'user', content: pergunta });
   ui.input.value = '';
   autosize();
+  perguntaFalada = viaVoz;
   setBusy(true);
 
   try {
@@ -183,7 +186,11 @@ async function runLoop() {
     if (texto) push('jarbas', texto);
 
     if (!toolCalls.length) {
+      // Quem perguntou falando continua falando: a linha reabre assim que ele
+      // cala a boca — ou já, se ele não vai falar. Sem isso a conversa acaba a
+      // cada resposta e o assunto seguinte exige dizer "Jarbas" outra vez.
       if (texto && settings.get('speakReplies')) speak(texto);
+      else if (perguntaFalada) voice.abrirJanelaDeResposta();
       return;
     }
 
@@ -217,7 +224,7 @@ async function callModel() {
   }
   return sb.invokeJarbas({
     messages: trimHistory(messages),
-    context: ctx.build(),
+    context: await ctx.build({ viaVoz: perguntaFalada }),
     tools: tools.definitions,
     effort: settings.get('effort') || 'high',
     userName: settings.get('name') || '',
@@ -433,7 +440,7 @@ function wireVoice() {
   on('voice:final', ({ text }) => {
     hideHeard();
     if (!isOpen()) open({ focus: false });
-    ask(text);
+    ask(text, { viaVoz: true });
   });
 
   on('voice:error', ({ message }) => toast(message, 'err'));
@@ -454,7 +461,10 @@ function hideHeard() {
 
 function speak(text) {
   voice.speak(text, {
-    onEnd: () => { if (!busy) { orb?.setMode(currentOrbMode()); ui.state.textContent = voiceStateLabel(); } },
+    onEnd: () => {
+      if (perguntaFalada) voice.abrirJanelaDeResposta();
+      if (!busy) { orb?.setMode(currentOrbMode()); ui.state.textContent = voiceStateLabel(); }
+    },
   });
 }
 

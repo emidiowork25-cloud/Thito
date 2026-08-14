@@ -10,6 +10,7 @@
 
 import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
+import * as noticias from '../core/noticias.js';
 import {
   today, addDays, monthKey, money, fmtDate, fmtTime, relDay, truncate, sum,
 } from '../core/util.js';
@@ -23,7 +24,82 @@ function section(title, lines) {
   return `\n## ${title}\n${shown.map((l) => `- ${l}`).join('\n')}${extra}\n`;
 }
 
-export function build() {
+/**
+ * As manchetes do dia, se já foram buscadas.
+ *
+ * Lê o cache e só o cache. Sair para a rede aqui atrasaria toda pergunta feita
+ * ao JARBAS por causa de um assunto que quase nunca é o assunto — e uma falha
+ * de rede viraria falha da pergunta. O painel já busca uma vez por dia; o que
+ * ele guardou é o que entra.
+ */
+async function manchetes() {
+  try {
+    const pacote = await noticias.cache();
+    const temas = (pacote?.temas ?? []).filter((tema) => tema.itens?.length);
+    if (!temas.length) return '';
+    const linhas = temas.flatMap((tema) => tema.itens.slice(0, 5)
+      .map((i) => `[${tema.label}] ${i.titulo}${i.fonte ? ` — ${i.fonte}` : ''}`));
+    return section(`Manchetes de hoje (buscadas ${pacote.geradoEm ? `às ${String(pacote.geradoEm).slice(11, 16)}` : 'hoje'})`, linhas);
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * O que já foi conversado antes.
+ *
+ * Antes daqui só passavam os TÍTULOS das conversas anteriores, e título é o
+ * começo da primeira frase: dava para ele saber que houve conversa sobre algo,
+ * nunca o que ficou decidido nela. Perguntar "e aquilo que a gente viu ontem?"
+ * batia no vazio. Agora vão as perguntas feitas e o fecho da resposta — que é
+ * onde mora a conclusão —, cortados curtos porque isto viaja em toda pergunta.
+ */
+function conversasAnteriores() {
+  const conversas = store.list('chats')
+    .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
+    .slice(1, 7); // pula a conversa em andamento
+
+  return conversas.map((c) => {
+    const msgs = Array.isArray(c.messages) ? c.messages : [];
+    const perguntas = msgs.filter((m) => m.role === 'user')
+      .map((m) => textoDe(m.content)).filter(Boolean)
+      .slice(0, 3).map((p) => truncate(p, 110));
+    const respostas = msgs.filter((m) => m.role === 'assistant').map((m) => textoDe(m.content)).filter(Boolean);
+    const fecho = respostas.length ? truncate(respostas[respostas.length - 1], 240) : '';
+
+    return [
+      `**${(c.date || (c.updatedAt || '').slice(0, 10))} — ${truncate(c.title || '(sem título)', 80)}**`,
+      ...perguntas.map((p) => `  você perguntou: ${p}`),
+      fecho ? `  eu concluí: ${fecho}` : '',
+    ].filter(Boolean).join('\n');
+  });
+}
+
+/** O texto de um conteúdo da API, que tanto pode ser string quanto blocos. */
+function textoDe(content) {
+  if (typeof content === 'string') return content.trim();
+  if (!Array.isArray(content)) return '';
+  return content.filter((b) => b.type === 'text').map((b) => b.text).join(' ').trim();
+}
+
+/**
+ * Instruções de como responder quando a pergunta veio pela boca, e não pelo
+ * teclado. Sem isto ele responde a uma conversa com um relatório: título,
+ * marcadores e trezentas palavras que o sintetizador lê por um minuto e meio,
+ * enquanto quem perguntou já esqueceu o começo.
+ */
+const FALADO = [
+  '',
+  '## Esta pergunta veio por voz — responda para ser OUVIDO',
+  '- Responda em até três frases, e vá ao ponto na primeira. Se houver mais, ofereça: "quer que eu detalhe?".',
+  '- Nada de marcadores, títulos, tabelas ou markdown: nada disso existe quando se ouve.',
+  '- Números redondos. "cerca de mil e duzentos" em vez de "1.247,38", a não ser que o valor exato seja a pergunta.',
+  '- Liste no máximo três itens seguidos; acima disso diga o total e os dois que importam.',
+  '- É conversa: ele pode emendar sem repetir o assunto. "e amanhã?" continua o que você acabou de responder.',
+  '- Fale como o Alfred falaria — cortês, direto, sem bajulação e sem repetir a pergunta antes de responder.',
+].join('\n');
+
+export async function build({ viaVoz = false } = {}) {
   const nowDt = new Date();
   const t = today();
   const parts = [];
@@ -214,15 +290,16 @@ export function build() {
   parts.push(section('Memória (fatos que você me pediu para lembrar)', memoria.map((n) =>
     `${n.body}${n.createdAt ? ` — anotado em ${n.createdAt.slice(0, 10)}` : ''}`)));
 
+  /* --- notícias --- */
+  parts.push(await manchetes());
+
   /* --- histórico de conversas --- */
-  const conversas = store.list('chats')
-    .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
-    .slice(1, 7); // pula a conversa em andamento
-  parts.push(section('Assuntos de conversas anteriores', conversas.map((c) =>
-    `${(c.updatedAt || '').slice(0, 10)}: ${truncate(c.title || '(sem título)', 80)}`)));
+  parts.push(section('O que já conversamos antes (use para dar continuidade)', conversasAnteriores()));
 
   /* --- sinais automáticos --- */
   parts.push(section('Sinais detectados agora', store.insights().map((i) => `[${i.level}] ${i.text}`)));
+
+  if (viaVoz) parts.push(FALADO);
 
   return parts.filter(Boolean).join('\n').trim();
 }

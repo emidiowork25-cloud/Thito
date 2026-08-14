@@ -58,12 +58,14 @@ const state = {
   pitch: 1,
   volume: 1,
   voiceURI: null,
+  timbre: 'fusao',
 };
 
 let rec = null;
 let wantListening = false;     // intenção do usuário (independe de reinícios internos)
 let restartTimer = null;
 let silenceTimer = null;
+let janelaTimer = null;        // janela de resposta aberta após ele falar
 let pendingCommand = '';
 let lastStart = 0;
 let consecutiveFails = 0;
@@ -193,10 +195,32 @@ function handleFinal(text) {
 function armSilence(ms) {
   clearTimeout(silenceTimer);
   silenceTimer = setTimeout(() => {
+    clearTimeout(janelaTimer);
     const cmd = pendingCommand.trim();
     pendingCommand = '';
     setStatus({ awake: false });
     if (cmd) emit('voice:final', { text: cmd });
+  }, ms);
+}
+
+/**
+ * Deixa a linha aberta por um tempo depois que ele termina de responder.
+ *
+ * Sem isto não existe conversa, existe consulta: cada frase exigia dizer
+ * "Jarbas" de novo, então perguntar "e amanhã?" logo depois de "o que eu tenho
+ * hoje?" simplesmente não era ouvido. Com a janela aberta, a continuação vale
+ * como comando — que é como se fala com alguém que acabou de te responder.
+ *
+ * Fecha sozinha no silêncio: o microfone não fica de porta aberta à toa.
+ */
+export function abrirJanelaDeResposta(ms = 9000) {
+  if (state.mode !== 'wake' || !wantListening) return;
+  clearTimeout(janelaTimer);
+  clearTimeout(silenceTimer);
+  pendingCommand = '';
+  setStatus({ awake: true });
+  janelaTimer = setTimeout(() => {
+    if (!pendingCommand.trim()) setStatus({ awake: false });
   }, ms);
 }
 
@@ -286,22 +310,78 @@ if (synth) {
   synth.addEventListener?.('voiceschanged', loadVoices);
 }
 
+/*
+ * ---------------------------------------------------------------------------
+ * Timbre: a fusão de uma voz masculina com uma feminina
+ * ---------------------------------------------------------------------------
+ *
+ * Uma ressalva honesta antes do código, porque ela muda o que dá para esperar:
+ * o sintetizador do navegador fala UM enunciado por vez, em fila. Não existe
+ * mixagem, não existe saída de áudio para manipular, não há como somar duas
+ * vozes no mesmo instante. Sobrepor de verdade só com um serviço de fala
+ * externo — chave, custo e a frase saindo da casa para ser gerada.
+ *
+ * A fusão que dá para fazer aqui é de TIMBRE, e ela é real: puxa-se a voz
+ * masculina para cima e a feminina para baixo até as duas se encontrarem numa
+ * faixa que não é de nenhuma das duas. É o que soa quando ele fala.
+ */
+const FUSAO = { m: 1.30, f: 0.80 };
+
+/** Vozes pt-BR que os sistemas costumam instalar, por registro. */
+const MASCULINAS = /\b(daniel|antonio|antônio|felipe|donato|fabio|fábio|humberto|julio|júlio|nicolau|valerio|valério|ricardo|eddy|reed|rocko|junior)\b/i;
+const FEMININAS = /\b(maria|luciana|joana|francisca|thalita|brenda|elza|giovanna|leila|leticia|letícia|manuela|yara|helena|camila|vitoria|vitória|sandy|shelley|google)\b/i;
+
+/** Masculina, feminina ou desconhecida — pelo nome, que é tudo que a API dá. */
+export function registroDaVoz(nome = '') {
+  if (MASCULINAS.test(nome)) return 'm';
+  if (FEMININAS.test(nome)) return 'f';
+  return '?';
+}
+
 export function listVoices() {
   loadVoices();
   const pt = voices.filter((v) => /^pt/i.test(v.lang));
-  return (pt.length ? pt : voices).map((v) => ({ uri: v.voiceURI, name: v.name, lang: v.lang }));
+  return (pt.length ? pt : voices).map((v) => ({
+    uri: v.voiceURI, name: v.name, lang: v.lang, registro: registroDaVoz(v.name),
+  }));
 }
 
-function pickVoice() {
+const emPtBr = () => {
   loadVoices();
-  if (state.voiceURI) {
-    const chosen = voices.find((v) => v.voiceURI === state.voiceURI);
-    if (chosen) return chosen;
-  }
-  return voices.find((v) => /pt[-_]BR/i.test(v.lang))
-    ?? voices.find((v) => /^pt/i.test(v.lang))
+  const br = voices.filter((v) => /pt[-_]BR/i.test(v.lang));
+  return br.length ? br : voices.filter((v) => /^pt/i.test(v.lang));
+};
+
+const primeiraDoRegistro = (r) => emPtBr().find((v) => registroDaVoz(v.name) === r) ?? null;
+
+/**
+ * Decide com que voz e em que tom a próxima frase sai.
+ *
+ * A voz escolhida à mão nos Ajustes sempre vence — o timbre então só decide o
+ * quanto puxar o tom dela. Quem não escolheu nenhuma recebe a melhor pt-BR do
+ * registro pedido.
+ */
+function escolherVoz() {
+  loadVoices();
+  const escolhida = state.voiceURI ? voices.find((v) => v.voiceURI === state.voiceURI) : null;
+
+  const alvo = state.timbre === 'masculina' ? 'm' : state.timbre === 'feminina' ? 'f' : null;
+  const voz = escolhida
+    ?? (alvo ? primeiraDoRegistro(alvo) : null)
+    // Na fusão tanto faz de onde partir: o tom leva as duas ao mesmo lugar.
+    ?? (state.timbre === 'fusao' ? primeiraDoRegistro('m') ?? primeiraDoRegistro('f') : null)
+    ?? emPtBr()[0]
     ?? voices[0]
     ?? null;
+
+  let tom = state.pitch;
+  if (state.timbre === 'fusao') {
+    const r = registroDaVoz(voz?.name ?? '');
+    // Registro desconhecido fica como está: chutar aqui é estragar uma voz que
+    // talvez já estivesse boa.
+    if (FUSAO[r]) tom = Math.min(2, Math.max(0, state.pitch * FUSAO[r]));
+  }
+  return { voz, tom };
 }
 
 /**
@@ -366,7 +446,7 @@ export function speak(text, { onEnd } = {}) {
   if (wasWake && !state.allowBargeIn) stopRecognition();
 
   const pieces = chunk(clean);
-  const voice = pickVoice();
+  const { voz, tom } = escolherVoz();
   setStatus({ speaking: true });
   keepAlive(true);
 
@@ -374,9 +454,9 @@ export function speak(text, { onEnd } = {}) {
     const u = new SpeechSynthesisUtterance(piece);
     u.lang = state.lang;
     u.rate = state.rate;
-    u.pitch = state.pitch;
+    u.pitch = tom;
     u.volume = state.volume;
-    if (voice) u.voice = voice;
+    if (voz) u.voice = voz;
     if (i === pieces.length - 1) {
       u.onend = () => {
         keepAlive(false);
@@ -455,24 +535,43 @@ function stopMeter() {
 
 /* ============================ preferências ============================ */
 
+export const TIMBRES = [
+  ['fusao', 'fusão — entre a masculina e a feminina'],
+  ['masculina', 'masculina'],
+  ['feminina', 'feminina'],
+  ['sistema', 'como o sistema entrega'],
+];
+
 export function configure(prefs = {}) {
-  const { rate, pitch, volume, voiceURI, lang, allowBargeIn } = prefs;
+  const { rate, pitch, volume, voiceURI, lang, allowBargeIn, timbre } = prefs;
   if (Number.isFinite(rate)) state.rate = Math.min(2, Math.max(0.5, rate));
   if (Number.isFinite(pitch)) state.pitch = Math.min(2, Math.max(0, pitch));
   if (Number.isFinite(volume)) state.volume = Math.min(1, Math.max(0, volume));
   if (voiceURI !== undefined) state.voiceURI = voiceURI || null;
   if (lang) state.lang = lang;
   if (allowBargeIn !== undefined) state.allowBargeIn = !!allowBargeIn;
+  if (timbre && TIMBRES.some(([k]) => k === timbre)) state.timbre = timbre;
   publish();
+}
+
+/** Como a voz atual está saindo — para os Ajustes explicarem o que se ouve. */
+export function descreverVoz() {
+  const { voz, tom } = escolherVoz();
+  if (!voz) return 'Nenhuma voz instalada neste aparelho.';
+  const r = { m: 'masculina', f: 'feminina', '?': 'de registro indefinido' }[registroDaVoz(voz.name)];
+  if (state.timbre !== 'fusao' || tom === state.pitch) return `${voz.name} (${r}).`;
+  const lado = tom > state.pitch ? 'subindo' : 'baixando';
+  return `${voz.name}, ${r}, ${lado} o tom para o meio (${tom.toFixed(2)}).`;
 }
 
 /** Frase curta para o usuário testar a voz configurada. */
 export function preview() {
-  speak('Sistemas prontos. Sou o JARBAS, seu assistente pessoal.');
+  speak('Sistemas prontos. Sou o JARBAS, e estou ao seu dispor.');
 }
 
 export function shutdown() {
   wantListening = false;
+  clearTimeout(janelaTimer);
   stopRecognition();
   stopSpeaking();
   stopMeter();

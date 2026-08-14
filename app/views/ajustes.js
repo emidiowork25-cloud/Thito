@@ -224,16 +224,27 @@ function cardVoz() {
     body.append(el('div', { class: 'aviso', text: voice.motivoSemVoz() }));
   }
 
+  const comoSai = el('div', { class: 'tiny dim', style: 'margin:-4px 0 10px', text: '' });
+  const atualizarComoSai = () => { comoSai.textContent = `Sai como: ${voice.descreverVoz()}`; };
+
+  body.append(campo('Timbre', seletor(voice.TIMBRES, s.voiceTimbre ?? 'fusao',
+    (v) => { settings.set({ voiceTimbre: v }); voice.configure({ timbre: v }); atualizarComoSai(); })));
+
+  const rotulos = { m: 'masculina', f: 'feminina', '?': '?' };
   const vozes = voice.listVoices();
   body.append(campo('Voz', vozes.length
-    ? seletor([['', 'automática (melhor pt-BR)'], ...vozes.map((v) => [v.uri, `${v.name} · ${v.lang}`])],
-      s.voiceURI ?? '', (v) => { settings.set({ voiceURI: v || null }); voice.configure({ voiceURI: v || null }); })
+    ? seletor([['', 'automática (a melhor para o timbre)'],
+      ...vozes.map((v) => [v.uri, `${v.name} · ${rotulos[v.registro]} · ${v.lang}`])],
+    s.voiceURI ?? '', (v) => { settings.set({ voiceURI: v || null }); voice.configure({ voiceURI: v || null }); atualizarComoSai(); })
     : el('div', { class: 'tiny dim', text: 'Carregando vozes do sistema… reabra os Ajustes se a lista estiver vazia.' })));
+
+  atualizarComoSai();
+  body.append(comoSai);
 
   body.append(deslizante('Velocidade da fala', s.voiceRate, 0.6, 1.6, 0.05,
     (v) => { settings.set({ voiceRate: v }); voice.configure({ rate: v }); }));
   body.append(deslizante('Tom da voz', s.voicePitch, 0.5, 1.6, 0.05,
-    (v) => { settings.set({ voicePitch: v }); voice.configure({ pitch: v }); }));
+    (v) => { settings.set({ voicePitch: v }); voice.configure({ pitch: v }); atualizarComoSai(); }));
   body.append(deslizante('Volume', s.voiceVolume, 0, 1, 0.05,
     (v) => { settings.set({ voiceVolume: v }); voice.configure({ volume: v }); }));
 
@@ -248,7 +259,13 @@ function cardVoz() {
     el('div', { text: 'Como falar com ele:' }),
     el('div', { text: '• Segure Ctrl+Espaço em qualquer tela e fale.' }),
     el('div', { text: '• Ou ligue a escuta contínua (🎙 no painel) e comece com “Jarbas, …”.' }),
+    el('div', { text: '• Depois que ele responder, a linha fica aberta uns segundos: emende a próxima pergunta sem repetir o nome dele.' }),
     el('div', { text: '• Fale por cima para interromper a resposta.' })));
+
+  body.append(el('div', { class: 'tiny dim', style: 'margin-top:10px' },
+    el('div', { text: 'Sobre a fusão: o navegador fala um enunciado por vez e não mistura duas vozes '
+      + 'no mesmo instante — não existe como sobrepor. A fusão aqui é de timbre: ele parte de uma voz '
+      + 'masculina ou feminina e puxa o tom para o meio, até não soar como nenhuma das duas.' })));
 
   return sectionCard('Voz', null, body);
 }

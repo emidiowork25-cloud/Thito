@@ -22,6 +22,8 @@ const DEFAULTS = {
   voiceURI: null,
   voiceRate: 1.05,
   voicePitch: 1,
+  // 'fusao' de fábrica: a voz do JARBAS não é de um homem nem de uma mulher.
+  voiceTimbre: 'fusao',
   voiceVolume: 1,
   allowBargeIn: true,            // interromper a fala falando por cima
 

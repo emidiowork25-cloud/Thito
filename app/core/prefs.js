@@ -23,7 +23,7 @@ export const ID = 'perfil';
 export const PESSOAIS = [
   'name', 'perfil', 'theme', 'startView', 'currency',
   'speakReplies', 'greetOnOpen', 'autoListen', 'effort',
-  'voiceRate', 'voicePitch', 'voiceVolume', 'allowBargeIn',
+  'voiceRate', 'voicePitch', 'voiceVolume', 'allowBargeIn', 'voiceTimbre',
   'cofreMinutos',
   'noticiasTemas', 'noticiasHora', 'noticiasAuto',
 ];
