@@ -462,6 +462,76 @@ módulo invisível para ele, e é intencional: o que vira contexto sai da sua m�
 
 ---
 
+## ADMIN — convidar alguém para usar o JARBAS
+
+O módulo **ADMIN** só aparece para você. Nele você gera um link, escolhe **quais módulos**
+a pessoa vai ter, e aprova (ou não) o cadastro dela.
+
+### A regra de ouro, e onde ela mora
+
+A primeira conta do projeto é o super admin. Só ela inclui e exclui gente. Isso **não é
+decidido pelo navegador** — se fosse, bastaria abrir o console para se autopromover. A
+autoridade está em três lugares, todos fora do alcance de quem usa o app:
+
+1. **A Edge Function `admin`** guarda a chave de serviço num segredo do projeto e confere,
+   no servidor de autenticação, quem está pedindo antes de fazer qualquer coisa.
+2. **As tabelas `contas` e `convites`** não têm nenhuma política de escrita. Com a chave
+   publicável — a única que o navegador tem — dá para ler a própria conta e mais nada.
+3. **O portão de verdade é o do Supabase**: a conta do convidado nasce com o e-mail *não
+   confirmado*, e usuário não confirmado não faz login. Aprovar é mandar o e-mail de
+   confirmação. Antes disso não existe sessão para ele em aparelho nenhum.
+
+A lista de módulos, essa sim, é curadoria: decide o que aparece no menu dela. O que protege
+os **seus** dados é outra coisa e é mais forte — cada conta só enxerga as próprias linhas no
+banco. O pior que alguém consegue forçando um módulo escondido é usá-lo sobre os próprios
+dados vazios.
+
+### Instalar (uma vez)
+
+```bash
+# 1) as tabelas
+supabase db push
+#    ou cole supabase/migrations/0002_contas_e_convites.sql no SQL Editor:
+#    https://supabase.com/dashboard/project/_/sql/new
+
+# 2) a função
+supabase functions deploy admin
+
+# 3) (opcional) fixe quem é o super admin. Sem isto, é o usuário mais antigo —
+#    que já é você. Pegue o id em Authentication › Users.
+supabase secrets set SUPER_ADMIN_ID=<seu-uuid>
+
+# 4) (opcional) para onde o e-mail de confirmação leva
+supabase secrets set SITE_URL=https://jarbas-pi.vercel.app
+```
+
+### O e-mail — leia antes de convidar alguém de verdade
+
+Quem envia é o **seu projeto Supabase**, não o JARBAS. O remetente embutido dele manda
+**poucas mensagens por hora** e, em projetos novos, **só para o seu próprio endereço**.
+Então, do jeito que está, aprovar funciona mas a pessoa provavelmente não recebe o aviso.
+
+Para valer, configure um SMTP próprio em **Authentication › Emails › SMTP Settings**
+(https://supabase.com/dashboard/project/_/auth/smtp) — Resend, Brevo e SendGrid têm plano
+grátis que dá e sobra. Depois de configurar, o botão **Reenviar e-mail** no ADMIN resolve
+quem ficou para trás.
+
+Confirme também que **Confirm email** está ligado em Authentication › Providers › Email. É
+essa opção que faz a aprovação segurar a porta; desligada, o cadastro entraria direto.
+
+### Como fica para quem recebe o link
+
+1. Abre o link e vê **"Crie sua conta"**, com a lista do que foi liberado.
+2. Cria a conta. Ela nasce **pendente** — e a tela diz isso, sem enrolação.
+3. Você aprova no ADMIN. O e-mail de confirmação sai.
+4. Ela confirma, entra, e o JARBAS abre **zerado**: os módulos que você escolheu, todos
+   vazios.
+5. A primeira coisa que ele pede é o **"Sobre mim"**; depois, as **preferências de
+   notícias**. As duas telas têm "Depois" — obrigar alguém a escrever sobre si para poder
+   abrir o app faz a pessoa inventar qualquer coisa.
+
+---
+
 ## Onde ficam seus dados
 
 - **Neste computador**, no IndexedDB do navegador. É a fonte principal — o app lê e escreve

@@ -6,6 +6,7 @@ import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
 import * as sync from '../core/sync.js';
 import * as cofre from '../core/cofre.js';
+import * as contas from '../core/contas.js';
 import { on, emit } from '../core/bus.js';
 import { modal, toast } from './components.js';
 import * as jarbas from '../assistant/jarbas.js';
@@ -24,6 +25,7 @@ import * as rotina from '../views/rotina.js';
 import * as senhas from '../views/senhas.js';
 import * as teleprompter from '../views/teleprompter.js';
 import * as ajustes from '../views/ajustes.js';
+import * as admin from '../views/admin.js';
 
 // Ordem alfabética entre os módulos, com duas exceções deliberadas: Painel
 // abre no topo porque é a casa, e Ajustes fica no fim porque é configuração.
@@ -45,8 +47,30 @@ export const VIEWS = {
   senhas: { mod: senhas, title: 'Senhas e acessos', icon: '⛨' },
   teleprompter: { mod: teleprompter, title: 'Teleprompter', icon: '▤▤' },
 
+  // ADMIN e Ajustes fecham a lista pelo mesmo motivo: não são módulos de
+  // trabalho, são o painel de controle da casa. O ADMIN ainda tem um dono só,
+  // e por isso carrega `soDono` — ver renderNav.
+  admin: { mod: admin, title: 'ADMIN', icon: '⚿', soDono: true },
   ajustes: { mod: ajustes, title: 'Ajustes', icon: '⚙' },
 };
+
+/**
+ * As telas que ESTA pessoa pode abrir.
+ *
+ * Esconder um módulo é curadoria, não tranca — quem abre o navegador é dono do
+ * JavaScript dele. O que protege de verdade é outra coisa, e é do banco: cada
+ * conta só enxerga as próprias linhas. Então o pior que alguém consegue
+ * forçando um módulo escondido é usá-lo sobre os próprios dados vazios.
+ */
+export function viewsVisiveis() {
+  const saida = {};
+  for (const [id, meta] of Object.entries(VIEWS)) {
+    if (meta.soDono && !contas.souSuperAdmin()) continue;
+    if (!contas.podeVer(id)) continue;
+    saida[id] = meta;
+  }
+  return saida;
+}
 
 let current = null;
 let currentParams = {};
@@ -54,7 +78,7 @@ let currentParams = {};
 /* ============================ navegação ============================ */
 
 export function go(view, params = {}) {
-  if (!VIEWS[view]) view = 'dashboard';
+  if (!VIEWS[view] || !viewsVisiveis()[view]) view = 'dashboard';
   current = view;
   currentParams = params;
   const hash = params.id ? `#/${view}/${params.id}` : `#/${view}`;
@@ -89,7 +113,7 @@ export function render() {
 function renderNav() {
   const nav = $('#nav');
   nav.innerHTML = '';
-  for (const [key, meta] of Object.entries(VIEWS)) {
+  for (const [key, meta] of Object.entries(viewsVisiveis())) {
     const badge = badgeFor(key);
     nav.append(el('button', {
       class: `nav-item ${key === current ? 'active' : ''}`,
@@ -293,6 +317,8 @@ export function init() {
   on('nav:refresh', () => render());
   on('data:changed', debounce(() => { renderNav(); }, 200));
   on('cofre:estado', () => renderNav());
+  // A lista de módulos muda quando o servidor responde quem é você.
+  on('conta:mudou', () => renderNav());
   on('settings:changed', () => render());
 
   const { view, id } = parseHash();

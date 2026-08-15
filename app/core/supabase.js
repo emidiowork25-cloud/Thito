@@ -154,11 +154,27 @@ export function pushRecords(rows) {
  */
 export async function invokeFunction(name, payload) {
   const jwt = await token();
+  return chamarFuncao(name, payload, jwt);
+}
+
+/**
+ * A mesma chamada, sem sessão.
+ *
+ * Existe para o cadastro de um convidado: ele precisa falar com a função
+ * `admin` justamente para GANHAR uma conta, e antes disso não há token nenhum
+ * para mandar. A função sabe quais ações são abertas — aqui só se manda a
+ * chave publicável, que é pública por desenho.
+ */
+export const invokeFunctionSemSessao = (name, payload) => chamarFuncao(name, payload, null);
+
+async function chamarFuncao(name, payload, jwt) {
   const res = await fetch(`${base()}/functions/v1/${name}`, {
     method: 'POST',
     headers: {
       apikey: anon(),
-      Authorization: `Bearer ${jwt}`,
+      // Sem sessão, o gateway ainda exige um portador: a própria chave
+      // publicável serve, e é o que o Supabase espera nesse caso.
+      Authorization: `Bearer ${jwt || anon()}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),

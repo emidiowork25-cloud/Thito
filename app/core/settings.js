@@ -11,6 +11,10 @@ const DEFAULTS = {
   perfil: '',
   startView: 'dashboard',
   currency: 'BRL',
+  // As duas telas de boas-vindas de quem entrou por convite. Vira false quando
+  // a pessoa termina — ou quando escolhe "Depois", porque um convite para
+  // escrever sobre si que volta a cada abertura deixa de ser convite.
+  boasVindas: true,
 
   // Assistente
   speakReplies: true,            // ler as respostas em voz alta

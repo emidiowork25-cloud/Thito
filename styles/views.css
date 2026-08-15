@@ -726,3 +726,71 @@
   line-height: 1.25; margin-bottom: 8px;
 }
 .cw-var .previa { max-height: 300px; font-family: inherit; font-size: 12.5px; white-space: pre-wrap; }
+
+/* ================= ADMIN ================= */
+.admin-grid { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 1100px) { .admin-grid { grid-template-columns: 1fr; } }
+
+.admin-pessoa, .admin-convite {
+  padding: 12px; margin-bottom: 10px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--bg-3);
+}
+.admin-pessoa:last-child, .admin-convite:last-child { margin-bottom: 0; }
+.admin-pessoa-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.admin-nome { font-weight: 600; }
+.admin-codigo {
+  font-family: var(--mono); font-size: 15px; letter-spacing: .14em;
+  color: var(--acc); word-break: break-all;
+}
+
+/* A grade de módulos: caixas largas o bastante para o dedo, e um número de
+   colunas que não deixa o nome quebrar no meio. */
+.admin-modulos {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 4px;
+}
+.admin-modulo {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 8px; border-radius: var(--radius-sm);
+  font-size: 13px; cursor: pointer;
+}
+.admin-modulo:hover { background: rgba(255, 255, 255, .05); }
+.admin-modulo-ico { color: var(--acc); width: 16px; text-align: center; opacity: .8; }
+
+.admin-passo { display: flex; gap: 10px; align-items: flex-start; padding: 5px 0; font-size: 13px; }
+.admin-passo-n {
+  flex: 0 0 auto; width: 21px; height: 21px; border-radius: 50%;
+  display: grid; place-items: center; font-family: var(--mono); font-size: 11px;
+  background: rgba(94, 179, 196, .16); color: var(--acc); border: 1px solid var(--line-2);
+}
+
+/* ================= porta de entrada (convite e boas-vindas) ================= */
+/* Tela cheia por cima de tudo: quem chega por convite ainda não tem app, e
+   quem está respondendo as primeiras perguntas não deve ter outra coisa para
+   clicar. É a única tela do JARBAS que não tem menu. */
+.porta {
+  position: fixed; inset: 0; z-index: 120; overflow-y: auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 22px; padding: 32px 18px calc(32px + env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+.porta-marca { display: flex; align-items: center; gap: 14px; }
+.porta-cerebro { width: 60px; height: 60px; filter: drop-shadow(0 0 14px rgba(94, 179, 196, .3)); }
+.porta-nome {
+  font-family: var(--display); font-weight: 800; letter-spacing: .18em; font-size: 23px;
+  text-shadow: var(--txt-shadow-forte);
+}
+.porta-sub { font-family: var(--sub); font-size: 14px; letter-spacing: .22em; color: var(--txt-3); }
+
+.porta-caixa {
+  width: 100%; max-width: 460px;
+  padding: 24px; border-radius: var(--radius);
+  background: var(--glass); border: 1px solid var(--line); box-shadow: var(--shadow);
+}
+.porta-titulo { font-family: var(--display); font-size: 22px; margin: 0 0 6px; }
+.porta-passo {
+  font-family: var(--sub); font-size: 13px; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--txt-3); margin-bottom: 4px;
+}
+.porta-modulos { margin: 12px 0 16px; }
+.porta-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }

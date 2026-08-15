@@ -21,7 +21,7 @@ export const ID = 'perfil';
 
 /** Descrevem a pessoa. Viajam. */
 export const PESSOAIS = [
-  'name', 'perfil', 'theme', 'startView', 'currency',
+  'name', 'perfil', 'theme', 'startView', 'currency', 'boasVindas',
   'speakReplies', 'greetOnOpen', 'autoListen', 'effort',
   'voiceRate', 'voicePitch', 'voiceVolume', 'allowBargeIn', 'voiceTimbre',
   'cofreMinutos',

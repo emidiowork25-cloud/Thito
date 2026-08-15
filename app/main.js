@@ -6,8 +6,10 @@ import * as store from './core/store.js';
 import * as prefs from './core/prefs.js';
 import * as sb from './core/supabase.js';
 import * as sync from './core/sync.js';
+import * as contas from './core/contas.js';
 import * as shell from './ui/shell.js';
 import * as jarbas from './assistant/jarbas.js';
+import * as convite from './views/convite.js';
 import { toast } from './ui/components.js';
 import { $ } from './core/util.js';
 
@@ -62,6 +64,29 @@ async function boot() {
 
     passo('verificando sessão…');
     await sb.loadSession();
+    await contas.iniciar();
+
+    // Quem chegou por um link de convite e ainda não tem sessão para na porta.
+    // Antes de montar o hub, porque montar um hub que a pessoa não pode usar é
+    // pior do que não montar: ela veria as telas e nada funcionaria.
+    //
+    // A porta mora num elemento próprio, e não dentro de #app: a casca do app
+    // (lateral, barra, painel do JARBAS) continua intacta por baixo, esperando.
+    const codigo = convite.conviteNaUrl();
+    if (codigo && !sb.isSignedIn()) {
+      passo('conferindo o convite…');
+      await esperarAAbertura();
+      await despedirAAbertura();
+      const porta = document.createElement('div');
+      document.body.append(porta);
+      // Só resolve quando houver sessão. Quem acabou de se cadastrar fica na
+      // tela de espera, que é o certo: ainda não há o que abrir para ele.
+      await convite.abrirPorta(porta, codigo);
+      // Recomeça do zero com a sessão nova — mais honesto do que remendar um
+      // app que já nasceu sem saber quem é o dono da tela.
+      location.reload();
+      return;
+    }
 
     passo('montando interface…');
     jarbas.init();
@@ -79,6 +104,14 @@ async function boot() {
     // quadro de fundo vazio no meio da transição.
     document.getElementById('app').hidden = false;
     await despedirAAbertura();
+
+    // A primeira conversa: quem é você, e o que você quer ler.
+    //
+    // Só para quem entrou por convite — o dono da casa já configurou tudo à
+    // mão, e recebê-lo com um questionário seria começar mandando nele.
+    if (contas.estado() === 'aprovado' && !contas.souSuperAdmin() && settings.get('boasVindas')) {
+      convite.primeirasPerguntas(() => shell.render());
+    }
 
     if (settings.get('autoListen')) {
       // Sem um clique prévio, o navegador pode negar o microfone — avisamos em vez de falhar em silêncio.
