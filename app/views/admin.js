@@ -25,6 +25,7 @@ import { sectionCard, emptyState, confirmDialog, modal, toast } from '../ui/comp
 let dados = null;        // { contas, convites, superAdmin }
 let carregando = false;
 let falha = '';
+let faltaPublicar = false;
 
 /** Os módulos que dá para conceder. Painel e Ajustes não entram: são de todos. */
 const concedíveis = () => Object.entries(VIEWS)
@@ -50,9 +51,14 @@ export function render(root) {
     if (!carregando) {
       carregando = true;
       falha = '';
+      faltaPublicar = false;
       contas.listar()
         .then((r) => { dados = r; })
-        .catch((err) => { falha = contas.explicar(err); dados = { contas: [], convites: [] }; })
+        .catch((err) => {
+          falha = contas.explicar(err);
+          faltaPublicar = contas.funcaoAusente(err);
+          dados = { contas: [], convites: [] };
+        })
         .finally(() => { carregando = false; emit('nav:refresh'); });
     }
     return root.append(el('div', { class: 'card' }, el('p', { class: 'muted', text: 'Consultando o servidor…' })));
@@ -83,11 +89,26 @@ export function render(root) {
     )));
 }
 
-/** O recado que separa "está quebrado" de "ainda não foi instalado". */
+/**
+ * O recado que separa "está quebrado" de "ainda não foi instalado".
+ *
+ * São duas situações que a mesma mensagem de erro esconde, e a diferença é
+ * tudo: uma pede conserto, a outra pede cinco minutos de instalação.
+ */
 function semServidor() {
-  if (!/admin.*não foi publicada|404/i.test(falha)) return null;
-  return el('div', { class: 'tiny', style: 'margin-top:8px' },
-    'Falta publicar a função no seu projeto. O passo a passo está no README, em "ADMIN".');
+  if (!faltaPublicar) return null;
+  const passo = (n, ...conteudo) => el('div', { class: 'admin-passo' },
+    el('span', { class: 'admin-passo-n', text: String(n) }), el('span', {}, ...conteudo));
+
+  return el('div', { style: 'margin-top:10px' },
+    el('div', { class: 'tiny', style: 'margin-bottom:6px', text: 'Faltam cinco minutos de instalação, uma vez só:' }),
+    passo(1, 'Abra ',
+      el('a', { href: 'https://supabase.com/dashboard/project/kikedkajnytdjncrkoxf/functions', target: '_blank', rel: 'noopener', text: 'Edge Functions no painel do Supabase' }),
+      ' e crie uma função chamada ', el('code', { text: 'admin' }), '.'),
+    passo(2, 'Cole nela o conteúdo de ', el('code', { text: 'supabase/functions/admin/index.ts' }), ', que está no seu repositório.'),
+    passo(3, el('strong', { text: 'Desligue o “Verify JWT”' }),
+      ' — sem isso o convidado não consegue nem ver o convite, porque ele ainda não tem sessão. A função confere sozinha quem está pedindo, ação por ação.'),
+    passo(4, 'Volte aqui e toque em “Atualizar”.'));
 }
 
 /* ---------- pendentes: o coração da regra de ouro ---------- */

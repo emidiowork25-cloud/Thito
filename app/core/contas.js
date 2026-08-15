@@ -20,7 +20,7 @@ const CHAVE = 'conta:retrato';
 /** Módulos que todo mundo tem, sempre: a casa e a configuração dela. */
 export const SEMPRE = ['dashboard', 'ajustes'];
 
-let retrato = null;   // { conta, souSuperAdmin, visitadoEm }
+let retrato = null;   // { conta, souSuperAdmin, respondeu, visitadoEm }
 let carregando = null;
 
 /* ---------- leitura em memória ---------- */
@@ -32,10 +32,22 @@ export const carregado = () => !!retrato;
  *
  * Sem nuvem configurada não existe convidado nenhum: o app é de quem está no
  * aparelho, e esconder módulos dele seria inventar uma tranca sem porta.
+ *
+ * E há uma diferença que custa caro confundir: "o servidor disse que você não é
+ * o admin" não é a mesma coisa que "o servidor não disse nada". Sem essa
+ * distinção, um projeto onde a função ainda não foi publicada escondia o ADMIN
+ * do próprio dono — e o ADMIN é justamente a tela que explicaria o que falta.
+ * Rede caindo teria o mesmo efeito.
+ *
+ * Então, sem resposta, o app trata quem está no aparelho como dono. Isso não
+ * abre porta nenhuma: TODA ação do ADMIN vai ao servidor, e lá quem não for o
+ * super admin leva um NAO_E_ADMIN. O que se ganha aqui é uma tela visível; o
+ * que se perderia é a única explicação disponível.
  */
 export function souSuperAdmin() {
   if (!settings.isCloudConfigured() || !sb.isSignedIn()) return true;
-  return retrato ? !!retrato.souSuperAdmin : false;
+  if (!retrato?.respondeu) return true;
+  return !!retrato.souSuperAdmin;
 }
 
 /** O estado da conta: 'pendente', 'aprovado', 'bloqueado' — ou null. */
@@ -80,7 +92,7 @@ export async function carregar({ forcar = false } = {}) {
   carregando ??= (async () => {
     try {
       const r = await chamar('minha-conta');
-      retrato = { ...r, visitadoEm: new Date().toISOString() };
+      retrato = { ...r, respondeu: true, visitadoEm: new Date().toISOString() };
       await db.kvSet(CHAVE, retrato);
     } catch {
       // sem resposta: vale o retrato guardado, se houver
@@ -125,8 +137,21 @@ export const desbloquear = (user_id) => chamar('desbloquear', { user_id });
 export const trocarModulos = (user_id, modulos) => chamar('modulos', { user_id, modulos });
 export const remover = (user_id) => chamar('remover', { user_id });
 
+/**
+ * A função ainda não foi publicada?
+ *
+ * Pelo código HTTP, e não pelo texto: o Supabase responde 404 com uma mensagem
+ * em inglês, e um detector escrito em português erraria em silêncio — que é
+ * exatamente o modo de falhar que faz alguém achar que o produto está quebrado
+ * quando falta cinco minutos de instalação.
+ */
+export const funcaoAusente = (err) => err?.status === 404;
+
 /** Traduz as falhas da função para o que a pessoa precisa entender. */
 export function explicar(err) {
+  if (funcaoAusente(err)) {
+    return 'A função "admin" ainda não foi publicada no seu projeto Supabase — sem ela não há como convidar nem aprovar ninguém.';
+  }
   const msg = String(err?.message || err);
   if (/CONVITE_INVALIDO/.test(msg)) return 'Este convite não existe. Confira o link com quem te chamou.';
   if (/CONVITE_EXPIRADO/.test(msg)) return 'Este convite venceu. Peça um link novo.';
@@ -134,9 +159,6 @@ export function explicar(err) {
   if (/NAO_E_ADMIN/.test(msg)) return 'Só o super admin pode fazer isso.';
   if (/SEM_SESSAO/.test(msg)) return 'Entre na sua conta primeiro.';
   if (/Failed to fetch|NetworkError/i.test(msg)) return 'Sem conexão com a nuvem agora.';
-  if (/(404|não encontrad)/i.test(msg)) {
-    return 'A função "admin" ainda não foi publicada no seu projeto Supabase. Veja o passo a passo em Ajustes › Nuvem.';
-  }
   if (/already registered|already been registered/i.test(msg)) return 'Já existe uma conta com este e-mail.';
   return msg;
 }

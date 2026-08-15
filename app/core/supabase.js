@@ -180,7 +180,14 @@ async function chamarFuncao(name, payload, jwt) {
     body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Falha na função ${name} (${res.status}).`);
+  if (!res.ok) {
+    // O código vai junto do erro. Sem ele, "a função não existe" e "a função
+    // deu pau" chegam como texto solto — e ainda em inglês, o que faz qualquer
+    // detector escrito em português errar calado.
+    const erro = new Error(data.error || `Falha na função ${name} (${res.status}).`);
+    erro.status = res.status;
+    throw erro;
+  }
   return data;
 }
 
