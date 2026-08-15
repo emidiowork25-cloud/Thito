@@ -16,6 +16,36 @@ const passo = (texto) => {
   if (node) node.textContent = texto;
 };
 
+/*
+ * A abertura tem um tempo mínimo, e é de propósito.
+ *
+ * Num computador rápido, com o service worker já servindo tudo do cache, o
+ * carregamento acaba em uns 200 ms — e o cérebro girando some antes de ser
+ * visto, o que na tela parece um piscar defeituoso, não uma abertura. Aqui a
+ * conta é ao contrário do costume: não se espera por dado nenhum, espera-se
+ * para que a marca apareça pelo tempo em que ela foi desenhada para aparecer.
+ *
+ * Quando a máquina é lenta e o boot demora mais do que isto, nada é somado —
+ * o piso não vira teto.
+ */
+const ABERTURA_MINIMA_MS = 3600;
+const nascimento = performance.now();
+
+const esperarAAbertura = () => {
+  const falta = ABERTURA_MINIMA_MS - (performance.now() - nascimento);
+  return falta > 0 ? new Promise((pronto) => setTimeout(pronto, falta)) : Promise.resolve();
+};
+
+/** Some por transparência e só então sai do documento. */
+const SAIDA_MS = 420;
+
+function despedirAAbertura() {
+  const boot = document.getElementById('boot');
+  if (!boot) return Promise.resolve();
+  boot.classList.add('saindo');
+  return new Promise((pronto) => setTimeout(() => { boot.remove(); pronto(); }, SAIDA_MS));
+}
+
 async function boot() {
   try {
     passo('lendo preferências…');
@@ -40,8 +70,15 @@ async function boot() {
     passo('conectando…');
     sync.start();
 
-    document.getElementById('boot').remove();
+    // A sincronização segue por conta dela; só a saída da tela de abertura
+    // espera. Segurar o sync aqui atrasaria os dados por causa da estética.
+    passo('tudo pronto.');
+    await esperarAAbertura();
+
+    // O app entra por baixo antes de a abertura sair, senão o corte deixa um
+    // quadro de fundo vazio no meio da transição.
     document.getElementById('app').hidden = false;
+    await despedirAAbertura();
 
     if (settings.get('autoListen')) {
       // Sem um clique prévio, o navegador pode negar o microfone — avisamos em vez de falhar em silêncio.

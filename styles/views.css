@@ -408,15 +408,32 @@
 .cofre-alerta strong { color: var(--warn); }
 
 .cofre-lista { display: flex; flex-direction: column; gap: 2px; }
-.cofre-item {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 11px 10px; text-align: left; cursor: pointer;
-  background: transparent; color: var(--txt); font: inherit;
-  border: 0; border-left: 3px solid transparent;
+/* A linha da lista no celular: o botão de abrir/fechar o ramo fica FORA do
+   botão que seleciona o item — botão dentro de botão não é HTML válido, e o
+   toque acabaria escolhendo o alvo errado justo em quem tem filhos.
+   Chama-se "ramo", e não "linha", porque .cofre-linha já é a fileira dos
+   campos de senha no painel — dois donos para o mesmo nome de classe é um
+   estilo vazando no outro sem ninguém entender por quê. */
+.cofre-ramo {
+  display: flex; align-items: stretch; gap: 0;
+  border-left: 3px solid transparent;
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
-.cofre-item:hover { background: rgba(255, 255, 255, .04); }
-.cofre-item.sel { background: color-mix(in srgb, var(--acc) 16%, transparent); }
+.cofre-ramo:hover { background: rgba(255, 255, 255, .04); }
+.cofre-ramo.sel { background: color-mix(in srgb, var(--acc) 16%, transparent); }
+.cofre-abre {
+  flex: 0 0 auto; min-width: 34px; padding: 0 6px;
+  border: 0; background: transparent; color: var(--txt-3);
+  font: inherit; font-size: 12px; cursor: pointer;
+  font-family: var(--mono);
+}
+.cofre-abre:hover { color: var(--acc); }
+.cofre-abre.vazio { cursor: default; }
+.cofre-item {
+  display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+  padding: 11px 10px 11px 0; text-align: left; cursor: pointer;
+  background: transparent; color: var(--txt); font: inherit; border: 0;
+}
 .cofre-item-nome { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cofre-item-marca { flex: 0 0 auto; opacity: .85; }
 

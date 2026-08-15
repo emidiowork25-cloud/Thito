@@ -124,7 +124,11 @@ a { color: var(--acc); }
   position: fixed; inset: 0; z-index: 100;
   display: grid; place-content: center; justify-items: center; gap: 20px;
   background: var(--bg);
+  transition: opacity .42s ease;
 }
+/* Sai por transparência, com o app já montado por baixo — cortar seco deixava
+   um quadro de fundo vazio no meio da troca. */
+.boot.saindo { opacity: 0; pointer-events: none; }
 /* Os anéis giram POR FORA do cérebro: se cruzassem por cima dele, o desenho
    viraria um emaranhado no tamanho em que isto aparece de verdade. */
 .boot-ring { position: relative; width: 184px; height: 184px; }

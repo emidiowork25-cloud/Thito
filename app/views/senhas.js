@@ -15,10 +15,9 @@ import { lerTopicos, deArvore } from '../core/outline.js';
 import { lerXmind } from '../core/xmind.js';
 import { on, emit } from '../core/bus.js';
 import { el, uid, truncate } from '../core/util.js';
-import { layout, ramoInteiro } from '../ui/arvore.js';
+import { ramoInteiro, indexar, contarDescendentes } from '../ui/arvore.js';
+import { quadroDeMapa, exportarSvg, coresDosRamos, PALETA, AJUDA_MAPA } from '../ui/mapa.js';
 import { sectionCard, emptyState, formModal, confirmDialog, modal, toast } from '../ui/components.js';
-
-const PALETA = ['#5eb3c4', '#4bb391', '#d9a04a', '#e0656b', '#7f9fd0', '#8fd3e0'];
 
 /** Campos que nunca são desenhados no mapa nem ficam visíveis sem um clique. */
 const SEGREDOS = ['senha', 'recuperacao'];
@@ -28,8 +27,10 @@ let carregando = false;
 let ativo = null;
 let selecionado = null;
 let revelado = new Set(); // "nodeId:campo" visíveis agora
-let zoom = 1;
-let pan = { x: 0, y: 0 };
+
+// Zoom e deslocamento num objeto só: o quadro compartilhado escreve neles
+// durante o arrasto, e dois números soltos viajariam como cópia.
+const vista = { zoom: 1, pan: { x: 0, y: 0 } };
 
 /* ============================ render ============================ */
 
@@ -96,7 +97,7 @@ function barra() {
   );
 }
 
-const resetView = () => { zoom = 1; pan = { x: 0, y: 0 }; };
+const resetView = () => { vista.zoom = 1; vista.pan = { x: 0, y: 0 }; };
 
 /* ---------- estados fechados ---------- */
 
@@ -176,122 +177,79 @@ function cardDestrancar() {
 /* ---------- mapa ---------- */
 
 function mapa(c) {
-  const nodes = c.nodes ?? [];
-  const pos = layout(nodes);
-  const cores = coresDosRamos(nodes);
-
-  // A moldura acompanha o desenho, mas fica centrada nele: quando a árvore é
-  // rasa a altura mínima entra em ação, e sem recentralizar a sobra toda cairia
-  // embaixo, deixando os nós encostados no topo do quadro.
-  const xs = Object.values(pos).map((p) => p.x);
-  const ys = Object.values(pos).map((p) => p.y);
-  const margem = 170;
-  const W = Math.max(700, Math.max(...xs, 0) - Math.min(...xs, 0) + margem * 2);
-  const H = Math.max(360, Math.max(...ys, 0) - Math.min(...ys, 0) + margem);
-  const cx = (Math.max(...xs, 0) + Math.min(...xs, 0)) / 2;
-  const cy = (Math.max(...ys, 0) + Math.min(...ys, 0)) / 2;
-
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', `${cx - W / 2} ${cy - H / 2} ${W} ${H}`);
-  svg.setAttribute('class', 'mm-svg');
-
-  const g = document.createElementNS(ns, 'g');
-  g.setAttribute('transform', `translate(${pan.x} ${pan.y}) scale(${zoom})`);
-  svg.append(g);
-
-  for (const n of nodes) {
-    if (!n.parent) continue;
-    const a = pos[n.parent];
-    const b = pos[n.id];
-    if (!a || !b) continue;
-    const path = document.createElementNS(ns, 'path');
-    const mx = (a.x + b.x) / 2;
-    path.setAttribute('d', `M ${a.x} ${a.y} C ${mx} ${a.y}, ${mx} ${b.y}, ${b.x} ${b.y}`);
-    path.setAttribute('class', 'mm-edge');
-    path.setAttribute('stroke', n.color ?? cores[n.id] ?? PALETA[0]);
-    g.append(path);
-  }
-
-  for (const n of nodes) {
-    const p = pos[n.id];
-    if (!p) continue;
-    const cor = n.color ?? cores[n.id] ?? PALETA[0];
-    // O cadeado marca quem guarda credencial. O texto é só o nome do nó —
-    // nada de senha, usuário ou código entra no desenho.
-    const temAcesso = !!(n.login || n.senha);
-    const rotulo = (temAcesso ? '🔑 ' : '') + truncate(n.text, 28);
-    const largura = Math.min(240, Math.max(84, rotulo.length * 7.6 + 26));
-    const altura = n.depth === 0 ? 46 : 34;
-
-    const grupo = document.createElementNS(ns, 'g');
-    grupo.setAttribute('class', `mm-node ${selecionado === n.id ? 'sel' : ''} depth-${Math.min(3, n.depth)}`);
-    grupo.setAttribute('transform', `translate(${p.x - largura / 2} ${p.y - altura / 2})`);
-    grupo.addEventListener('click', (e) => {
-      e.stopPropagation();
-      selecionado = n.id;
-      revelado.clear();
-      emit('nav:refresh');
-    });
-
-    const rect = document.createElementNS(ns, 'rect');
-    rect.setAttribute('width', largura);
-    rect.setAttribute('height', altura);
-    rect.setAttribute('rx', altura / 2);
-    rect.setAttribute('fill', `${cor}22`);
-    rect.setAttribute('stroke', cor);
-    rect.setAttribute('stroke-width', selecionado === n.id ? 2.4 : 1.2);
-    grupo.append(rect);
-
-    const texto = document.createElementNS(ns, 'text');
-    texto.setAttribute('x', largura / 2);
-    texto.setAttribute('y', altura / 2 + 4.5);
-    texto.setAttribute('text-anchor', 'middle');
-    texto.setAttribute('class', 'mm-text');
-    texto.setAttribute('font-size', n.depth === 0 ? 15 : 12.5);
-    texto.textContent = rotulo;
-    grupo.append(texto);
-
-    g.append(grupo);
-  }
-
-  svg.addEventListener('click', () => { selecionado = null; revelado.clear(); emit('nav:refresh'); });
-
-  // Pointer events e não mouse events: o mesmo código serve para o mouse no PC
-  // e para o dedo no iPhone, e a captura garante que soltar fora do quadro
-  // termina o arrasto em vez de deixar o mapa grudado no cursor.
-  let arrastando = null;
-  svg.addEventListener('pointerdown', (e) => {
-    arrastando = { x: e.clientX - pan.x, y: e.clientY - pan.y };
-    svg.setPointerCapture(e.pointerId);
+  const { svg, quadro, movidos } = quadroDeMapa({
+    nodes: c.nodes ?? [],
+    vista,
+    selecionado,
+    // A única diferença de desenho entre o cofre e o mind map: a chave marca
+    // quem guarda um acesso. O texto continua sendo só o NOME do nó — senha,
+    // usuário e código de recuperação nunca viram elemento no SVG, então
+    // mostrar a tela, exportar o desenho ou compartilhar a janela não vaza
+    // credencial nenhuma.
+    rotulo: (n) => (temAcesso(n) ? '🔑 ' : '') + truncate(n.text, 28),
+    marca: (n) => !!n.note,
+    aoSelecionar: (id) => { selecionado = id; revelado.clear(); emit('nav:refresh'); },
+    aoEditar: (n) => renomearNo(c, n),
+    salvarNo: (id, patch) => atualizar(c, id, patch),
+    deslocAtual: (id) => (c.nodes ?? []).find((n) => n.id === id)?.desloc,
+    redesenhar: () => emit('nav:refresh'),
   });
-  svg.addEventListener('pointermove', (e) => {
-    if (!arrastando) return;
-    pan = { x: e.clientX - arrastando.x, y: e.clientY - arrastando.y };
-    g.setAttribute('transform', `translate(${pan.x} ${pan.y}) scale(${zoom})`);
-  });
-  const soltar = (e) => {
-    arrastando = null;
-    if (svg.hasPointerCapture?.(e.pointerId)) svg.releasePointerCapture(e.pointerId);
-  };
-  svg.addEventListener('pointerup', soltar);
-  svg.addEventListener('pointercancel', soltar);
-  svg.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    zoom = Math.min(2.5, Math.max(0.35, zoom * (e.deltaY > 0 ? 0.92 : 1.08)));
-    g.setAttribute('transform', `translate(${pan.x} ${pan.y}) scale(${zoom})`);
-  }, { passive: false });
 
   const acoes = [
-    el('button', { class: 'btn sm', text: '−', title: 'Afastar', onclick: () => { zoom = Math.max(0.35, zoom * 0.85); emit('nav:refresh'); } }),
-    el('button', { class: 'btn sm', text: '+', title: 'Aproximar', onclick: () => { zoom = Math.min(2.5, zoom * 1.18); emit('nav:refresh'); } }),
+    el('button', { class: 'btn sm', text: '−', title: 'Afastar', onclick: () => { vista.zoom = Math.max(0.35, vista.zoom * 0.85); emit('nav:refresh'); } }),
+    el('button', { class: 'btn sm', text: '+', title: 'Aproximar', onclick: () => { vista.zoom = Math.min(2.5, vista.zoom * 1.18); emit('nav:refresh'); } }),
     el('button', { class: 'btn sm', text: 'Centralizar', onclick: () => { resetView(); emit('nav:refresh'); } }),
-  ];
-
-  const quadro = el('div', { class: 'mm-canvas', style: `aspect-ratio:${W.toFixed(0)}/${H.toFixed(0)}` }, svg);
+    movidos ? el('button', {
+      class: 'btn sm', text: 'Reorganizar',
+      title: `Devolve ${movidos} nó(s) movido(s) ao lugar calculado`,
+      onclick: () => reorganizar(c),
+    }) : null,
+    el('button', { class: 'btn sm', text: 'SVG', title: 'Exportar o desenho', onclick: () => exportarDesenho(c, svg) }),
+  ].filter(Boolean);
 
   return sectionCard(c.nome || 'Acessos', acoes, quadro,
-    el('div', { class: 'tiny dim', style: 'margin-top:8px', text: '🔑 marca os nós que guardam um acesso. O desenho mostra só os nomes — senha nenhuma aparece aqui.' }));
+    el('div', { class: 'tiny dim', style: 'margin-top:8px', text: AJUDA_MAPA }),
+    el('div', { class: 'tiny dim', style: 'margin-top:4px', text: '🔑 marca os nós que guardam um acesso. O desenho mostra só os nomes — senha nenhuma aparece aqui.' }));
+}
+
+/** Um nó guarda acesso quando tem pelo menos um campo de credencial preenchido. */
+const temAcesso = (n) => !!(n.login || n.senha);
+
+async function reorganizar(c) {
+  c.nodes = (c.nodes ?? []).map(({ desloc, ...resto }) => resto);
+  await salvar(c);
+  toast('Mapa reorganizado.', 'ok');
+}
+
+/**
+ * Exporta o desenho — e pergunta antes, o que o mind map não precisa perguntar.
+ *
+ * O arquivo sai em texto claro, para fora do cofre. Não leva credencial nenhuma
+ * (só é desenhado o nome do nó), mas leva a ESTRUTURA: em que bancos você tem
+ * conta, que serviços você usa, como sua vida está organizada. Isso é pouco
+ * perto de uma senha e é muito perto de nada — quem decide é você, sabendo.
+ */
+async function exportarDesenho(c, svg) {
+  const ok = await confirmDialog(
+    'O SVG sai do cofre em texto claro. Ele não leva senha, usuário nem código de recuperação — '
+    + 'só os nomes desenhados —, mas leva a estrutura do seu mapa de acessos. Guardar esse arquivo '
+    + 'num lugar sincronizado é tirar do cofre uma parte do que ele protege. Exportar assim mesmo?',
+    { okLabel: 'Exportar o desenho' },
+  );
+  if (!ok) return;
+  cofre.tocar();
+  exportarSvg(svg, `acessos-${c.nome || 'mapa'}`);
+  toast('SVG exportado — ele NÃO está cifrado.', 'ok');
+}
+
+async function renomearNo(c, node) {
+  const v = await formModal({
+    title: 'Renomear item',
+    values: { texto: node.text },
+    fields: [{ name: 'texto', label: 'Nome', required: true }],
+  });
+  if (!v?.texto?.trim()) return;
+  await atualizar(c, node.id, { text: v.texto.trim() });
 }
 
 /* ---------- lista (celular) ---------- */
@@ -299,43 +257,45 @@ function mapa(c) {
 function lista(c) {
   const nodes = c.nodes ?? [];
   const cores = coresDosRamos(nodes);
-  const filhosDe = {};
-  for (const n of nodes) (filhosDe[n.parent ?? '__root'] ||= []).push(n);
+  const filhosDe = indexar(nodes);
 
   const body = el('div', { class: 'cofre-lista' });
 
   const desenhar = (n, nivel) => {
     const cor = n.color ?? cores[n.id] ?? PALETA[0];
-    const temAcesso = !!(n.login || n.senha);
-    body.append(el('button', {
-      class: `cofre-item ${selecionado === n.id ? 'sel' : ''}`,
-      style: `padding-left:${10 + nivel * 16}px;border-left-color:${cor}`,
+    const filhos = filhosDe[n.id] ?? [];
+
+    const linha = el('div', { class: `cofre-ramo ${selecionado === n.id ? 'sel' : ''}`, style: `border-left-color:${cor}` });
+
+    // O mesmo colapso do mapa, na forma que cabe numa lista. É o mesmo campo
+    // `colapsado` no mesmo nó: fechar um ramo no computador chega fechado aqui.
+    if (filhos.length) {
+      linha.append(el('button', {
+        class: 'cofre-abre',
+        style: `margin-left:${nivel * 14}px`,
+        title: n.colapsado ? 'Abrir' : 'Fechar',
+        text: n.colapsado ? `▸ ${contarDescendentes(nodes, n.id)}` : '▾',
+        onclick: (e) => { e.stopPropagation(); atualizar(c, n.id, { colapsado: !n.colapsado }); },
+      }));
+    } else {
+      linha.append(el('span', { class: 'cofre-abre vazio', style: `margin-left:${nivel * 14}px` }));
+    }
+
+    linha.append(el('button', {
+      class: 'cofre-item',
       onclick: () => { selecionado = n.id; revelado.clear(); emit('nav:refresh'); },
     },
     el('span', { class: 'cofre-item-nome', text: n.text }),
-    temAcesso ? el('span', { class: 'cofre-item-marca', text: '🔑' }) : null));
-    for (const f of filhosDe[n.id] ?? []) desenhar(f, nivel + 1);
+    temAcesso(n) ? el('span', { class: 'cofre-item-marca', text: '🔑' }) : null));
+
+    body.append(linha);
+    if (!n.colapsado) for (const f of filhos) desenhar(f, nivel + 1);
   };
 
   for (const raiz of filhosDe.__root ?? []) desenhar(raiz, 0);
 
   return sectionCard(c.nome || 'Acessos', null, body,
-    el('div', { class: 'tiny dim', style: 'margin-top:8px', text: '🔑 marca os itens que guardam um acesso. Toque para abrir.' }));
-}
-
-function coresDosRamos(nodes) {
-  const filhosDe = {};
-  for (const n of nodes) (filhosDe[n.parent ?? '__root'] ||= []).push(n);
-  const raiz = (filhosDe.__root ?? [])[0];
-  const cores = {};
-  if (!raiz) return cores;
-  cores[raiz.id] = PALETA[0];
-  (filhosDe[raiz.id] ?? []).forEach((ramo, i) => {
-    const cor = PALETA[i % PALETA.length];
-    const pintar = (n) => { cores[n.id] = cor; (filhosDe[n.id] ?? []).forEach(pintar); };
-    pintar(ramo);
-  });
-  return cores;
+    el('div', { class: 'tiny dim', style: 'margin-top:8px', text: '🔑 marca os itens que guardam um acesso. Toque para abrir · ▾ fecha e abre o ramo.' }));
 }
 
 /* ---------- painel do nó ---------- */
