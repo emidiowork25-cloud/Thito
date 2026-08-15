@@ -190,11 +190,50 @@ async function criarConta(corpo: any) {
 }
 
 /**
- * Só o admin: aprova, e o e-mail de confirmação sai.
+ * Manda a mensagem de "você foi liberado" — com um plano B que não depende de
+ * e-mail nenhum.
  *
- * `invite` é o tipo que o Supabase usa para "alguém te chamou": ele confirma o
- * endereço quando a pessoa clica e manda a mensagem pelo SMTP do projeto.
+ * O caminho bonito é `/auth/v1/invite`: ele confirma o endereço quando a pessoa
+ * clica e manda a mensagem pelo SMTP do projeto. Só que ele foi feito para
+ * convidar quem AINDA NÃO EXISTE, e aqui a conta já existe — ela foi criada no
+ * cadastro, de propósito, para nascer pendente. Dependendo da versão do GoTrue
+ * isso volta como "email_exists", e aí a aprovação ficaria gravada com a pessoa
+ * sem receber nada e sem ninguém saber.
+ *
+ * Então: tenta o convite; se ele recusar, confirma o endereço na marra e gera
+ * um link de entrada para o admin mandar pelo canal que quiser. A aprovação
+ * nunca fica pela metade, e o que aconteceu volta dito, não suposto.
  */
+async function avisarLiberado(id: string, email: string) {
+  try {
+    await comServico('/auth/v1/invite', {
+      method: 'POST',
+      body: JSON.stringify({ email, ...(SITE ? { redirect_to: SITE } : {}) }),
+    });
+    return { email_enviado: true, email_erro: '', link: '' };
+  } catch (err) {
+    const motivo = String((err as Error).message ?? err);
+
+    // Plano B: libera de verdade e devolve um link. Confirmar aqui não afrouxa
+    // a regra de ouro — quem está confirmando é o admin, no ato de aprovar.
+    let link = '';
+    try {
+      await comServico(`/auth/v1/admin/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ email_confirm: true }),
+      });
+      const gerado = await comServico('/auth/v1/admin/generate_link', {
+        method: 'POST',
+        body: JSON.stringify({ type: 'magiclink', email, ...(SITE ? { redirect_to: SITE } : {}) }),
+      });
+      link = gerado?.action_link ?? gerado?.properties?.action_link ?? '';
+    } catch { /* sem link: a conta já está liberada, ela entra com a senha */ }
+
+    return { email_enviado: false, email_erro: motivo, link };
+  }
+}
+
+/** Só o admin: aprova, e a pessoa é avisada. */
 async function aprovar(req: Request, corpo: any) {
   await exigirAdmin(req);
   const id = String(corpo.user_id ?? '');
@@ -215,36 +254,16 @@ async function aprovar(req: Request, corpo: any) {
     body: JSON.stringify({ estado: 'aprovado', aprovado_em: new Date().toISOString() }),
   });
 
-  // O envio é do Supabase, com o SMTP do projeto. Se ele falhar, a aprovação
-  // já está gravada — dizemos que o e-mail não saiu em vez de desfazer tudo.
-  let email_enviado = true;
-  let email_erro = '';
-  try {
-    await comServico('/auth/v1/invite', {
-      method: 'POST',
-      body: JSON.stringify({
-        email: conta.email,
-        ...(SITE ? { redirect_to: SITE } : {}),
-      }),
-    });
-  } catch (err) {
-    email_enviado = false;
-    email_erro = String((err as Error).message ?? err);
-  }
-
-  return json({ ok: true, email_enviado, email_erro });
+  return json({ ok: true, ...(await avisarLiberado(id, conta.email)) });
 }
 
-/** Só o admin: reenvia o e-mail de confirmação de quem já foi aprovado. */
+/** Só o admin: tenta de novo avisar quem já foi aprovado. */
 async function reenviar(req: Request, corpo: any) {
   await exigirAdmin(req);
   const email = String(corpo.email ?? '').trim().toLowerCase();
   if (!email) throw new Error('Informe o e-mail.');
-  await comServico('/auth/v1/invite', {
-    method: 'POST',
-    body: JSON.stringify({ email, ...(SITE ? { redirect_to: SITE } : {}) }),
-  });
-  return json({ ok: true });
+  const conta = (await comServico(`/rest/v1/contas?email=eq.${encodeURIComponent(email)}&select=user_id`))?.[0];
+  return json({ ok: true, ...(await avisarLiberado(conta?.user_id ?? '', email)) });
 }
 
 /** Só o admin: bloqueia sem apagar nada. */

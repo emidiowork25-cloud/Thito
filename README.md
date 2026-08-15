@@ -488,22 +488,36 @@ dados vazios.
 
 ### Instalar (uma vez)
 
+**As tabelas já foram criadas** no projeto `kikedkajnytdjncrkoxf`. Falta a função.
+
+Pelo painel, sem instalar nada:
+
+1. https://supabase.com/dashboard/project/kikedkajnytdjncrkoxf/functions → **Deploy a new function** → **Via Editor**
+2. Nome: `admin`
+3. Cole o conteúdo de `supabase/functions/admin/index.ts`
+4. **Desligue "Verify JWT"** — sem isso o convidado não consegue nem ver o convite,
+   porque ele ainda não tem sessão. A função faz a própria conferência, ação por ação.
+5. Deploy.
+
+Ou pela CLI, se preferir:
+
 ```bash
-# 1) as tabelas
-supabase db push
-#    ou cole supabase/migrations/0002_contas_e_convites.sql no SQL Editor:
-#    https://supabase.com/dashboard/project/_/sql/new
+supabase functions deploy admin --no-verify-jwt
 
-# 2) a função
-supabase functions deploy admin
-
-# 3) (opcional) fixe quem é o super admin. Sem isto, é o usuário mais antigo —
-#    que já é você. Pegue o id em Authentication › Users.
+# opcional: fixa quem é o super admin. Sem isto é o usuário mais antigo — você.
 supabase secrets set SUPER_ADMIN_ID=<seu-uuid>
-
-# 4) (opcional) para onde o e-mail de confirmação leva
+# opcional: para onde o link do e-mail leva
 supabase secrets set SITE_URL=https://jarbas-pi.vercel.app
 ```
+
+E confirme, em **Authentication › Providers › Email**, que **Confirm email** está ligado:
+https://supabase.com/dashboard/project/kikedkajnytdjncrkoxf/auth/providers
+
+### Se o e-mail não sair
+
+Acontece, e o ADMIN não esconde: em vez de um aviso passageiro, ele abre uma janela
+dizendo que a pessoa **já está liberada** e entregando um **link de entrada** para você
+mandar por onde quiser. A aprovação nunca fica pela metade por causa do correio.
 
 ### O e-mail — leia antes de convidar alguém de verdade
 

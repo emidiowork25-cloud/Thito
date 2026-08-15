@@ -117,10 +117,14 @@ function cartaoPendentes(lista) {
             e.target.disabled = true;
             try {
               const r = await contas.aprovar(c.user_id, [...escolhidos]);
-              toast(r.email_enviado
-                ? `${c.nome || c.email} aprovado. O e-mail de confirmação saiu.`
-                : 'Aprovado, mas o e-mail NÃO saiu. Veja o cartão “Como funciona”.', r.email_enviado ? 'ok' : 'warn', 7000);
-              if (!r.email_enviado && r.email_erro) console.warn('[admin] e-mail:', r.email_erro);
+              if (r.email_enviado) {
+                toast(`${c.nome || c.email} aprovado. O e-mail de confirmação saiu.`, 'ok', 6000);
+              } else {
+                // Não some com um aviso de 5 segundos: se o e-mail não saiu, o
+                // link é a única coisa que faz a pessoa entrar, e ela precisa
+                // sair daqui na mão de quem aprovou.
+                planoB(c, r);
+              }
               dados = null;
               emit('nav:refresh');
             } catch (err) {
@@ -315,9 +319,50 @@ function editarModulos(c) {
 
 async function reenviar(c) {
   try {
-    await contas.reenviar(c.email);
-    toast('E-mail de confirmação reenviado.', 'ok');
+    const r = await contas.reenviar(c.email);
+    if (r.email_enviado) toast('E-mail de confirmação reenviado.', 'ok');
+    else planoB(c, r);
   } catch (err) { toast(contas.explicar(err), 'bad'); }
+}
+
+/**
+ * O que fazer quando o e-mail não saiu.
+ *
+ * A pessoa está liberada — isso já foi gravado. O que falta é ela saber, e o
+ * link abaixo resolve isso por qualquer canal: WhatsApp, mensagem, voz. Um
+ * aviso passageiro aqui seria a pior saída possível, porque some antes de
+ * alguém entender que precisa agir.
+ */
+function planoB(c, r) {
+  const campo = r.link ? el('input', { type: 'text', value: r.link, readonly: true, class: 'mono tiny' }) : null;
+  campo?.addEventListener('focus', () => campo.select());
+
+  modal({
+    title: 'Aprovado — mas o e-mail não saiu',
+    render: () => el('div', {},
+      el('p', { class: 'muted', style: 'margin-top:0' },
+        `${c.nome || c.email} está liberado e já pode entrar. O que falhou foi só o aviso automático.`),
+      r.link
+        ? el('div', {},
+          el('p', { class: 'tiny dim', text: 'Mande este link para ela por onde for mais fácil. Ele entra direto, e vale uma vez.' }),
+          el('div', { class: 'field' }, campo))
+        : el('p', { class: 'tiny dim', text: 'Ela pode entrar pelo endereço normal do JARBAS, com o e-mail e a senha que cadastrou.' }),
+      el('div', { class: 'aviso', style: 'margin-top:10px' },
+        el('strong', { text: 'Para o e-mail sair sozinho da próxima vez: ' }),
+        'configure um SMTP em Authentication › Emails, no painel do Supabase. O remetente embutido do Supabase manda pouquíssimas mensagens e, em projetos novos, só para o seu próprio endereço.'),
+      r.email_erro ? el('div', { class: 'tiny dim', style: 'margin-top:8px', text: `Motivo técnico: ${r.email_erro}` }) : null),
+    footer: (fechar) => [
+      r.link ? el('button', {
+        class: 'btn', text: 'Copiar link',
+        onclick: async () => {
+          try { await navigator.clipboard.writeText(r.link); toast('Link copiado.', 'ok'); }
+          catch { campo.select(); }
+        },
+      }) : null,
+      el('button', { class: 'btn primary', text: 'Entendi', onclick: () => fechar() }),
+    ].filter(Boolean),
+  });
+  if (campo) setTimeout(() => campo.select(), 60);
 }
 
 async function removerPessoa(c, verbo) {
