@@ -3,7 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#0a1519">
+<meta name="theme-color" content="#000000">
+<!-- Tela cheia de verdade no iPhone só existe por aqui.
+     O Safari do iOS não implementa requestFullscreen fora de vídeo: o botão ⛶
+     desta página funciona no Android e no computador, e no iPhone não teria o
+     que chamar. Com estas duas linhas, "Compartilhar › Adicionar à Tela de
+     Início" abre o exibidor sem barra de endereço e sem barra de abas — que é
+     a tela cheia que o iPhone sabe dar. -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Exibidor">
 <title>Exibidor — JARBAS</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23000'/><rect x='14' y='40' width='72' height='7' fill='%2300e5ff'/></svg>">
 <style>
@@ -23,7 +33,10 @@
   }
   body.claro { background: #fff; color: #000; }
 
-  #palco { position: fixed; inset: 0; overflow: hidden; }
+  /* O palco é também o controle: toque mostra a botoeira, arraste procura a
+     linha. `touch-action: none` é o que impede o Safari de tratar o arraste
+     como rolagem da página e de disparar o "puxar para atualizar". */
+  #palco { position: fixed; inset: 0; overflow: hidden; touch-action: none; }
 
   /* linha-guia: onde o apresentador fixa o olhar */
   #guia {
@@ -76,17 +89,84 @@
   .luz { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #e0656b; margin-right: 6px; }
   .luz.on { background: #4bb391; }
 
-  @media (prefers-reduced-motion: reduce) { .anel { animation: none; } }
+  /* botoeira: só aparece ao toque, e some sozinha para não roubar a leitura */
+  #controles {
+    position: fixed; z-index: 6;
+    left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 28px 12px calc(14px + env(safe-area-inset-bottom));
+    /* Opaco embaixo, e não só escurecido: o texto do roteiro é enorme e passa
+       por trás dos botões — com um véu de meia-força, ler o rótulo do botão
+       vira adivinhação justo na hora em que não há tempo para adivinhar. */
+    background: linear-gradient(transparent, #000 42%);
+    transition: opacity .25s, transform .25s;
+  }
+  body.claro #controles { background: linear-gradient(transparent, #fff 42%); }
+  #controles .fila { display: flex; justify-content: center; align-items: center; gap: 8px; }
+  #controles.sumiu { opacity: 0; transform: translateY(14px); pointer-events: none; }
+  #controles button {
+    /* 46px: o mínimo que um dedo acha sem olhar, que é a condição real de uso
+       — o celular está atrás do vidro e quem opera está lendo, não mirando. */
+    min-width: 46px; height: 46px; padding: 0 12px;
+    border: 1px solid #ffffff33; border-radius: 10px;
+    background: #ffffff14; color: #fff;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    -webkit-appearance: none; cursor: pointer;
+  }
+  body.claro #controles button { border-color: #00000026; background: #00000010; color: #000; }
+  #controles button:active { background: #ffffff2e; }
+  #controles .largo { min-width: 116px; }
+  #vel {
+    display: inline-block; min-width: 84px; text-align: center;
+    font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: .06em; opacity: .82;
+  }
+
+  /* recado curto do botão de tela cheia quando o navegador não tem a função */
+  #recado {
+    position: fixed; z-index: 7; left: 50%; bottom: 96px; transform: translateX(-50%);
+    max-width: min(30ch, calc(100vw - 32px));
+    padding: 10px 14px; border-radius: 10px;
+    background: #0f2027ee; color: #e2edf1; border: 1px solid #ffffff26;
+    font-size: 13px; line-height: 1.5; text-align: center;
+    transition: opacity .25s;
+  }
+  #recado.sumiu { opacity: 0; pointer-events: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anel { animation: none; }
+    #controles, #recado { transition: none; }
+  }
 </style>
 </head>
 <body class="sem-guia">
   <div id="barra">
     <span><span class="luz" id="luz"></span><span id="estado">conectando</span></span>
+    <span id="trava">tela livre</span>
     <span id="relogio"></span>
   </div>
 
   <div id="palco"><div id="trilho"></div></div>
   <div id="guia"></div>
+
+  <!-- Duas fileiras, e não uma que quebra sozinha: numa tela de 390px os oito
+       botões não cabem lado a lado, e deixar o navegador decidir onde dobrar
+       jogava a velocidade e a tela cheia para um segundo andar desalinhado. -->
+  <div id="controles" class="sumiu">
+    <div class="fila">
+      <button type="button" id="b-inicio" title="Voltar ao começo">⏮</button>
+      <button type="button" id="b-menos" title="Um parágrafo atrás">−1</button>
+      <button type="button" id="b-play" class="largo" title="Rolar ou pausar">▶ Rolar</button>
+      <button type="button" id="b-mais" title="Um parágrafo à frente">+1</button>
+    </div>
+    <div class="fila">
+      <button type="button" id="b-lento" title="Mais devagar">🐢</button>
+      <span id="vel">130 l/min</span>
+      <button type="button" id="b-rapido" title="Mais rápido">🐇</button>
+      <button type="button" id="b-tela" title="Tela cheia">⛶</button>
+    </div>
+  </div>
+
+  <div id="recado" class="sumiu"></div>
 
   <div id="espera">
     <div class="anel"></div>
@@ -132,6 +212,11 @@ window.__cfg = (function () {
   var estadoTxt = document.getElementById('estado');
   var relogio = document.getElementById('relogio');
   var dica = document.getElementById('dica');
+  var controles = document.getElementById('controles');
+  var recado = document.getElementById('recado');
+  var travaTxt = document.getElementById('trava');
+  var velTxt = document.getElementById('vel');
+  var bPlay = document.getElementById('b-play');
 
   if (!cfg.sala) {
     dica.textContent = 'Link sem código de sala. Leia o QR de novo no editor.';
@@ -197,12 +282,33 @@ window.__cfg = (function () {
   }
   requestAnimationFrame(quadro);
 
+  /*
+   * Até quando o dedo daqui manda mais do que a rede.
+   *
+   * O editor continua sendo o dono do estado, e é ele quem retransmite. Mas
+   * enquanto o dedo está arrastando, os pacotes que chegam ainda carregam a
+   * posição ANTERIOR ao comando que acabou de sair daqui — aceitá-los faria o
+   * texto pular para trás a cada quadro, brigando com o próprio arraste. Por
+   * uma fração de segundo depois de cada comando, a posição local vale; o
+   * resto do estado (texto, fonte, margem) continua vindo de lá sem discussão.
+   */
+  var mandandoAte = 0;
+  var CARENCIA_MS = 700;
+
   function aplicar(novo) {
     var textoMudou = novo.texto !== st.texto;
-    for (var k in novo) if (Object.prototype.hasOwnProperty.call(novo, k)) st[k] = novo[k];
+    var meuTurno = performance.now() < mandandoAte;
 
-    recebidoEm = performance.now();
-    offsetInicial = Number(novo.t0) || 0;
+    for (var k in novo) {
+      if (!Object.prototype.hasOwnProperty.call(novo, k)) continue;
+      if (meuTurno && (k === 'pos' || k === 't0' || k === 'rodando' || k === 'velocidade')) continue;
+      st[k] = novo[k];
+    }
+
+    if (!meuTurno) {
+      recebidoEm = performance.now();
+      offsetInicial = Number(novo.t0) || 0;
+    }
 
     if (textoMudou || assinaturaTexto === null) { montarTexto(); assinaturaTexto = st.texto; }
     aplicarEstilo();
@@ -212,7 +318,13 @@ window.__cfg = (function () {
       espera.classList.add('oculto');
       document.body.classList.remove('sem-guia');
     }
+    pintarControles();
+  }
+
+  function pintarControles() {
     estadoTxt.textContent = st.rodando ? 'no ar' : 'pausado';
+    bPlay.textContent = st.rodando ? '⏸ Pausar' : '▶ Rolar';
+    velTxt.textContent = Math.round(st.velocidade) + ' l/min';
   }
 
   /* ---------------- canal Realtime ---------------- */
@@ -293,34 +405,212 @@ window.__cfg = (function () {
   window.addEventListener('beforeunload', function () { envia('saiu'); });
   conectar();
 
-  /* ---------------- conforto de uso ---------------- */
+  /* ---------------- comandos daqui para o editor ---------------- */
 
-  // tela cheia + trava de suspensão no primeiro toque
-  var wakeLock = null;
-  async function segurarTela() {
-    try {
-      if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
-    } catch (e) { /* alguns navegadores negam; segue sem */ }
+  function comandar(acao, valor) {
+    mandandoAte = performance.now() + CARENCIA_MS;
+    envia('comando', { acao: acao, valor: valor });
   }
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible' && !wakeLock) segurarTela();
+
+  // O eco local: o editor confirma em seguida, mas esperar a ida e a volta da
+  // rede para o botão reagir faz o operador achar que não funcionou e apertar
+  // de novo — no ar, isso é a leitura parando na hora errada.
+  function alternarLocal() {
+    if (st.rodando) {
+      st.pos = posicaoAtual();
+      st.rodando = false;
+    } else {
+      st.rodando = true;
+      recebidoEm = performance.now();
+      offsetInicial = 0;
+    }
+    pintarControles();
+    comandar('alternar');
+  }
+
+  function irLocal(linhas) {
+    st.pos = Math.max(0, linhas);
+    recebidoEm = performance.now();
+    offsetInicial = 0;
+    comandar('ir', st.pos);
+  }
+
+  function mudarVelocidade(passo) {
+    // A rolagem já corrida vira posição antes de trocar o passo, senão a
+    // velocidade nova reescreve o tempo passado e o texto dá um salto.
+    st.pos = posicaoAtual();
+    recebidoEm = performance.now();
+    offsetInicial = 0;
+    st.velocidade = Math.max(20, Math.min(400, Math.round(st.velocidade + passo)));
+    pintarControles();
+    comandar('velocidade', st.velocidade);
+  }
+
+  document.getElementById('b-play').addEventListener('click', alternarLocal);
+  document.getElementById('b-inicio').addEventListener('click', function () { irLocal(0); });
+  document.getElementById('b-menos').addEventListener('click', function () { irLocal(posicaoAtual() - 3); });
+  document.getElementById('b-mais').addEventListener('click', function () { irLocal(posicaoAtual() + 3); });
+  document.getElementById('b-lento').addEventListener('click', function () { mudarVelocidade(-10); });
+  document.getElementById('b-rapido').addEventListener('click', function () { mudarVelocidade(10); });
+
+  /* ---------------- o dedo no palco ---------------- */
+
+  var ARRASTE_MINIMO = 8;   // px antes de virar arraste, para o toque ainda ser toque
+  var ponteiro = null, yInicial = 0, posInicial = 0, arrastou = false, ultimoEnvio = 0;
+
+  palco.addEventListener('pointerdown', function (e) {
+    if (ponteiro !== null || !temEstado) return;
+    ponteiro = e.pointerId;
+    yInicial = e.clientY;
+    posInicial = posicaoAtual();
+    arrastou = false;
+    // Mantém o arraste vivo quando o dedo sai da área. Falhar na captura não
+    // pode derrubar o gesto — sem ela o arraste ainda funciona, só é mais curto.
+    try { if (palco.setPointerCapture) palco.setPointerCapture(e.pointerId); } catch (err) { /* segue */ }
   });
 
-  palco.addEventListener('click', function () {
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(function () {});
-    }
-    segurarTela();
-    barra.classList.remove('sumiu');
-    reiniciarSumico();
+  palco.addEventListener('pointermove', function (e) {
+    if (e.pointerId !== ponteiro) return;
+    var dy = e.clientY - yInicial;
+    if (!arrastou && Math.abs(dy) < ARRASTE_MINIMO) return;
+    arrastou = true;
+
+    var alturaLinha = st.fonte * st.altura;
+    if (alturaLinha <= 0) return;
+    // Arrastar para cima adianta o texto: o dedo empurra a linha para longe,
+    // que é o mesmo gesto de rolar qualquer coisa num celular.
+    st.pos = Math.max(0, posInicial - dy / alturaLinha);
+    recebidoEm = performance.now();
+    offsetInicial = 0;
+    mandandoAte = performance.now() + CARENCIA_MS;
+
+    // Um pacote a cada 120 ms: o suficiente para o monitor do operador
+    // acompanhar sem inundar o canal com um envio por quadro.
+    var agora = performance.now();
+    if (agora - ultimoEnvio > 120) { ultimoEnvio = agora; comandar('ir', st.pos); }
   });
+
+  function soltar(e) {
+    if (e.pointerId !== ponteiro) return;
+    ponteiro = null;
+    if (arrastou) comandar('ir', st.pos);
+    else alternarControles();
+  }
+  palco.addEventListener('pointerup', soltar);
+  palco.addEventListener('pointercancel', soltar);
+
+  /* ---------------- barra, botoeira e sumiço ---------------- */
 
   var sumicoTimer = null;
+
+  function mostrarControles() {
+    controles.classList.remove('sumiu');
+    barra.classList.remove('sumiu');
+    reiniciarSumico();
+  }
+
+  function alternarControles() {
+    if (controles.classList.contains('sumiu')) mostrarControles();
+    else { controles.classList.add('sumiu'); barra.classList.add('sumiu'); clearTimeout(sumicoTimer); }
+  }
+
   function reiniciarSumico() {
     clearTimeout(sumicoTimer);
-    sumicoTimer = setTimeout(function () { barra.classList.add('sumiu'); }, 4000);
+    // 6 s, e não 4: com botões na tela o tempo tem que caber em achar o botão,
+    // não só em ler o relógio.
+    sumicoTimer = setTimeout(function () {
+      barra.classList.add('sumiu');
+      controles.classList.add('sumiu');
+    }, 6000);
   }
   reiniciarSumico();
+
+  controles.addEventListener('pointerdown', function (e) { e.stopPropagation(); });
+  controles.addEventListener('click', reiniciarSumico);
+
+  var recadoTimer = null;
+  function dizer(texto) {
+    recado.textContent = texto;
+    recado.classList.remove('sumiu');
+    clearTimeout(recadoTimer);
+    recadoTimer = setTimeout(function () { recado.classList.add('sumiu'); }, 7000);
+  }
+
+  /* ---------------- tela cheia ---------------- */
+
+  var raiz = document.documentElement;
+  var pedirTela = raiz.requestFullscreen || raiz.webkitRequestFullscreen;
+  var sairTela = document.exitFullscreen || document.webkitExitFullscreen;
+  var emTela = function () { return !!(document.fullscreenElement || document.webkitFullscreenElement); };
+
+  document.getElementById('b-tela').addEventListener('click', function () {
+    if (!pedirTela) {
+      // iPhone. Não é falha de configuração nem de rede: o Safari do iOS
+      // simplesmente não tem tela cheia fora de vídeo. O caminho que existe é
+      // outro, e é melhor dizer qual do que piscar um botão morto.
+      dizer(navigator.standalone
+        ? 'Já está em tela cheia.'
+        : 'Este navegador não tem tela cheia. No iPhone: Compartilhar › Adicionar à Tela de Início, e abra por lá — o exibidor abre sem as barras do Safari.');
+      return;
+    }
+    if (emTela()) { sairTela.call(document); return; }
+    var p = pedirTela.call(raiz);
+    if (p && p.catch) p.catch(function (err) { dizer('A tela cheia foi recusada (' + err.message + ').'); });
+  });
+
+  document.addEventListener('fullscreenchange', segurarTela);
+
+  /* ---------------- trava de suspensão ---------------- */
+
+  /*
+   * A trava é o que faz a ideia inteira funcionar: um celular que apaga sozinho
+   * no meio da leitura não é teleprompter, é um susto no ar.
+   *
+   * Duas coisas que a versão anterior errava. A primeira: só pedia a trava no
+   * primeiro toque — quem lesse o QR e começasse a ler sem tocar em nada ficava
+   * sem trava nenhuma. A segunda, mais traiçoeira: o navegador SOLTA a trava
+   * quando a tela é ocultada, e a variável continuava apontando para a trava
+   * já morta. Como a volta só pedia de novo `se (!wakeLock)`, e wakeLock não
+   * era nulo, ela nunca era repedida — a primeira interrupção matava a trava
+   * para o resto da sessão.
+   */
+  var trava = null;
+
+  function pintarTrava() {
+    var presa = !!trava && !trava.released;
+    travaTxt.textContent = presa ? '🔒 tela travada' : 'tela livre';
+    travaTxt.style.opacity = presa ? '1' : '.55';
+  }
+
+  function segurarTela() {
+    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    if (trava && !trava.released) return;
+    navigator.wakeLock.request('screen').then(function (sentinela) {
+      trava = sentinela;
+      // O próprio navegador avisa quando desiste. Sem escutar isto, não há
+      // como saber que a trava caiu.
+      sentinela.addEventListener('release', function () { pintarTrava(); });
+      pintarTrava();
+    }).catch(function () {
+      trava = null;
+      pintarTrava();
+    });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') segurarTela();
+  });
+  // Pedida já na abertura, e de novo ao primeiro toque: alguns navegadores só
+  // concedem depois de um gesto, e não há como saber qual sem tentar os dois.
+  segurarTela();
+  palco.addEventListener('pointerdown', segurarTela, { once: true });
+
+  if (!('wakeLock' in navigator)) {
+    travaTxt.textContent = 'sem trava';
+    travaTxt.style.opacity = '.55';
+  } else {
+    pintarTrava();
+  }
 
   setInterval(function () {
     var d = new Date();

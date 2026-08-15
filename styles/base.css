@@ -125,15 +125,34 @@ a { color: var(--acc); }
   display: grid; place-content: center; justify-items: center; gap: 20px;
   background: var(--bg);
 }
-.boot-ring { position: relative; width: 92px; height: 92px; }
+/* Os anéis giram POR FORA do cérebro: se cruzassem por cima dele, o desenho
+   viraria um emaranhado no tamanho em que isto aparece de verdade. */
+.boot-ring { position: relative; width: 184px; height: 184px; }
 .boot-ring span {
   position: absolute; inset: 0; border-radius: 50%;
   border: 1px solid transparent; border-top-color: var(--acc);
   animation: spin 1.4s linear infinite;
 }
-.boot-ring span:nth-child(2) { inset: 12px; border-top-color: var(--acc-2); animation-duration: 2s; animation-direction: reverse; }
-.boot-ring span:nth-child(3) { inset: 24px; border-top-color: rgba(94, 179, 196, .4); animation-duration: 2.8s; }
+.boot-ring span:nth-child(2) { inset: 10px; border-top-color: var(--acc-2); animation-duration: 2s; animation-direction: reverse; }
+.boot-ring span:nth-child(3) { inset: 20px; border-top-color: rgba(94, 179, 196, .4); animation-duration: 2.8s; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* O cérebro no meio dos anéis: são eles que giram, ele é o que liga.
+   Começa invisível e entra quando o arquivo decodifica — sem isso a primeira
+   abertura, antes de o service worker guardar a imagem, mostraria um buraco
+   no meio dos anéis e depois um estalo. */
+.boot-core {
+  position: absolute; inset: 19%; width: 62%; height: 62%;
+  opacity: 0; transition: opacity .45s ease;
+}
+.boot-core.veio { opacity: 1; animation: boot-pulso 2.6s ease-in-out infinite; }
+@keyframes boot-pulso {
+  0%, 100% { opacity: .66; transform: scale(.95); filter: drop-shadow(0 0 5px rgba(94, 179, 196, .18)); }
+  50%      { opacity: 1;   transform: scale(1);   filter: drop-shadow(0 0 14px rgba(94, 179, 196, .38)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .boot-core.veio { animation: none; opacity: 1; }
+}
 .boot-mark {
   font-family: var(--display); letter-spacing: .4em; font-size: 24px; font-weight: 800;
   color: var(--txt-2); padding-left: .4em; line-height: 1; text-shadow: var(--txt-shadow-forte);

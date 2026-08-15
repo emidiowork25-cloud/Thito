@@ -528,7 +528,13 @@
   position: relative; aspect-ratio: 16 / 10; overflow: hidden;
   border-radius: var(--radius-sm); border: 1px solid var(--line-2);
   background: #000; color: #fff;
+  /* O painel é um controle: toque dá play, arraste procura a linha.
+     `touch-action: none` é o que impede a página de rolar junto com o dedo —
+     e é o jeito de resolver isso sem um preventDefault em evento de toque,
+     que já custou caro neste app. `cursor: grab` avisa o mouse do mesmo. */
+  touch-action: none; cursor: grab; user-select: none;
 }
+.tp-preview.arrastando { cursor: grabbing; }
 .tp-preview.grande { aspect-ratio: 9 / 14; max-height: 460px; margin: 0 auto; }
 /* retrato do celular: estreito de propósito, para lembrar o formato real */
 .tp-preview.fone { aspect-ratio: 9 / 15; max-height: 340px; margin: 0 auto; }

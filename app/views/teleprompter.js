@@ -130,7 +130,66 @@ function painel(script, { classe = '', espelhar, getTexto } = {}) {
   // está no documento e `clientWidth` é 0, o que zeraria a escala da fonte.
   setTimeout(() => pintar(trilho, preview, texto(), cfg(), posicaoAtual(cfg()), { miniatura: true, espelhar }), 0);
 
+  ligarGestos(preview, script.id, cfg);
   return preview;
+}
+
+/**
+ * O painel vira um controle: toque para dar play, arraste para achar a linha.
+ *
+ * Isto existe para quando o editor está no celular. Os botões de transporte
+ * continuam ali, mas dedo em botão de 40px, com o roteiro rolando, é o jeito
+ * mais lento de corrigir a linha — arrastar o próprio texto é o jeito rápido, e
+ * é como todo mundo já espera que uma tela de celular funcione.
+ *
+ * Ponteiros, e não toques: o mesmo código serve para o dedo, o mouse e a
+ * caneta, e o navegador entrega os três pelo mesmo evento. E `touch-action:
+ * none` no CSS é o que impede a página de rolar junto — resolvido lá, sem um
+ * único preventDefault aqui. Foi um preventDefault em toque, num ouvinte do
+ * window, que já matou o clique de todos os botões do app no iPhone.
+ */
+const ARRASTE_MINIMO = 7;   // px antes de virar arraste, para o toque ainda ser toque
+
+function ligarGestos(alvo, scriptId, cfg) {
+  let ponteiro = null;
+  let yInicial = 0;
+  let posInicial = 0;
+  let arrastou = false;
+
+  alvo.addEventListener('pointerdown', (e) => {
+    if (ponteiro !== null) return;
+    ponteiro = e.pointerId;
+    yInicial = e.clientY;
+    posInicial = posicaoAtual(cfg());
+    arrastou = false;
+    // A captura mantém o arraste vivo quando o dedo escorrega para fora da
+    // caixa — que é a regra, não a exceção, numa miniatura de celular. Falha
+    // em navegador que não tenha o ponteiro registrado, e falhar aqui não pode
+    // derrubar o resto do gesto.
+    try { alvo.setPointerCapture?.(e.pointerId); } catch { /* segue sem captura */ }
+  });
+
+  alvo.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== ponteiro) return;
+    const dy = e.clientY - yInicial;
+    if (!arrastou && Math.abs(dy) < ARRASTE_MINIMO) return;
+    arrastou = true;
+    alvo.classList.add('arrastando');
+    // A linha na tela é menor do que a do celular: o preview é uma miniatura, e
+    // a mesma escala que encolhe a fonte tem que encolher o passo do dedo.
+    const c = cfg();
+    const alturaLinha = c.fonte * ((alvo.clientWidth || 420) / 900) * c.altura;
+    if (alturaLinha > 0) irPara(scriptId, posInicial - dy / alturaLinha);
+  });
+
+  const soltar = (e) => {
+    if (e.pointerId !== ponteiro) return;
+    ponteiro = null;
+    alvo.classList.remove('arrastando');
+    if (!arrastou) alternarRolagem(scriptId);
+  };
+  alvo.addEventListener('pointerup', soltar);
+  alvo.addEventListener('pointercancel', soltar);
 }
 
 const rotuloPlay = () => (vivo.rodando ? '⏸  Pausar' : '▶  Rolar');
@@ -228,10 +287,27 @@ function deslizante(rotulo, chave, valor, min, max, passo, formatar, scriptId, e
       extra?.();
     },
   });
+  // O celular também mexe nestes valores. Sem o registro abaixo, subir a
+  // velocidade lá deixaria o cursor daqui parado no número velho — e o
+  // operador leria na tela um ajuste que não é mais o que está no ar.
+  vivo.controles = [...(vivo.controles ?? []), { chave, input, saida, formatar, extra }];
+
   return el('div', { class: 'field' },
     el('label', { style: 'display:flex;justify-content:space-between' },
       el('span', { text: rotulo }), saida),
     input);
+}
+
+/** Traz os deslizantes para o valor que está valendo, venha ele de onde vier. */
+function sincronizarControles(cfg) {
+  vivo.controles = (vivo.controles ?? []).filter((c) => c.input.isConnected);
+  for (const c of vivo.controles) {
+    const v = cfg[c.chave];
+    if (v === undefined || Number(c.input.value) === Number(v)) continue;
+    c.input.value = String(v);
+    c.saida.textContent = c.formatar(v);
+    c.extra?.();
+  }
 }
 
 function alternador(rotulo, chave, ligado, scriptId, transformar) {
@@ -312,9 +388,11 @@ function abaExibidor(script) {
     })));
 
   corpo.append(el('div', { class: 'tiny dim', style: 'margin-top:14px' },
-    el('div', { text: 'No celular:' }),
-    el('div', { text: '• Toque na tela para entrar em tela cheia e travar o brilho.' }),
-    el('div', { text: '• A tela não apaga sozinha enquanto o exibidor estiver aberto.' }),
+    el('div', { text: 'No celular exibidor:' }),
+    el('div', { text: '• Toque na tela para mostrar os controles; toque de novo para escondê-los.' }),
+    el('div', { text: '• Arraste o texto para cima ou para baixo para achar a linha — o editor acompanha.' }),
+    el('div', { text: '• ⛶ põe em tela cheia. No iPhone, use Compartilhar › Adicionar à Tela de Início.' }),
+    el('div', { text: '• A tela não apaga sozinha: o cadeado na barra de cima mostra se a trava pegou.' }),
     el('div', { text: '• Se cair a rede, ele reconecta e volta de onde parou.' })));
 
   corpo.append(el('div', { class: 'aviso', style: 'margin-top:14px' },
@@ -471,7 +549,7 @@ function garantirCanal(script) {
       vivo.conexao = estado;
       atualizarStatusNaTela();
     },
-    onMessage: (evento) => {
+    onMessage: (evento, dados) => {
       // O exibidor avisa que entrou; respondemos com o estado completo.
       if (evento === 'entrou') {
         vivo.exibidores = Math.min(9, vivo.exibidores + 1);
@@ -483,6 +561,9 @@ function garantirCanal(script) {
       } else if (evento === 'saiu') {
         vivo.exibidores = Math.max(0, vivo.exibidores - 1);
         atualizarStatusNaTela();
+      } else if (evento === 'comando') {
+        vivo.ultimoPing = Date.now();
+        aplicarComando(dados);
       }
     },
   });
@@ -497,6 +578,39 @@ function garantirCanal(script) {
       atualizarStatusNaTela();
     }
   }, 5000);
+}
+
+/**
+ * Um comando vindo do celular exibidor.
+ *
+ * Quem mexe no celular não vira dono do estado — só pede. O editor aplica com
+ * as mesmas funções dos botões daqui e retransmite o estado inteiro, e é isso
+ * que impede as duas telas de divergirem: existe uma versão da verdade, e ela
+ * mora de um lado só. Se o celular guardasse a própria posição, bastaria um
+ * pacote perdido para o apresentador ler uma linha e o operador ver outra.
+ */
+function aplicarComando(dados) {
+  const id = vivo.scriptId;
+  if (!id) return;
+  const valor = Number(dados?.valor);
+
+  switch (dados?.acao) {
+    case 'alternar': alternarRolagem(id); break;
+    case 'ir': if (Number.isFinite(valor)) irPara(id, valor); break;
+    case 'pular': if (Number.isFinite(valor)) pular(id, valor); break;
+    case 'inicio': irPara(id, 0); break;
+    case 'velocidade': {
+      if (!Number.isFinite(valor)) break;
+      const cfg = configDe(id);
+      // A rolagem já corrida vira posição antes de trocar o passo, senão a
+      // velocidade nova reescreveria o tempo passado e o texto daria um salto.
+      vivo.pos = posicaoAtual(cfg);
+      vivo.t0 = performance.now();
+      aplicarConfig(id, { velocidade: clamp(Math.round(valor), 20, 400) });
+      break;
+    }
+    default: break;
+  }
 }
 
 function fecharCanal() {
@@ -548,6 +662,7 @@ async function aplicarConfig(scriptId, patch) {
   const config = { ...PADRAO, ...(script?.config ?? {}), ...patch };
   await store.save('scripts', { id: scriptId, config });
   transmitir(scriptId, patch);
+  sincronizarControles(config);
   for (const p of vivo.paineis ?? []) {
     if (p.trilho.isConnected) pintar(p.trilho, p.preview, p.getTexto(), config, posicaoAtual(config), { miniatura: true, espelhar: p.espelhar });
   }
@@ -710,6 +825,7 @@ on('nav:go', ({ view }) => {
     vivo.loop = null;
     vivo.paineis = [];
     vivo.botoesPlay = [];
+    vivo.controles = [];
   } else {
     tocarLoop();
   }
