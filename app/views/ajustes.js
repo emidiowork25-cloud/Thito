@@ -4,6 +4,7 @@ import * as store from '../core/store.js';
 import * as settings from '../core/settings.js';
 import * as prefs from '../core/prefs.js';
 import * as sb from '../core/supabase.js';
+import * as contas from '../core/contas.js';
 import * as sync from '../core/sync.js';
 import * as db from '../core/db.js';
 import * as noticias from '../core/noticias.js';
@@ -322,10 +323,15 @@ function cardNuvem() {
       el('button', {
         class: 'btn sm danger', text: 'Sair',
         onclick: async () => {
-          if (!await confirmDialog('Sair da conta? Seus dados continuam neste computador.')) return;
+          if (!await confirmDialog(
+            'Sair da conta?\n\nOs seus dados continuam neste computador, mas o JARBAS só volta a abrir depois que você entrar de novo — e entrar de novo precisa de internet uma vez.',
+          )) return;
           await sb.signOut();
-          toast('Desconectado.');
-          emit('nav:refresh');
+          await contas.esquecer();
+          // Recarrega em vez de redesenhar: sem sessão o app inteiro deixa de
+          // existir, e redesenhar por cima deixaria menu e dados na tela de
+          // quem acabou de sair.
+          location.reload();
         },
       })));
   } else {

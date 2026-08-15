@@ -192,3 +192,25 @@ async function chamarFuncao(name, payload, jwt) {
 }
 
 export const invokeJarbas = (payload) => invokeFunction('jarbas', payload);
+
+/**
+ * O projeto responde?
+ *
+ * Serve para separar duas falhas que chegam idênticas ao navegador. Uma função
+ * que não existe faz o portal do Supabase responder 404 SEM os cabeçalhos de
+ * CORS; o navegador então bloqueia a resposta antes de entregá-la, e o fetch
+ * estoura com "Failed to fetch" — exatamente o mesmo que internet caída. Sem
+ * esta pergunta, "falta publicar a função" aparece na tela como "sem conexão",
+ * e quem lê vai procurar o problema no roteador.
+ *
+ * A resposta que interessa é "o servidor falou comigo", qualquer que seja o
+ * código: se ele falou, a rede está de pé e o problema é do outro lado.
+ */
+export async function projetoAlcancavel() {
+  try {
+    const res = await fetch(`${base()}/rest/v1/`, { headers: { apikey: anon() } });
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}

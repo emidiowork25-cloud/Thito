@@ -147,6 +147,21 @@ export const remover = (user_id) => chamar('remover', { user_id });
  */
 export const funcaoAusente = (err) => err?.status === 404;
 
+/** O fetch nem chegou a ter resposta. "Load failed" é como o Safari diz isso. */
+const falhaDeRede = (err) => /Failed to fetch|NetworkError|Load failed/i.test(String(err?.message || err));
+
+/**
+ * Por que a chamada falhou, perguntando ao próprio navegador de quem está lá.
+ *
+ * Devolve 'sem-funcao', 'sem-rede' ou 'outra'. A pergunta existe porque função
+ * ausente e internet caída chegam com a mesma cara — ver projetoAlcancavel.
+ */
+export async function diagnosticar(err) {
+  if (funcaoAusente(err)) return 'sem-funcao';
+  if (!falhaDeRede(err)) return 'outra';
+  return (await sb.projetoAlcancavel()) ? 'sem-funcao' : 'sem-rede';
+}
+
 /** Traduz as falhas da função para o que a pessoa precisa entender. */
 export function explicar(err) {
   if (funcaoAusente(err)) {

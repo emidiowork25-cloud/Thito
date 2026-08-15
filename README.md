@@ -462,6 +462,22 @@ módulo invisível para ele, e é intencional: o que vira contexto sai da sua m�
 
 ---
 
+## Entrar
+
+Com a nuvem configurada, o JARBAS não abre nada antes de saber quem está do outro lado:
+a primeira tela é a marca e uma caixa de login. Nem o menu aparece — montar o hub e
+esconder os módulos depois seria mostrar, por um instante, o que não é para ser mostrado,
+e um instante é tempo de sobra para uma captura de tela.
+
+A sessão fica guardada no aparelho, então isto só pesa no primeiro acesso: **entrar exige
+internet uma vez**; depois disso o app abre offline naquele aparelho, como sempre abriu.
+Quem sair da conta volta a precisar de rede para entrar de novo.
+
+Sem nuvem configurada não há login a fazer — o app é local, de um dono só, e uma tranca
+sem chave só trancaria o próprio dono do lado de fora.
+
+---
+
 ## ADMIN — convidar alguém para usar o JARBAS
 
 O módulo **ADMIN** só aparece para você. Nele você gera um link, escolhe **quais módulos**

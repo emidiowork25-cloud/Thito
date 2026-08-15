@@ -54,9 +54,14 @@ export function render(root) {
       faltaPublicar = false;
       contas.listar()
         .then((r) => { dados = r; })
-        .catch((err) => {
-          falha = contas.explicar(err);
-          faltaPublicar = contas.funcaoAusente(err);
+        .catch(async (err) => {
+          // O diagnóstico é feito no navegador de quem está aqui, e não pelo
+          // texto do erro: função ausente e rede caída chegam iguais.
+          const causa = await contas.diagnosticar(err);
+          faltaPublicar = causa === 'sem-funcao';
+          falha = faltaPublicar
+            ? 'Não consegui falar com a função "admin" — e a nuvem está respondendo normalmente, então não é a sua internet.'
+            : contas.explicar(err);
           dados = { contas: [], convites: [] };
         })
         .finally(() => { carregando = false; emit('nav:refresh'); });
@@ -108,7 +113,10 @@ function semServidor() {
     passo(2, 'Cole nela o conteúdo de ', el('code', { text: 'supabase/functions/admin/index.ts' }), ', que está no seu repositório.'),
     passo(3, el('strong', { text: 'Desligue o “Verify JWT”' }),
       ' — sem isso o convidado não consegue nem ver o convite, porque ele ainda não tem sessão. A função confere sozinha quem está pedindo, ação por ação.'),
-    passo(4, 'Volte aqui e toque em “Atualizar”.'));
+    passo(4, 'Volte aqui e toque em “Atualizar”.'),
+    el('div', { class: 'tiny dim', style: 'margin-top:8px' },
+      'Se você já publicou: confira se o nome é exatamente ', el('code', { text: 'admin' }),
+      ' e se o “Verify JWT” está desligado. Com ele ligado, o portal recusa a chamada antes de a função rodar — e a recusa chega aqui com esta mesma cara.'));
 }
 
 /* ---------- pendentes: o coração da regra de ouro ---------- */

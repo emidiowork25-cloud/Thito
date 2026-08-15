@@ -163,6 +163,82 @@ function listaDeModulos(ids) {
       ...ids.map((m) => el('span', { class: 'chip', text: TITULOS[m] ?? m }))));
 }
 
+/* ---------- a tranca de entrada ---------- */
+
+/**
+ * A porta de todo dia: sem sessão, nada do hub aparece.
+ *
+ * Antes o app abria inteiro para quem chegasse, e a nuvem era um acessório —
+ * fazia sentido enquanto ele tinha um dono só. Com convidados, não faz mais:
+ * quem abre a página não é necessariamente quem tem direito a ela, e módulo
+ * visível antes de saber quem está do outro lado é módulo mostrado por engano.
+ *
+ * O que se perde, e é justo saber: num aparelho que nunca entrou, sem internet,
+ * não há como abrir o JARBAS — nem para ver o que já está gravado ali. A sessão
+ * fica guardada no aparelho, então isso só atinge o primeiro acesso e quem
+ * escolheu sair. Aparelho que já entrou continua abrindo offline.
+ */
+export function telaDeLogin(raiz) {
+  return new Promise((pronto) => {
+    const palco = el('div', { class: 'porta' });
+    raiz.append(palco);
+
+    const email = el('input', { type: 'email', placeholder: 'seu@email.com', autocomplete: 'email' });
+    const senha = el('input', { type: 'password', placeholder: 'sua senha', autocomplete: 'current-password' });
+    const aviso = el('div', { class: 'aviso', hidden: true });
+    const entrar = el('button', { class: 'btn primary', style: 'width:100%', text: 'Entrar' });
+
+    const erro = (t) => { aviso.textContent = t; aviso.hidden = false; };
+
+    const tentar = async () => {
+      aviso.hidden = true;
+      if (!/.+@.+\..+/.test(email.value)) return erro('Confira o e-mail.');
+      if (!senha.value) return erro('Digite a senha.');
+
+      entrar.disabled = true;
+      entrar.textContent = 'entrando…';
+      try {
+        await sb.signIn(email.value.trim(), senha.value);
+        palco.remove();
+        pronto(true);
+      } catch (err) {
+        entrar.disabled = false;
+        entrar.textContent = 'Entrar';
+        const msg = String(err?.message || err);
+        // Cada recusa tem um motivo diferente, e mandar todas como "não deu"
+        // faz a pessoa tentar a mesma senha cinco vezes.
+        if (/not confirmed|Email not confirmed/i.test(msg)) {
+          erro('Sua conta ainda não foi aprovada, ou o e-mail de confirmação ainda não foi aberto. Fale com quem te convidou.');
+        } else if (/banned|user is banned/i.test(msg)) {
+          erro('Este acesso está bloqueado. Fale com quem administra o JARBAS.');
+        } else if (/Invalid login|invalid_credentials|invalid_grant/i.test(msg)) {
+          erro('E-mail ou senha não conferem.');
+        } else if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) {
+          erro('Sem conexão para entrar agora. O login precisa de internet uma vez; depois disso o app abre offline neste aparelho.');
+        } else {
+          erro(msg);
+        }
+      }
+    };
+
+    for (const campo of [email, senha]) {
+      campo.addEventListener('keydown', (e) => { if (e.key === 'Enter') tentar(); });
+    }
+    entrar.addEventListener('click', tentar);
+
+    palco.append(marca(), el('div', { class: 'porta-caixa' },
+      el('h1', { class: 'porta-titulo', text: 'Entrar' }),
+      el('p', { class: 'muted', style: 'margin-top:0', text: 'O JARBAS abre depois que ele souber quem é você.' }),
+      el('div', { class: 'field' }, el('label', { text: 'E-mail' }), email),
+      el('div', { class: 'field' }, el('label', { text: 'Senha' }), senha),
+      aviso,
+      entrar,
+      el('p', { class: 'tiny dim', style: 'margin-bottom:0', text: 'Recebeu um convite? Abra o link que te mandaram — a conta se cria por lá.' })));
+
+    setTimeout(() => email.focus(), 60);
+  });
+}
+
 /* ---------- já criou, agora espera ---------- */
 
 export function esperandoAval(palco, email, pronto) {

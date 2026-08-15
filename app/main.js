@@ -88,6 +88,25 @@ async function boot() {
       return;
     }
 
+    /*
+     * A tranca de entrada.
+     *
+     * Nada do hub é montado antes de saber quem está do outro lado — nem o
+     * menu. Montar primeiro e esconder depois seria mostrar por um instante o
+     * que não é para ser mostrado, e "por um instante" é tempo de sobra para
+     * uma captura de tela.
+     *
+     * Sem nuvem configurada não há login a fazer: o app é local, de um dono
+     * só, e uma tranca sem chave só trancaria o próprio dono do lado de fora.
+     */
+    if (settings.isCloudConfigured() && !sb.isSignedIn()) {
+      passo('esperando você entrar…');
+      await esperarAAbertura();
+      await despedirAAbertura();
+      await convite.telaDeLogin(document.body);
+      await contas.carregar({ forcar: true });
+    }
+
     passo('montando interface…');
     jarbas.init();
     shell.init();
