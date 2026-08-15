@@ -11,11 +11,22 @@
 // mandar o e-mail de confirmação. Enquanto o admin não aprovar, não há sessão
 // para ninguém — nem editando o navegador, porque a recusa vem do GoTrue.
 //
+// IMPORTANTE: o "Verify JWT" desta função tem de ficar DESLIGADO. Duas ações
+// acontecem antes de existir conta (ver o convite e criar a conta), e com ele
+// ligado o portal recusa a chamada antes de a função rodar. A conferência de
+// quem pede é feita aqui dentro, ação por ação.
+//
+// E o nome que vale é o SLUG, não o rótulo. Criando pelo painel, o Supabase
+// sorteia um slug (do tipo "rapid-responder") e o campo que você digita é só o
+// nome de exibição — a URL continua sendo a do slug. O app chama
+// /functions/v1/admin, então o slug precisa ser exatamente `admin`.
+//
 // Segredos necessários:
 //   supabase secrets set SUPER_ADMIN_ID=<uuid do primeiro usuário>   (opcional)
+//   supabase secrets set SITE_URL=https://…                          (opcional)
 // SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY já existem no ambiente da função.
 //
-// Deploy:  supabase functions deploy admin
+// Deploy:  supabase functions deploy admin --no-verify-jwt
 
 const URL_BASE = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICO = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';

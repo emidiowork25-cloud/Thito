@@ -506,14 +506,21 @@ dados vazios.
 
 **As tabelas já foram criadas** no projeto `kikedkajnytdjncrkoxf`. Falta a função.
 
-Pelo painel, sem instalar nada:
+**As tabelas e a função já estão publicadas** no projeto `kikedkajnytdjncrkoxf`.
 
-1. https://supabase.com/dashboard/project/kikedkajnytdjncrkoxf/functions → **Deploy a new function** → **Via Editor**
-2. Nome: `admin`
-3. Cole o conteúdo de `supabase/functions/admin/index.ts`
-4. **Desligue "Verify JWT"** — sem isso o convidado não consegue nem ver o convite,
-   porque ele ainda não tem sessão. A função faz a própria conferência, ação por ação.
-5. Deploy.
+Se um dia precisar refazer, duas armadilhas que custam uma tarde:
+
+- **O que vale é o SLUG, não o nome.** Criando pelo painel, o Supabase sorteia um slug
+  (do tipo `rapid-responder`) e o campo que você digita é só o rótulo de exibição — a URL
+  continua sendo a do slug. O app chama `/functions/v1/admin`, então o slug tem de ser
+  exatamente `admin`. Pela CLI isso não acontece: o nome que você passa vira o slug.
+- **Verify JWT desligado.** Duas ações acontecem antes de existir conta — ver o convite e
+  criar a conta —, e com ele ligado o portal recusa a chamada antes de a função rodar. A
+  conferência de quem pede é feita dentro da função, ação por ação.
+
+E um detalhe que engana: uma função que não existe responde 404 **sem cabeçalhos de CORS**,
+então o navegador bloqueia antes de entregar e o erro chega como "Failed to fetch" — igual a
+internet caída. Por isso o ADMIN pergunta se o projeto responde antes de acusar a rede.
 
 Ou pela CLI, se preferir:
 
