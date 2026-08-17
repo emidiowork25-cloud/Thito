@@ -411,6 +411,24 @@ export const definitions = [
     },
   },
   {
+    name: 'salvar_voz_de_marca',
+    description: 'Salva uma voz de marca no Copywriter, para ser escolhida na hora de escrever. '
+      + 'Use depois de LER de verdade os textos da marca (site, perfil, posts). Cada campo tem de sair do que '
+      + 'foi lido — se não deu para ler, não chame esta ferramenta: diga ao usuário o que faltou.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nome: { type: 'string', description: 'Nome da marca ou do perfil.' },
+        tom: { type: 'string', description: 'Como essa marca fala: ritmo, pessoa do discurso, gírias, humor, tamanho de frase. Concreto, com exemplos do que foi lido.' },
+        publico: { type: 'string', description: 'Para quem ela fala: quem é, o que já sabe, o que quer.' },
+        evitar: { type: 'string', description: 'O que essa marca nunca faz — palavras, formatos, exageros.' },
+        exemplo: { type: 'string', description: 'Um trecho REAL, copiado do que foi lido, que representa bem a voz.' },
+        fonte: { type: 'string', description: 'De onde saiu: o link lido, ou os links, separados por vírgula.' },
+      },
+      required: ['nome', 'tom'],
+    },
+  },
+  {
     name: 'abrir_secao',
     description: 'Abre uma seção do hub na tela do usuário. Use quando ele pedir para ver/mostrar algo.',
     input_schema: {
@@ -586,6 +604,28 @@ const handlers = {
     emit('nav:refresh');
     emit('nav:go', { view: 'mindmap', id: map.id });
     return ok(`Mapa mental "${map.title}" criado com ${nodes.length} nós e aberto na tela.`);
+  },
+
+  /**
+   * Grava a voz de marca lida de um link.
+   *
+   * A `fonte` fica junto de propósito. Daqui a três meses, olhando um texto que
+   * saiu meio estranho, a pergunta vai ser "de onde tiraram essa voz?" — e ter
+   * o link gravado é a diferença entre conferir e desconfiar.
+   */
+  async salvar_voz_de_marca(i) {
+    const marca = await store.save('brands', {
+      name: i.nome,
+      voice: i.tom ?? '',
+      audience: i.publico ?? '',
+      avoid: i.evitar ?? '',
+      example: i.exemplo ?? '',
+      fonte: i.fonte ?? '',
+      padrao: false,
+    });
+    emit('nav:refresh');
+    emit('nav:go', { view: 'copywriter', aba: 'marca' });
+    return ok(`Voz de marca "${marca.name}" salva e já disponível no seletor do Copywriter.`);
   },
 
   async criar_apresentacao(i) {
@@ -807,6 +847,7 @@ export const label = (name, input = {}) => ({
   consultar_financas: `consultando finanças de ${input.mes || 'este mês'}`,
   criar_copy: `escrevendo "${input.titulo}"`,
   criar_campanha: `criando campanha "${input.nome}"`,
+  salvar_voz_de_marca: `guardando a voz de "${input.nome}"`,
   criar_roteiro: `montando roteiro "${input.titulo}"`,
   analisar_metricas: `lendo métricas${input.conjunto ? ` de "${input.conjunto}"` : ''}`,
   abrir_secao: `abrindo ${input.secao}`,

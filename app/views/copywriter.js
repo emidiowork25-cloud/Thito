@@ -43,6 +43,9 @@ let filtroStatus = '';
 /* ============================ tela ============================ */
 
 export function render(root, params = {}) {
+  // Quem chega pedindo uma aba específica (o JARBAS, depois de gravar uma voz)
+  // tem de cair nela — senão a coisa é salva e a tela não mostra.
+  if (params.aba) aba = params.aba;
   if (params.id) {
     if (store.get('copies', params.id)) { aba = 'pecas'; pecaAtiva = params.id; }
     else if (store.get('campaigns', params.id)) aba = 'campanhas';
@@ -527,16 +530,21 @@ function abaMarca(root) {
 
   root.append(el('div', { class: 'toolbar' },
     el('button', { class: 'btn primary sm', text: '+ Voz de marca', onclick: () => editarMarca() }),
+    el('button', { class: 'btn sm', text: 'Capturar de um link', onclick: () => capturarDeLink() }),
   ));
 
   root.append(el('div', { class: 'card' },
     el('p', { class: 'tiny dim', style: 'margin-top:0' },
       'A voz de marca entra no contexto do JARBAS toda vez que ele escreve. '
-      + 'Quanto mais específica, menos genérico sai o texto — e menos você precisa reescrever.')));
+      + 'Quanto mais específica, menos genérico sai o texto — e menos você precisa reescrever.'),
+    el('p', { class: 'tiny dim', style: 'margin-bottom:0' },
+      'Capturando de um link, o JARBAS lê o que estiver público naquele endereço e devolve a voz já preenchida. '
+      + 'Instagram e TikTok escondem quase tudo de quem não está logado — quando ele não conseguir ler, vai dizer '
+      + 'o que leu e o que não leu, em vez de inventar. Site, blog, YouTube e LinkedIn costumam abrir inteiros.')));
 
   if (!marcas.length) {
     root.append(el('div', { class: 'card' },
-      emptyState('Nenhuma voz cadastrada. Descreva como você fala e o JARBAS para de escrever igual a todo mundo.',
+      emptyState('Nenhuma voz cadastrada. Descreva como você fala — ou cole um link e deixe o JARBAS ler.',
         '+ Voz de marca', () => editarMarca())));
     return;
   }
@@ -552,9 +560,70 @@ function abaMarca(root) {
       linhaMarca('Tom', m.voice),
       linhaMarca('Público', m.audience),
       linhaMarca('Evitar', m.avoid),
-      linhaMarca('Exemplo', m.example)));
+      linhaMarca('Exemplo', m.example),
+      // De onde a voz saiu. Daqui a três meses, diante de um texto que soou
+      // estranho, é a diferença entre conferir e desconfiar.
+      linhaMarca('Lido de', m.fonte)));
   }
   root.append(grade);
+}
+
+/**
+ * Cola um link, o JARBAS lê e devolve a voz preenchida.
+ *
+ * Duas coisas neste pedido não são enfeite.
+ *
+ * A primeira é a ordem: LER e só então escrever. Um modelo sabe descrever a voz
+ * de qualquer marca conhecida sem abrir nada — e o que sai é o clichê que ele
+ * aprendeu, não a voz que está no perfil. Como o texto sairia plausível, o
+ * engano só apareceria semanas depois, em peças que não soam como a marca.
+ *
+ * A segunda é a ordem de dizer o que não deu. Instagram e TikTok entregam pouco
+ * ou nada para quem não está logado. Nesse caso a resposta certa é "consegui ler
+ * isto, não consegui aquilo" — e a saída continua nas mãos dele, que pode colar
+ * as legendas na mão. Uma voz inventada é pior do que voz nenhuma: ela parece
+ * pronta, entra no contexto de tudo o que for escrito, e ninguém desconfia.
+ */
+async function capturarDeLink() {
+  const v = await formModal({
+    title: 'Capturar voz de um link',
+    wide: true,
+    values: { link: '', nome: '', extra: '' },
+    fields: [
+      {
+        name: 'link', label: 'Link do perfil ou do site', required: true,
+        placeholder: 'https://instagram.com/…  ·  https://site.com.br  ·  canal do YouTube, LinkedIn, blog…',
+      },
+      { name: 'nome', label: 'Nome da marca (opcional)', placeholder: 'Se ficar em branco, o JARBAS usa o nome do perfil.' },
+      {
+        name: 'extra', label: 'Cole aqui alguns textos da marca (opcional, mas ajuda muito)', type: 'textarea', rows: 5,
+        placeholder: 'Legendas, bio, um post inteiro. É o que salva o dia quando a rede social não abre para quem não está logado.',
+      },
+    ],
+  });
+  if (!v?.link?.trim()) return;
+
+  const link = v.link.trim();
+  jarbas.askFrom([
+    `Leia ${link} e capture a VOZ DE MARCA desse perfil para o meu Copywriter.`,
+    '',
+    'Faça nesta ordem:',
+    `1. Abra ${link} com a ferramenta de leitura de página. Se vier vazio, bloqueado ou só a tela de login,`,
+    '   procure na web outros textos públicos da MESMA marca (site próprio, notícias, outro perfil, transcrições).',
+    '2. Leia os textos de verdade e repare em como ela escreve: pessoa do discurso, tamanho de frase, ritmo,',
+    '   gírias, emojis, humor, o que ela promete e o que ela nunca faz.',
+    '3. Só então chame a ferramenta salvar_voz_de_marca, com o campo "exemplo" contendo um trecho REAL,',
+    '   copiado do que você leu — não uma imitação escrita por você.',
+    '4. Em "fonte", liste os endereços que você realmente conseguiu ler.',
+    '',
+    'Regra que vale mais que as outras: descreva só o que você LEU. Você conhece marcas famosas de cor,',
+    'e a descrição decorada sairia plausível — e errada. Se não conseguiu ler o suficiente, NÃO chame a',
+    'ferramenta: me diga o que abriu, o que não abriu, e me peça para colar algumas legendas.',
+    '',
+    'Ao terminar, me mostre em duas linhas o que você leu e de onde.',
+    v.nome?.trim() ? `\nNome da marca: "${v.nome.trim()}".` : '',
+    v.extra?.trim() ? `\n--- TEXTOS QUE EU JÁ COLEI (use como fonte principal) ---\n${v.extra.trim()}` : '',
+  ].filter(Boolean).join('\n'), { lerAWeb: true });
 }
 
 function linhaMarca(rotulo, valor) {

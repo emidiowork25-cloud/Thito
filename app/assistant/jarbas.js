@@ -142,10 +142,26 @@ function textOf(content) {
 
 /* ============================ envio ============================ */
 
-export async function ask(text, { viaVoz = false } = {}) {
+/**
+ * Ler a web é permissão de turno, não estado permanente.
+ *
+ * As ferramentas de busca e leitura rodam no servidor da Anthropic e custam
+ * dinheiro a cada uso. Deixá-las sempre ligadas faria o JARBAS sair à internet
+ * para perguntas que só queriam a agenda de amanhã. Então quem precisa pede: a
+ * tela da Voz de marca liga isto ao ler um perfil, e a permissão morre junto
+ * com o turno, no `finally`.
+ */
+const FERRAMENTAS_WEB = [
+  { type: 'web_search_20260209', name: 'web_search' },
+  { type: 'web_fetch_20260209', name: 'web_fetch' },
+];
+let podeLerAWeb = false;
+
+export async function ask(text, { viaVoz = false, lerAWeb = false } = {}) {
   const pergunta = String(text || '').trim();
   if (!pergunta || busy) return;
 
+  podeLerAWeb = lerAWeb;
   hideHeard();
   push('user', pergunta);
   messages.push({ role: 'user', content: pergunta });
@@ -161,6 +177,7 @@ export async function ask(text, { viaVoz = false } = {}) {
     push('erro', friendlyError(err));
   } finally {
     setBusy(false);
+    podeLerAWeb = false;
     renderSuggestions();
     persist();
   }
@@ -225,7 +242,9 @@ async function callModel() {
   return sb.invokeJarbas({
     messages: trimHistory(messages),
     context: await ctx.build({ viaVoz: perguntaFalada }),
-    tools: tools.definitions,
+    // As ferramentas de web rodam no servidor da Anthropic: elas voltam como
+    // blocos `server_tool_use`, e não `tool_use`, então o laço daqui nem as vê.
+    tools: podeLerAWeb ? [...tools.definitions, ...FERRAMENTAS_WEB] : tools.definitions,
     effort: settings.get('effort') || 'high',
     userName: settings.get('name') || '',
   });
@@ -471,9 +490,9 @@ function speak(text) {
 /* ============================ atalhos externos ============================ */
 
 /** Usado pela paleta de comandos e pelas views ("perguntar ao JARBAS"). */
-export function askFrom(text, { openPanel = true } = {}) {
+export function askFrom(text, { openPanel = true, lerAWeb = false } = {}) {
   if (openPanel) open({ focus: false });
-  return ask(text);
+  return ask(text, { lerAWeb });
 }
 
 export function startListening() {
