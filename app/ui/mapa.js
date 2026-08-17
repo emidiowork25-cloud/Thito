@@ -15,6 +15,7 @@
 
 import {
   layout, indexar, ramoInteiro, visiveis, aplicarDeslocamentos, contarDescendentes,
+  medidaDoNo, separar,
 } from './arvore.js';
 import { el, truncate, download } from '../core/util.js';
 
@@ -82,7 +83,11 @@ export function quadroDeMapa({
 }) {
   const nodes = visiveis(todos);
   const filhosDe = indexar(todos);
-  const pos = aplicarDeslocamentos(nodes, layout(nodes));
+  // A MESMA régua para medir e para desenhar. O rótulo entra na conta porque é
+  // ele que dá a largura da caixa: o cofre e o mapa rotulam diferente, e o
+  // layout tem de enxergar o texto que vai mesmo aparecer na tela.
+  const medir = (n) => medidaDoNo(rotulo(n), n.depth);
+  const pos = separar(nodes, aplicarDeslocamentos(nodes, layout(nodes, { medir })), { medir });
   const cores = coresDosRamos(todos);
 
   // A moldura acompanha o desenho: mapas grandes cabem inteiros, pequenos não ficam perdidos.
@@ -142,8 +147,7 @@ export function quadroDeMapa({
     if (!p) continue;
     const cor = n.color ?? cores[n.id] ?? PALETA[0];
     const texto = rotulo(n);
-    const largura = Math.min(240, Math.max(80, texto.length * 7.6 + 26));
-    const altura = n.depth === 0 ? 46 : 34;
+    const { w: largura, h: altura } = medir(n);
     caixas[n.id] = { w: largura, h: altura };
 
     const grupo = cria('g', {
