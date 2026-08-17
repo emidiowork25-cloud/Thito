@@ -95,6 +95,7 @@ function detalhe(m) {
   const acoesCard = [
     el('button', { class: 'btn sm', text: 'Editar', onclick: () => novaReuniao(m) }),
     el('button', { class: 'btn sm', text: 'Resumir', onclick: () => resumir(m) }),
+    el('button', { class: 'btn sm', text: 'Virar mapa mental', onclick: () => virarMapa(m) }),
     el('button', { class: 'btn sm', text: 'Exportar', onclick: () => exportar(m) }),
   ];
 
@@ -189,9 +190,16 @@ function resumir(m) {
   );
 }
 
-function exportar(m) {
+/**
+ * A reunião inteira em texto: pauta, anotações, decisões e encaminhamentos.
+ *
+ * Uma função só, usada pelo Exportar e pelo mapa mental. Assim o que o JARBAS
+ * lê é literalmente o mesmo que sai no arquivo — se um dia um campo novo entrar
+ * na reunião, os dois passam a enxergá-lo no mesmo dia.
+ */
+function ataEmTexto(m) {
   const participantes = Array.isArray(m.participants) ? m.participants.join(', ') : (m.participants ?? '');
-  const texto = [
+  return [
     `# ${m.title}`,
     `Data: ${fmtDate(m.date, { weekday: true, year: true })}`,
     participantes ? `Participantes: ${participantes}` : '',
@@ -203,9 +211,56 @@ function exportar(m) {
       ? `## Encaminhamentos\n${m.actions.map((a) => `- [${a.done ? 'x' : ' '}] ${a.text}${a.owner ? ` — ${a.owner}` : ''}${a.due ? ` (prazo ${a.due})` : ''}`).join('\n')}`
       : '',
   ].filter(Boolean).join('\n');
+}
 
-  download(`reuniao-${m.date}-${m.title.replace(/[^\w-]+/g, '-').toLowerCase()}.md`, texto, 'text/markdown');
+/** Tem conteúdo de verdade, ou é só título e data? */
+const temTexto = (m) => !!(m.agenda?.trim() || m.notes?.trim() || m.decisions?.trim() || (m.actions ?? []).length);
+
+function exportar(m) {
+  download(`reuniao-${m.date}-${m.title.replace(/[^\w-]+/g, '-').toLowerCase()}.md`, ataEmTexto(m), 'text/markdown');
   toast('Ata exportada em Markdown.', 'ok');
+}
+
+/**
+ * A reunião vira mapa mental.
+ *
+ * O texto vai JUNTO na pergunta, e não por referência. O contexto que o JARBAS
+ * recebe de graça a cada conversa traz, das reuniões, só os encaminhamentos em
+ * aberto — nada da pauta, nada das anotações, nada das decisões. Pedir
+ * "transforme a reunião X em mapa" sem mandar o texto seria pedir o mapa de uma
+ * reunião que ele nunca leu, e o que voltaria seria invenção com cara de ata.
+ *
+ * Por isso também a instrução de não inventar tópico: o mapa de uma reunião vale
+ * pelo que foi dito nela. Um ramo bonito que ninguém falou é ruído com aparência
+ * de memória, e daqui a um mês não há como saber qual é qual.
+ */
+function virarMapa(m) {
+  if (!temTexto(m)) {
+    toast('Esta reunião ainda não tem texto. Escreva as anotações ou transcreva por voz primeiro.', 'warn', 5000);
+    return;
+  }
+
+  jarbas.askFrom([
+    'Transforme esta reunião em um mapa mental, usando a ferramenta criar_mindmap.',
+    '',
+    'Leia TODO o texto abaixo — pauta, anotações, decisões e encaminhamentos — e monte',
+    'a estrutura a partir do que está escrito. Não invente tópico que não esteja lá.',
+    '',
+    'Como quero o mapa:',
+    `- o nó central é "${m.title}";`,
+    '- os ramos principais são os ASSUNTOS que o texto realmente trata, juntando as',
+    '  linhas soltas que falam da mesma coisa — não um ramo por linha;',
+    '- abaixo de cada assunto, os pontos concretos: nomes, números, prazos e dúvidas,',
+    '  no vocabulário que eu usei;',
+    '- decisões e encaminhamentos ganham ramo próprio, com responsável e prazo quando houver;',
+    '- rótulos curtos, de preferência até 5 palavras;',
+    '- três níveis costumam bastar; use o quarto só quando o assunto pedir.',
+    '',
+    `Título do mapa: "${m.title}".`,
+    '',
+    '--- TEXTO DA REUNIÃO ---',
+    ataEmTexto(m),
+  ].join('\n'));
 }
 
 on('action:new-meeting', () => novaReuniao());
