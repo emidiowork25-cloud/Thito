@@ -16,6 +16,8 @@ import { $, el, mdlite, uid, truncate, today } from '../core/util.js';
 import { toast } from '../ui/components.js';
 
 const MAX_TOOL_ROUNDS = 6;
+// Quantas vezes a API pode pedir para continuar um turno longo (ver pause_turn).
+const MAX_PAUSAS = 4;
 
 const ui = {};
 let orb = null;
@@ -152,8 +154,21 @@ function textOf(content) {
  * com o turno, no `finally`.
  */
 const FERRAMENTAS_WEB = [
-  { type: 'web_search_20260209', name: 'web_search' },
-  { type: 'web_fetch_20260209', name: 'web_fetch' },
+  // Os tetos não são economia: são o que faz a resposta caber no tempo.
+  //
+  // A Edge Function do Supabase é morta aos 150 segundos — foi exatamente isso
+  // que derrubou a primeira versão disto, com um 546 seco na tela. Sem teto, o
+  // laço do servidor pode buscar, ler, buscar de novo e estourar o relógio. Com
+  // teto, a pior das hipóteses é uma resposta incompleta que DIZ o que faltou.
+  //
+  // `allowed_callers: ['direct']` desliga a filtragem dinâmica, que roda dentro
+  // de um contêiner de código antes de a página chegar ao modelo. É esperta e é
+  // cara em tempo; para ler uma bio e alguns posts, o caminho direto basta.
+  { type: 'web_search_20260209', name: 'web_search', max_uses: 4, allowed_callers: ['direct'] },
+  {
+    type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 4,
+    max_content_tokens: 30000, allowed_callers: ['direct'],
+  },
 ];
 let podeLerAWeb = false;
 
@@ -185,6 +200,7 @@ export async function ask(text, { viaVoz = false, lerAWeb = false } = {}) {
 
 /** Laço pedido → ferramentas → pedido, até o Claude concluir a resposta. */
 async function runLoop() {
+  let pausas = 0;
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const reply = await callModel();
 
@@ -201,6 +217,33 @@ async function runLoop() {
     messages.push({ role: 'assistant', content: blocks });
 
     if (texto) push('jarbas', texto);
+
+    /*
+     * `pause_turn`: o turno não acabou, só foi posto em pausa.
+     *
+     * Quando ferramentas rodam no servidor da Anthropic (buscar, ler página), o
+     * laço é DELES, e numa pesquisa longa eles devolvem o que já fizeram com
+     * este motivo de parada, esperando que a gente mande de volta para continuar.
+     *
+     * Sem este trecho, o laço daqui via "não pediu ferramenta nenhuma" e dava a
+     * resposta por encerrada no meio da leitura. Não daria erro: daria uma
+     * resposta pela metade, com cara de resposta inteira — que é o pior jeito
+     * de falhar, porque ninguém vai conferir.
+     *
+     * A continuação é reenviar como está: os blocos já foram para o histórico,
+     * e nenhum tool_result é devido. As mesmas ferramentas têm de ir junto, ou
+     * a API recusa o pedido — e vão, porque `podeLerAWeb` só zera no fim do turno.
+     */
+    if (reply.stop_reason === 'pause_turn') {
+      pausas += 1;
+      if (pausas > MAX_PAUSAS) {
+        push('erro', 'A leitura ficou longa demais e eu parei no meio. Me diga um endereço mais direto, '
+          + 'ou cole aqui o texto que você quer que eu use.');
+        return;
+      }
+      round -= 1;   // pausa não é rodada de ferramenta; não gasta o orçamento delas
+      continue;
+    }
 
     if (!toolCalls.length) {
       // Quem perguntou falando continua falando: a linha reabre assim que ele
@@ -269,6 +312,14 @@ function friendlyError(err) {
   if (/Failed to fetch|NetworkError/i.test(msg)) return 'Sem conexão com a nuvem. Seus dados continuam aqui e funcionando — só eu fico mudo até a internet voltar.';
   if (/429|rate.?limit/i.test(msg)) return 'A API está limitando as requisições. Espere alguns segundos e tente de novo.';
   if (/401|403/.test(msg)) return 'A chave da API foi recusada. Confira o segredo ANTHROPIC_API_KEY na Edge Function.';
+  // 546 é como o Supabase diz "matei a função": ela passou dos 150 segundos que
+  // tem para responder. Um número seco na tela não ajuda ninguém — o que ajuda é
+  // saber que a demora foi a causa e que existe um caminho mais curto.
+  if (/\b546\b/.test(msg)) {
+    return 'A leitura demorou mais do que o servidor aguenta (são 150 segundos) e a função foi encerrada no meio. '
+      + 'Tente um endereço mais direto — o site da marca costuma abrir melhor que o Instagram — ou cole o texto '
+      + 'aqui na conversa que eu trabalho em cima dele.';
+  }
   return `Deu erro aqui: ${msg}`;
 }
 
