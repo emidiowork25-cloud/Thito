@@ -106,10 +106,28 @@ export async function carregar({ forcar = false } = {}) {
   return carregando;
 }
 
-/** Lê o retrato do disco antes de qualquer rede — é o que faz o app abrir offline. */
+/**
+ * Lê o retrato do disco antes de qualquer rede — é o que faz o app abrir
+ * offline — e MANDA reperguntar, sem aceitar não como resposta.
+ *
+ * O `forcar` não é zelo: sem ele, esta função se anulava. Ela preenche
+ * `retrato` na linha de cima, e `carregar()` começa justamente com
+ * `if (retrato && !forcar) return retrato`. O pedido saía e voltava sem tocar
+ * na rede, então o app perguntava ao servidor UMA vez na vida — na primeira
+ * abertura, quando o disco ainda estava vazio — e guardava aquela resposta para
+ * sempre.
+ *
+ * Isso transformou um erro de servidor, já corrigido, num erro permanente: o
+ * dono da casa tinha "você não é o admin" gravado no navegador e nada podia
+ * desmentir. Reinstalar o app seria a única saída, e ninguém adivinha isso.
+ *
+ * O retrato do disco continua valendo enquanto a resposta não chega, e volta a
+ * valer se ela não chegar (ver o catch do carregar). O que muda é que ele deixa
+ * de ser a palavra final.
+ */
 export async function iniciar() {
   retrato = await db.kvGet(CHAVE, null);
-  carregar().catch(() => {});
+  carregar({ forcar: true }).catch(() => {});
   return retrato;
 }
 
