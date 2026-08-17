@@ -81,21 +81,58 @@ async function quemPede(req: Request) {
 }
 
 /**
- * O super admin.
+ * O super admin, em três degraus — do dito ao deduzido.
  *
- * Se o segredo SUPER_ADMIN_ID estiver posto, é ele e ponto. Sem o segredo, é o
- * usuário mais antigo do projeto — que é literalmente "esse primeiro usuário".
- * Assim a função já funciona sem configuração nenhuma, e dá para fixar depois.
+ * 1. O segredo SUPER_ADMIN_ID, se estiver posto: é ele e ponto.
+ * 2. A coluna contas.super_admin: escrita só pela chave de serviço, com índice
+ *    único que garante um dono por vez.
+ * 3. Só então a dedução, para o projeto recém-nascido que ainda não tem nem
+ *    linha na tabela.
+ *
+ * A ordem tem uma cicatriz. Antes só existia o degrau 3, e ele dizia "o usuário
+ * mais antigo" — que parece a mesma coisa que "o primeiro usuário" e não é.
+ * Neste projeto havia um cadastro abandonado, criado onze minutos antes do bom e
+ * nunca confirmado: ele era o mais antigo e virou o dono. O ADMIN sumiu do menu
+ * de quem construiu a casa, e o poder ficou com uma conta que não consegue nem
+ * fazer login. Dedução serve para começar; para mandar, é preciso estar escrito.
+ *
+ * O degrau 3 ficou mais cuidadoso pelo mesmo motivo: prefere quem REALMENTE
+ * ENTROU. Um super admin que não consegue entrar não é super admin, é um cadeado
+ * com a chave dentro. Se ninguém entrou ainda, vale o mais antigo mesmo — um
+ * projeto novo precisa de dono desde o primeiro minuto.
  */
+type Usuario = {
+  id: string;
+  created_at: string;
+  email_confirmed_at?: string | null;
+  confirmed_at?: string | null;
+  last_sign_in_at?: string | null;
+};
+
 let superAdminCache = '';
 async function superAdminId(): Promise<string> {
   if (SUPER_ADMIN_FIXO) return SUPER_ADMIN_FIXO;
   if (superAdminCache) return superAdminCache;
+
+  // O que está escrito na tabela vale mais do que qualquer conclusão minha.
+  try {
+    const marcados = await comServico('/rest/v1/contas?super_admin=is.true&select=user_id&limit=1');
+    if (marcados?.[0]?.user_id) {
+      superAdminCache = String(marcados[0].user_id);
+      return superAdminCache;
+    }
+  } catch { /* tabela ainda sem a coluna: cai na dedução */ }
+
   const lista = await comServico('/auth/v1/admin/users?page=1&per_page=1000');
-  const usuarios = (lista?.users ?? []) as Array<{ id: string; created_at: string }>;
+  const usuarios = (lista?.users ?? []) as Usuario[];
   if (!usuarios.length) return '';
-  usuarios.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
-  superAdminCache = usuarios[0].id;
+
+  const entrou = (u: Usuario) => !!(u.email_confirmed_at || u.confirmed_at || u.last_sign_in_at);
+  const candidatos = usuarios.filter(entrou);
+  const fila = candidatos.length ? candidatos : usuarios;
+
+  fila.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  superAdminCache = fila[0].id;
   return superAdminCache;
 }
 
@@ -137,12 +174,20 @@ async function criarConvite(req: Request, corpo: any) {
   return json({ codigo });
 }
 
-/** Só o admin: a lista de contas e a de convites em aberto. */
+/**
+ * Só o admin: a lista de contas e a de convites em aberto.
+ *
+ * O próprio dono fica de fora da lista. Ele não é um convidado à espera de
+ * aprovação, e a única coisa que ganharia aparecendo ali seriam botões de
+ * bloquear e remover apontados para si mesmo.
+ */
 async function listar(req: Request) {
   await exigirAdmin(req);
-  const contas = await comServico('/rest/v1/contas?select=*&order=criado_em.desc');
+  const chefe = await superAdminId();
+  const todas = await comServico('/rest/v1/contas?select=*&order=criado_em.desc');
+  const contas = (todas ?? []).filter((c: any) => c.user_id !== chefe);
   const convites = await comServico('/rest/v1/convites?select=*&order=criado_em.desc&limit=50');
-  return json({ contas, convites, superAdmin: await superAdminId() });
+  return json({ contas, convites, superAdmin: chefe });
 }
 
 /**
@@ -277,10 +322,18 @@ async function reenviar(req: Request, corpo: any) {
   return json({ ok: true, ...(await avisarLiberado(conta?.user_id ?? '', email)) });
 }
 
-/** Só o admin: bloqueia sem apagar nada. */
+/**
+ * Só o admin: bloqueia sem apagar nada.
+ *
+ * Menos a si mesmo. Banir o dono no GoTrue não tem desfazer pela tela — a tela
+ * de desbloquear só existe para quem consegue entrar, e ele não conseguiria
+ * mais. Seria preciso mexer no banco por fora para voltar atrás, e um clique
+ * não pode custar isso.
+ */
 async function bloquear(req: Request, corpo: any) {
-  await exigirAdmin(req);
+  const admin = await exigirAdmin(req);
   const id = String(corpo.user_id ?? '');
+  if (id === admin.id) throw new Error('O super admin não pode bloquear a si mesmo.');
   // Banir de verdade no GoTrue: sem isto a sessão que já está aberta no
   // aparelho dela continuaria valendo até o token vencer.
   await comServico(`/auth/v1/admin/users/${id}`, {
