@@ -4,6 +4,7 @@ import * as store from '../core/store.js';
 import * as jarbas from '../assistant/jarbas.js';
 import * as modelo from '../core/modelo.js';
 import * as redator from '../core/redator.js';
+import * as leitor from '../core/leitor.js';
 import { on, emit } from '../core/bus.js';
 import {
   el, today, uid, truncate, norm, num, money, fmtDate, download, pickFile, sum,
@@ -604,6 +605,17 @@ async function capturarDeLink() {
   if (!v?.link?.trim()) return;
 
   const link = v.link.trim();
+
+  // Tenta ler a página aqui, antes de perguntar. Quando dá certo, o JARBAS
+  // recebe o texto pronto e não precisa sair à internet — sai mais rápido, mais
+  // barato, e sem depender de a leitura dele passar onde a nossa passou.
+  let jaLido = '';
+  if (!leitor.fechado(link)) {
+    toast('Abrindo o link…', 'ok', 2500);
+    const r = await leitor.ler(link, { limite: 24000 });
+    if (r.ok && r.texto) jaLido = r.texto;
+  }
+
   jarbas.askFrom([
     `Leia ${link} e capture a VOZ DE MARCA desse perfil para o meu Copywriter.`,
     '',
@@ -623,6 +635,7 @@ async function capturarDeLink() {
     'Ao terminar, me mostre em duas linhas o que você leu e de onde.',
     v.nome?.trim() ? `\nNome da marca: "${v.nome.trim()}".` : '',
     v.extra?.trim() ? `\n--- TEXTOS QUE EU JÁ COLEI (use como fonte principal) ---\n${v.extra.trim()}` : '',
+    jaLido ? `\n--- O QUE EU JÁ LI NESSE ENDEREÇO (use como fonte principal) ---\n${jaLido}` : '',
   ].filter(Boolean).join('\n'), { lerAWeb: true });
 }
 
@@ -828,21 +841,13 @@ on('action:new-campaign', () => { aba = 'campanhas'; editarCampanha(); });
  * link três vezes antes de descobrir o caminho que funciona.
  */
 /**
- * Domínios que o leitor de páginas não consegue abrir.
+ * Quais endereços não abrem: a lista mora no leitor, e aqui só se pergunta.
  *
- * Não é falta de permissão nossa: a ferramenta de leitura não executa
- * JavaScript, e estas redes montam a página inteira no navegador, atrás de
- * login. Nenhum ajuste daqui muda isso.
- *
- * Saber a lista serve para AVISAR ANTES. Descobrir depois custa o formulário
- * preenchido e um minuto de espera para receber um "não deu" — e o pior é que
- * parece defeito, quando é limite conhecido.
+ * Duas listas iguais em arquivos diferentes divergem no primeiro conserto — e
+ * divergir aqui significaria a tela prometer uma leitura que o servidor recusa,
+ * ou avisar que não dá para ler algo que abriria numa boa.
  */
-const REDES_FECHADAS = /(^|\.)(instagram\.com|tiktok\.com|facebook\.com|threads\.net|x\.com|twitter\.com|linkedin\.com)$/i;
-
-function redeFechada(endereco) {
-  try { return REDES_FECHADAS.test(new URL(endereco).hostname); } catch { return false; }
-}
+const redeFechada = (endereco) => leitor.fechado(endereco);
 
 /**
  * De um link para post.
@@ -948,6 +953,39 @@ async function deLink(inicial = {}) {
     el('div', { style: 'margin-top:6px', text: `${pedido.formatos.length} formato(s) de uma vez. Demora um pouco.` }));
   const espera = modal({ title: 'Escrevendo', render: () => el('div', {}, estado) });
 
+  /*
+   * A leitura do link acontece ANTES de escrever, num servidor nosso.
+   *
+   * É o que faz "só jogar o link lá" valer: o navegador não busca página de
+   * outro domínio, e a ferramenta de leitura do modelo não executa JavaScript
+   * nem entrega o corpo de uma matéria inteira. A função `ler` busca de
+   * verdade, limpa o HTML e devolve texto — que entra aqui como se você
+   * tivesse colado.
+   *
+   * Falhar não interrompe nada: se não vier texto, o pedido segue com o link, e
+   * o modelo ainda tem a própria leitura como segunda tentativa. O que se ganha
+   * é uma primeira tentativa melhor, não uma tranca a mais.
+   */
+  let lido = null;
+  if (pedido.url && !pedido.colado) {
+    estado.replaceChildren(el('div', { text: leitor.ehVideo(pedido.url) ? 'Abrindo o vídeo e buscando a transcrição…' : 'Abrindo o link e lendo a página…' }));
+    lido = await leitor.ler(pedido.url);
+    if (lido.ok && lido.texto) {
+      pedido.colado = lido.texto;
+      pedido.textoVeioDoLeitor = true;
+      const quanto = lido.tipo === 'video'
+        ? (lido.temTranscricao ? `transcrição de "${lido.titulo}"` : `título e canal de "${lido.titulo}"`)
+        : `${Math.round((lido.texto.length) / 1000)} mil caracteres de "${lido.titulo || 'a página'}"`;
+      estado.replaceChildren(
+        el('div', { text: `Li ${quanto}.` }),
+        el('div', { style: 'margin-top:6px', text: `Escrevendo ${pedido.formatos.length} formato(s). Demora um pouco.` }));
+    } else {
+      estado.replaceChildren(
+        el('div', { text: 'Não consegui abrir sozinho — vou tentar pela leitura do modelo.' }),
+        el('div', { style: 'margin-top:6px', text: `${pedido.formatos.length} formato(s). Demora um pouco.` }));
+    }
+  }
+
   let saida;
   try {
     saida = await redator.gerar({ ...pedido, marca: vozDaMarca });
@@ -973,8 +1011,11 @@ async function deLink(inicial = {}) {
     // público e instrução extra. O botão devolve tudo como estava, faltando só
     // o que de fato falta.
     estado.className = 'aviso';
+    // O motivo vem do leitor, que TENTOU — não de um palpite sobre o domínio.
+    const porque = leitor.explicar(lido) || leitor.explicarVideo(lido)
+      || 'Não consegui ler esse link: a página provavelmente é montada por JavaScript ou exige login.';
     estado.replaceChildren(
-      el('div', { style: 'margin-bottom:6px', text: 'Não consegui ler esse link — a página é montada por JavaScript e exige login (é o caso do Instagram, TikTok, Facebook e LinkedIn).' }),
+      el('div', { style: 'margin-bottom:6px', text: porque }),
       el('div', { style: 'margin-bottom:10px', text: 'Abra a página, copie o texto e cole no campo "Ou o texto, colado". Aí eu escrevo.' }),
       el('button', {
         class: 'btn primary sm', text: 'Colar o texto agora',
