@@ -827,18 +827,63 @@ on('action:new-campaign', () => { aba = 'campanhas'; editarCampanha(); });
  * abre para um leitor automático. Deixá-lo escondido faria a pessoa tentar o
  * link três vezes antes de descobrir o caminho que funciona.
  */
-async function deLink() {
+/**
+ * Domínios que o leitor de páginas não consegue abrir.
+ *
+ * Não é falta de permissão nossa: a ferramenta de leitura não executa
+ * JavaScript, e estas redes montam a página inteira no navegador, atrás de
+ * login. Nenhum ajuste daqui muda isso.
+ *
+ * Saber a lista serve para AVISAR ANTES. Descobrir depois custa o formulário
+ * preenchido e um minuto de espera para receber um "não deu" — e o pior é que
+ * parece defeito, quando é limite conhecido.
+ */
+const REDES_FECHADAS = /(^|\.)(instagram\.com|tiktok\.com|facebook\.com|threads\.net|x\.com|twitter\.com|linkedin\.com)$/i;
+
+function redeFechada(endereco) {
+  try { return REDES_FECHADAS.test(new URL(endereco).hostname); } catch { return false; }
+}
+
+/**
+ * De um link para post.
+ *
+ * Recebe `inicial` para poder ser reaberto com tudo o que já foi digitado. Sem
+ * isso, o caminho mais comum do módulo — link de rede social, que não abre —
+ * terminava em formulário vazio: o aviso mandava colar o texto, e para colar era
+ * preciso redigitar formatos, objetivo, público e instrução extra.
+ */
+async function deLink(inicial = {}) {
   const marcas = store.list('brands');
-  const escolhidos = new Set(['carrossel', 'reels', 'estatico', 'legenda']);
+  const escolhidos = new Set(inicial.formatos ?? ['carrossel', 'reels', 'estatico', 'legenda']);
 
   const url = el('input', { type: 'url', placeholder: 'https://…  (notícia, YouTube, post)' });
+  url.value = inicial.url ?? '';
   const colado = el('textarea', { rows: 4, placeholder: 'Opcional — e obrigatório quando o link não abre. Cole aqui a matéria, a legenda ou a transcrição.' });
-  const objetivo = el('select', {}, ...Object.entries(redator.OBJETIVOS).map(([k, v]) => el('option', { value: k }, v)));
+  colado.value = inicial.colado ?? '';
+  const objetivo = el('select', {}, ...Object.entries(redator.OBJETIVOS)
+    .map(([k, v]) => el('option', { value: k, selected: k === inicial.objetivo }, v)));
   const publico = el('input', { type: 'text', placeholder: 'quem vai ler — ex.: pais de crianças autistas, alunos da Universidade' });
+  publico.value = inicial.publico ?? '';
   const extra = el('input', { type: 'text', placeholder: 'algo específico? ex.: puxar para a inscrição do seminário' });
+  extra.value = inicial.extra ?? '';
   const marca = el('select', {},
     el('option', { value: '' }, 'sem voz de marca'),
-    ...marcas.map((m) => el('option', { value: m.id, selected: !!m.padrao }, m.name)));
+    ...marcas.map((m) => el('option', {
+      value: m.id,
+      selected: inicial.marcaId ? m.id === inicial.marcaId : !!m.padrao,
+    }, m.name)));
+
+  // O aviso aparece assim que o endereço é reconhecido, e não depois da espera.
+  const alertaRede = el('div', { class: 'aviso tiny', style: 'display:none;margin-top:6px' },
+    el('div', { style: 'margin-bottom:4px', text: 'Esse endereço não abre para leitura automática — a página é montada por JavaScript e exige login.' }),
+    el('div', { text: 'Abra o post, copie a legenda e cole no campo abaixo. Com o texto colado, eu escrevo normalmente.' }));
+  const conferirUrl = () => {
+    const fechada = redeFechada(url.value.trim());
+    alertaRede.style.display = fechada ? '' : 'none';
+    if (fechada) colado.setAttribute('placeholder', 'Cole aqui a legenda do post — sem ela, este link não rende nada.');
+  };
+  url.addEventListener('input', conferirUrl);
+  conferirUrl();
 
   const caixas = el('div', { class: 'cw-formatos' });
   for (const [chave, f] of Object.entries(redator.FORMATOS)) {
@@ -849,7 +894,7 @@ async function deLink() {
   }
 
   const corpo = el('div', {},
-    el('div', { class: 'field' }, el('label', { text: 'Link' }), url),
+    el('div', { class: 'field' }, el('label', { text: 'Link' }), url, alertaRede),
     el('div', { class: 'field' }, el('label', { text: 'Ou o texto, colado' }), colado,
       el('div', { class: 'hint', text: 'Post do Instagram quase sempre exige login e não abre sozinho. Nesse caso, cole a legenda aqui — sem material de verdade, nada é escrito.' })),
     el('div', { class: 'field' }, el('label', { text: 'Formatos' }), caixas),
@@ -923,10 +968,18 @@ async function deLink() {
   // afirmando coisas sobre uma matéria que ninguém leu.
   const variacoes = (saida.dados.variacoes ?? []).filter((v) => v?.corpo || v?.cards?.length);
   if (!saida.dados.fonte_lida && !pedido.colado) {
+    // Mandar colar o texto sem oferecer onde colar é um beco sem saída: o
+    // formulário já fechou, e voltar significava redigitar formatos, objetivo,
+    // público e instrução extra. O botão devolve tudo como estava, faltando só
+    // o que de fato falta.
     estado.className = 'aviso';
     estado.replaceChildren(
-      el('div', { style: 'margin-bottom:6px', text: 'Não consegui ler esse link — provavelmente exige login (é o caso do Instagram) ou bloqueia leitura automática.' }),
-      el('div', { text: 'Abra a página, copie o texto e cole no campo "Ou o texto, colado". Aí eu escrevo.' }));
+      el('div', { style: 'margin-bottom:6px', text: 'Não consegui ler esse link — a página é montada por JavaScript e exige login (é o caso do Instagram, TikTok, Facebook e LinkedIn).' }),
+      el('div', { style: 'margin-bottom:10px', text: 'Abra a página, copie o texto e cole no campo "Ou o texto, colado". Aí eu escrevo.' }),
+      el('button', {
+        class: 'btn primary sm', text: 'Colar o texto agora',
+        onclick: () => { espera.close(); deLink(pedido); },
+      }));
     return;
   }
   if (!variacoes.length) {
