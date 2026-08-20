@@ -14,6 +14,7 @@ import { encode as qrEncode, toSvg as qrToSvg } from '../core/qr.js';
 import { on, emit } from '../core/bus.js';
 import { el, truncate, clamp, download } from '../core/util.js';
 import { sectionCard, emptyState, formModal, confirmDialog, toast } from '../ui/components.js';
+import { botaoPartilhar } from '../ui/partilha.js';
 
 const PADRAO = {
   fonte: 58,          // px na tela do exibidor
@@ -268,6 +269,7 @@ function abaEditor(script) {
     sectionCard(script.title, [
       el('button', { class: 'btn sm', text: 'Renomear', onclick: () => renomear(script) }),
       el('button', { class: 'btn sm', text: 'Exportar', onclick: () => exportar(script) }),
+      botaoPartilhar('scripts', script, script.title),
       el('button', { class: 'btn sm danger', text: 'Excluir', onclick: () => excluir(script) }),
     ], area, contagem),
     el('div', { class: 'grid', style: 'align-content:start' },

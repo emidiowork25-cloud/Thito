@@ -5,6 +5,7 @@ import * as jarbas from '../assistant/jarbas.js';
 import * as modelo from '../core/modelo.js';
 import * as redator from '../core/redator.js';
 import * as leitor from '../core/leitor.js';
+import { botaoPartilhar } from '../ui/partilha.js';
 import { on, emit } from '../core/bus.js';
 import {
   el, today, uid, truncate, norm, num, money, fmtDate, download, pickFile, sum,
@@ -197,6 +198,7 @@ function editorPeca(p) {
     el('button', { class: 'btn sm', text: '✦ Virar roteiro', onclick: () => pedir(p, 'roteiro') }),
     el('button', { class: 'btn sm', text: '✦ Revisar', onclick: () => pedir(p, 'revisar') }),
     el('button', { class: 'btn sm', text: '📅 Agendar publicação', onclick: () => agendar(p) }),
+    botaoPartilhar('copies', p, p.title),
   );
   body.append(ia);
 

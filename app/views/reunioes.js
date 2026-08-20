@@ -2,6 +2,7 @@
 
 import * as store from '../core/store.js';
 import * as jarbas from '../assistant/jarbas.js';
+import { botaoPartilhar } from '../ui/partilha.js';
 import { on, emit } from '../core/bus.js';
 import { el, today, uid, fmtDate, relDay, truncate, download } from '../core/util.js';
 import { sectionCard, emptyState, formModal, confirmDialog, toast } from '../ui/components.js';
@@ -97,6 +98,7 @@ function detalhe(m) {
     el('button', { class: 'btn sm', text: 'Resumir', onclick: () => resumir(m) }),
     el('button', { class: 'btn sm', text: 'Virar mapa mental', onclick: () => virarMapa(m) }),
     el('button', { class: 'btn sm', text: 'Exportar', onclick: () => exportar(m) }),
+    botaoPartilhar('meetings', m, m.title),
   ];
 
   return sectionCard(m.title, acoesCard, body);

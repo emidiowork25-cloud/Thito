@@ -10,6 +10,7 @@ import * as visao from '../core/visao.js';
 import { on, emit } from '../core/bus.js';
 import { el, uid, truncate, pickFile } from '../core/util.js';
 import { indexar } from '../ui/arvore.js';
+import { botaoPartilhar } from '../ui/partilha.js';
 import { quadroDeMapa, exportarSvg, PALETA, AJUDA_MAPA } from '../ui/mapa.js';
 import { sectionCard, emptyState, formModal, confirmDialog, modal, toast } from '../ui/components.js';
 
@@ -78,6 +79,7 @@ function canvasMapa(mapa) {
       title: `Devolve ${movidos} nó(s) movido(s) ao lugar calculado`,
       onclick: () => reorganizar(mapa),
     }) : null,
+    botaoPartilhar('mindmaps', mapa, mapa.title),
     el('button', {
       class: 'btn sm', text: 'SVG', title: 'Exportar',
       onclick: () => { exportarSvg(svg, mapa.title); toast('SVG exportado.', 'ok'); },

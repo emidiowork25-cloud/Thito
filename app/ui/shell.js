@@ -16,6 +16,7 @@ import * as agenda from '../views/agenda.js';
 import * as financas from '../views/financas.js';
 import * as compras from '../views/compras.js';
 import * as mindmap from '../views/mindmap.js';
+import * as rede from '../views/rede.js';
 import * as reunioes from '../views/reunioes.js';
 import * as apresentacoes from '../views/apresentacoes.js';
 import * as freela from '../views/freela.js';
@@ -42,6 +43,7 @@ export const VIEWS = {
   financas: { mod: financas, title: 'Finanças', icon: '◈' },
   freela: { mod: freela, title: 'Freela', icon: '◆' },
   mindmap: { mod: mindmap, title: 'Mind maps', icon: '⁂' },
+  rede: { mod: rede, title: 'Rede', icon: '◍' },
   reunioes: { mod: reunioes, title: 'Reuniões', icon: '❐' },
   rotina: { mod: rotina, title: 'Rotina', icon: '↻' },
   senhas: { mod: senhas, title: 'Senhas e acessos', icon: '⛨' },

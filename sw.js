@@ -9,7 +9,7 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'jarbas-v46';
+const VERSAO = 'jarbas-v47';
 
 const CASCA = [
   './',
@@ -29,6 +29,7 @@ const CASCA = [
   './app/core/contas.js',
   './app/core/db.js',
   './app/core/leitor.js',
+  './app/core/rede.js',
   './app/core/modelo.js',
   './app/core/prefs.js',
   './app/core/qr.js',
@@ -42,6 +43,7 @@ const CASCA = [
   './app/core/visao.js',
   './app/ui/arvore.js',
   './app/ui/mapa.js',
+  './app/ui/partilha.js',
   './app/ui/components.js',
   './app/ui/icones.js',
   './app/ui/shell.js',
@@ -63,6 +65,7 @@ const CASCA = [
   './app/views/financas.js',
   './app/views/freela.js',
   './app/views/mindmap.js',
+  './app/views/rede.js',
   './app/views/reunioes.js',
   './app/views/rotina.js',
   './app/views/senhas.js',

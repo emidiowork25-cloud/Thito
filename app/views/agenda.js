@@ -8,6 +8,7 @@ import {
   fmtDate, fmtTime, relDay, weekdayName,
 } from '../core/util.js';
 import { sectionCard, emptyState, proximoCompromisso, formModal, confirmDialog, toast } from '../ui/components.js';
+import { abrirPartilha } from '../ui/partilha.js';
 
 let cursor = today();     // mês exibido
 let selected = today();   // dia selecionado
@@ -211,6 +212,13 @@ async function editarEvento(ev = {}) {
       { name: 'notas', label: 'Notas', type: 'textarea', rows: 3, placeholder: 'Local, link da chamada, pauta…' },
     ],
     extraButtons: novo ? null : (close) => [
+      // Compartilhar mora aqui dentro porque é aqui que o compromisso já está
+      // aberto e inteiro — na linha da lista faltaria a nota, que é justamente
+      // onde mora o link da chamada.
+      el('button', {
+        class: 'btn', text: 'Compartilhar',
+        onclick: () => { close(); abrirPartilha('events', ev, ev.title); },
+      }),
       el('button', {
         class: 'btn danger', text: 'Excluir',
         onclick: async () => {
@@ -254,6 +262,10 @@ async function editarTarefa(t = {}) {
       { name: 'notas', label: 'Notas', type: 'textarea', rows: 3 },
     ],
     extraButtons: novo ? null : (close) => [
+      el('button', {
+        class: 'btn', text: 'Compartilhar',
+        onclick: () => { close(); abrirPartilha('tasks', t, t.title); },
+      }),
       el('button', {
         class: 'btn danger', text: 'Excluir',
         onclick: async () => { close(); await store.remove('tasks', t.id); toast('Tarefa excluída.'); emit('nav:refresh'); },
