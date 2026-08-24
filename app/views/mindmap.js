@@ -79,6 +79,7 @@ function canvasMapa(mapa) {
       title: `Devolve ${movidos} nó(s) movido(s) ao lugar calculado`,
       onclick: () => reorganizar(mapa),
     }) : null,
+    el('button', { class: 'btn sm', text: 'Apresentar', title: 'Abrir em tela cheia', onclick: () => apresentar(mapa) }),
     botaoPartilhar('mindmaps', mapa, mapa.title),
     el('button', {
       class: 'btn sm', text: 'SVG', title: 'Exportar',
@@ -404,3 +405,166 @@ function gerarComJarbas() {
 }
 
 on('action:new-mindmap', () => novoMapa());
+
+
+/* ============================ apresentar ============================ */
+
+/**
+ * O mapa numa tela só, para mostrar a alguém.
+ *
+ * Duas coisas fazem esta função existir em vez de um simples `requestFullscreen`
+ * no cartão.
+ *
+ * A primeira: o cartão vive apertado entre o menu, o painel lateral e a barra de
+ * título. Pedir tela cheia nele levaria junto essa moldura toda. Aqui o mapa
+ * ganha a tela inteira e mais nada.
+ *
+ * A segunda: o Safari do iPhone NÃO implementa `requestFullscreen` fora de
+ * vídeo. Se a apresentação dependesse dela, o botão não faria nada no aparelho
+ * onde a pessoa mais provavelmente vai querer mostrar o mapa — e um botão que
+ * não faz nada é pior do que um botão ausente. Então a camada de tela cheia é
+ * uma sobreposição que ocupa a viewport inteira, e SEMPRE funciona; a tela
+ * cheia de verdade, quando existe, é um extra que só tira as barras do
+ * navegador. Onde não existe, a tela diz o caminho em vez de piscar em silêncio.
+ */
+function apresentar(mapa) {
+  // Vista própria: o zoom da apresentação não mexe no zoom do editor, e voltar
+  // da apresentação devolve o mapa como ele estava.
+  const palco = { zoom: 1, pan: { x: 0, y: 0 } };
+  let focado = null;
+
+  const caixa = el('div', { class: 'mm-palco' });
+  const titulo = el('div', { class: 'mm-palco-titulo', text: mapa.title });
+  const recado = el('div', { class: 'mm-palco-recado' });
+  const area = el('div', { class: 'mm-palco-area' });
+
+  const temTelaCheia = !!(caixa.requestFullscreen || caixa.webkitRequestFullscreen);
+  const emTelaCheia = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+
+  /**
+   * Põe o mapa inteiro dentro da tela, do tamanho que der.
+   *
+   * Sem isto, apresentar era só o mapa do cartão numa moldura maior: a moldura
+   * do desenho tem uma margem generosa e um piso de largura, feitos para o
+   * cartão não ficar apertado — e num telão essa folga vira um mapa pequeno no
+   * meio do vazio, que é o oposto do que se quer ao mostrar para alguém.
+   *
+   * A conta é sobre o que foi REALMENTE desenhado (`getBBox` do grupo), e não
+   * sobre a moldura: é a diferença entre encher a tela com o mapa e encher a
+   * tela com a margem dele.
+   */
+  const caber = (svg) => {
+    const g = svg.querySelector('g');
+    if (!g) return;
+    let cx;
+    try { cx = g.getBBox(); } catch { return; }        // elemento ainda sem layout
+    if (!cx.width || !cx.height) return;
+
+    const vb = svg.viewBox.baseVal;
+    const folga = 0.9;                                  // um respiro nas bordas
+    palco.zoom = Math.min(3, Math.max(0.2, Math.min(vb.width / cx.width, vb.height / cx.height) * folga));
+    palco.pan = {
+      x: vb.x + vb.width / 2 - (cx.x + cx.width / 2) * palco.zoom,
+      y: vb.y + vb.height / 2 - (cx.y + cx.height / 2) * palco.zoom,
+    };
+    g.setAttribute('transform', `translate(${palco.pan.x} ${palco.pan.y}) scale(${palco.zoom})`);
+  };
+
+  const desenhar = ({ encaixar = false } = {}) => {
+    const atual = store.get('mindmaps', mapa.id) ?? mapa;
+    const { svg } = quadroDeMapa({
+      nodes: atual.nodes ?? [],
+      vista: palco,
+      selecionado: focado,
+      aoSelecionar: (id) => { focado = focado === id ? null : id; desenhar(); },
+      // Abrir e fechar um ramo muda o tamanho do mapa; reencaixar mantém tudo
+      // à vista, que é justamente para isso que se abre um ramo diante de gente.
+      // Sem aoEditar e sem arrastar: apresentar é mostrar, não mexer.
+      arrastavel: false,
+      salvarNo: (id, patch) => atualizarNo(atual, id, patch),
+      deslocAtual: (id) => (atual.nodes ?? []).find((n) => n.id === id)?.desloc ?? { x: 0, y: 0 },
+      redesenhar: () => desenhar({ encaixar: true }),
+    });
+    area.replaceChildren(svg);
+    // O encaixe precisa do elemento já no documento: getBBox de quem não foi
+    // desenhado ainda devolve zero, e a conta inteira sairia errada.
+    if (encaixar) caber(svg);
+  };
+
+  const sair = () => {
+    window.removeEventListener('keydown', tecla);
+    document.removeEventListener('fullscreenchange', olhoNaTela);
+    if (emTelaCheia()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+    caixa.remove();
+  };
+
+  const pedirTelaCheia = async () => {
+    if (emTelaCheia()) {
+      (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+      return;
+    }
+    if (!temTelaCheia) {
+      recado.textContent = 'Este navegador não tem tela cheia de verdade (é o caso do Safari no iPhone). '
+        + 'O mapa já está ocupando a tela toda; para sumir também com as barras, use Compartilhar › '
+        + 'Adicionar à Tela de Início e abra o JARBAS por ali.';
+      return;
+    }
+    try {
+      await (caixa.requestFullscreen || caixa.webkitRequestFullscreen).call(caixa);
+    } catch (e) {
+      recado.textContent = `A tela cheia foi recusada (${e.message}). O mapa continua ocupando a tela toda.`;
+    }
+  };
+
+  const olhoNaTela = () => {
+    botaoTela.textContent = emTelaCheia() ? '⤡ Sair da tela cheia' : '⛶ Tela cheia';
+    // Entrar e sair da tela cheia muda a altura útil; sem reencaixar, o mapa
+    // ficaria do tamanho da tela anterior.
+    setTimeout(() => desenhar({ encaixar: true }), 60);
+  };
+
+  const zoom = (f) => { palco.zoom = Math.min(3, Math.max(0.25, palco.zoom * f)); desenhar(); };
+  // "Centralizar" volta a encaixar o mapa na tela, e não ao zoom 1: numa
+  // apresentação, o que se quer de volta é a visão do todo.
+  const centralizar = () => desenhar({ encaixar: true });
+
+  function tecla(e) {
+    // Esc sai de tudo de uma vez, e não em dois toques.
+    //
+    // O navegador já usa o Esc para largar a tela cheia, e a tentação é deixar
+    // o primeiro toque só fazer isso. Mas quem aperta Esc numa apresentação
+    // quer voltar ao trabalho, não ver a barra de endereços — e `sair` já
+    // desfaz a tela cheia antes de fechar o palco.
+    if (e.key === 'Escape') { sair(); return; }
+    if (e.key === '+' || e.key === '=') zoom(1.18);
+    else if (e.key === '-' || e.key === '_') zoom(0.85);
+    else if (e.key === '0') centralizar();
+    else if (e.key.toLowerCase() === 'f') pedirTelaCheia();
+  }
+
+  const botaoTela = el('button', { class: 'btn sm', text: '⛶ Tela cheia', onclick: pedirTelaCheia });
+
+  caixa.append(
+    el('div', { class: 'mm-palco-barra' },
+      titulo,
+      el('div', { class: 'spacer' }),
+      el('button', { class: 'btn sm', text: '−', title: 'Afastar', onclick: () => zoom(0.85) }),
+      el('button', { class: 'btn sm', text: '+', title: 'Aproximar', onclick: () => zoom(1.18) }),
+      el('button', { class: 'btn sm', text: 'Centralizar', onclick: centralizar }),
+      botaoTela,
+      el('button', { class: 'btn sm danger', text: '✕ Sair', title: 'Fechar a apresentação (Esc)', onclick: sair })),
+    area,
+    recado,
+    el('div', { class: 'mm-palco-ajuda tiny dim' },
+      'Arraste o fundo para deslocar · roda do mouse ou + e − para o zoom · 0 centraliza · '
+      + 'o círculo na ponta de um nó esconde e mostra o ramo · Esc sai'),
+  );
+
+  document.body.append(caixa);
+  window.addEventListener('keydown', tecla);
+  document.addEventListener('fullscreenchange', olhoNaTela);
+  desenhar({ encaixar: true });
+  // A tela cheia é pedida no clique do usuário, que é o que os navegadores
+  // exigem — este chamado está dentro do onclick de "Apresentar".
+  pedirTelaCheia();
+}

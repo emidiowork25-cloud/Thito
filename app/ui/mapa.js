@@ -67,6 +67,7 @@ export function coresDosRamos(nodes) {
  * @param {(n)=>void} [opcoes.aoEditar] duplo clique
  * @param {(id, patch)=>Promise} opcoes.salvarNo
  * @param {(id)=>{x,y}} [opcoes.deslocAtual] lê o deslocamento gravado agora
+ * @param {boolean} [opcoes.arrastavel] deixa mover nó com o dedo/mouse
  * @param {()=>void} opcoes.redesenhar
  */
 export function quadroDeMapa({
@@ -79,6 +80,14 @@ export function quadroDeMapa({
   aoEditar,
   salvarNo,
   deslocAtual = () => ({ x: 0, y: 0 }),
+  // Apresentando, o mapa não se deixa remexer.
+  //
+  // Não é frescura: arrastar um nó GRAVA o deslocamento. Num telão, diante de
+  // gente, o gesto de apontar vira o gesto de arrastar com uma facilidade
+  // constrangedora — e o mapa voltaria da reunião diferente de como foi, sem
+  // ninguém ter decidido isso. Arrastar o FUNDO continua valendo, porque
+  // deslocar a vista não muda nada do que está guardado.
+  arrastavel = true,
   redesenhar,
 }) {
   const nodes = visiveis(todos);
@@ -193,6 +202,7 @@ export function quadroDeMapa({
    * deslocamento em relação ao lugar calculado, não a coordenada — ver arvore.js.
    */
   function iniciarArrasto(e, n) {
+    if (!arrastavel) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.stopPropagation();
     const escala = porPixel();
@@ -242,14 +252,21 @@ export function quadroDeMapa({
   let panBase = null;
   svg.addEventListener('pointerdown', (e) => {
     panBase = { x: e.clientX - vista.pan.x, y: e.clientY - vista.pan.y };
-    svg.setPointerCapture?.(e.pointerId);
+    // Capturar o ponteiro é conveniência, não requisito: serve para o arrasto
+    // continuar valendo se o dedo sair do SVG. Quando o navegador recusa — um
+    // ponteiro que já terminou, um evento sintético — ele LANÇA, e um erro solto
+    // dentro do pointerdown mata o resto do gesto. O pan funciona sem isto.
+    try { svg.setPointerCapture?.(e.pointerId); } catch { /* segue sem captura */ }
   });
   svg.addEventListener('pointermove', (e) => {
     if (!panBase) return;
     vista.pan = { x: e.clientX - panBase.x, y: e.clientY - panBase.y };
     g.setAttribute('transform', `translate(${vista.pan.x} ${vista.pan.y}) scale(${vista.zoom})`);
   });
-  const soltarPan = (e) => { svg.releasePointerCapture?.(e.pointerId); panBase = null; };
+  const soltarPan = (e) => {
+    try { svg.releasePointerCapture?.(e.pointerId); } catch { /* já solto */ }
+    panBase = null;
+  };
   svg.addEventListener('pointerup', soltarPan);
   svg.addEventListener('pointercancel', soltarPan);
 
