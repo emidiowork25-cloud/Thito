@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
-import { Flame, ShoppingBag } from 'lucide-react';
+import { Flame, ShoppingBag, MapPin, Clock, MessageCircle, UtensilsCrossed, Truck } from 'lucide-react';
 
 export default function Home() {
   const router = useRouter();
@@ -49,15 +49,45 @@ export default function Home() {
       </header>
 
       {/* Hero */}
-      <section className="max-w-7xl mx-auto px-4 py-24 text-center">
+      <section className="max-w-7xl mx-auto px-4 py-16 text-center">
         <h2 className="text-5xl md:text-6xl font-bold mb-6">
           Bem-vindo à <span className="bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">Chapa Quente</span>
         </h2>
-        <p className="text-xl text-[#11BACA]/70 mb-12 max-w-2xl mx-auto">
-          O ponto certo da sua fome! Cardápio digital, pedidos rápidos e acompanhamento em tempo real.
+        <p className="text-2xl text-[#FFA24D] font-bold mb-4">
+          O ponto certo da sua fome! 🔥
+        </p>
+        <p className="text-lg text-[#11BACA]/70 mb-12 max-w-2xl mx-auto">
+          Mais sabor, mais qualidade, mais Chapa Quente!
         </p>
 
-        <div className="grid md:grid-cols-2 gap-8 mt-16">
+        {/* Business Info Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          {/* Hours */}
+          <div className="card-highlight p-6 border border-[#FFA24D]/30 hover:border-[#FFA24D] transition-all">
+            <Clock className="w-10 h-10 mx-auto mb-3 text-[#FFA24D]" />
+            <h4 className="font-bold text-[#FFA24D] mb-2">HORÁRIO</h4>
+            <p className="text-white font-semibold text-lg mb-1">16:00 às 02:00</p>
+            <p className="text-[#11BACA]/60 text-sm">Todos os dias</p>
+          </div>
+
+          {/* Location */}
+          <div className="card-highlight p-6 border border-[#11BACA]/30 hover:border-[#11BACA] transition-all">
+            <MapPin className="w-10 h-10 mx-auto mb-3 text-[#11BACA]" />
+            <h4 className="font-bold text-[#11BACA] mb-2">LOCALIZAÇÃO</h4>
+            <p className="text-white font-semibold text-lg mb-1">Charnequinha</p>
+            <p className="text-[#11BACA]/60 text-sm">Cabo de Santo Agostinho - PE</p>
+          </div>
+
+          {/* Services */}
+          <div className="card-highlight p-6 border border-[#A60E35]/30 hover:border-[#A60E35] transition-all">
+            <Truck className="w-10 h-10 mx-auto mb-3 text-[#A60E35]" />
+            <h4 className="font-bold text-[#A60E35] mb-2">ATENDIMENTO</h4>
+            <p className="text-white font-semibold text-lg mb-1">Loja & Delivery</p>
+            <p className="text-[#11BACA]/60 text-sm">iFood & WhatsApp</p>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 mt-12">
           {/* Customer CTA */}
           <div className="card-highlight p-8">
             <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-[#FFA24D]" />
@@ -86,6 +116,33 @@ export default function Home() {
             >
               {isAuthenticated && user?.userType === 'store' ? 'Ir ao Dashboard' : 'Cadastrar Loja'}
             </button>
+          </div>
+        </div>
+
+        {/* Contact Section */}
+        <div className="mt-12 p-8 rounded-xl bg-gradient-to-r from-[#FFA24D]/10 to-[#A60E35]/10 border border-[#FFA24D]/20">
+          <h3 className="text-2xl font-bold mb-6 text-white">Outras formas de Contato</h3>
+          <div className="grid md:grid-cols-2 gap-6">
+            <a
+              href="https://wa.me/558799999999"
+              className="flex items-center gap-4 p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all border border-[#11BACA]/20 hover:border-[#11BACA]"
+            >
+              <MessageCircle className="w-8 h-8 text-[#11BACA]" />
+              <div className="text-left">
+                <p className="font-semibold">WhatsApp</p>
+                <p className="text-sm text-gray-400">Faça seu pedido direto</p>
+              </div>
+            </a>
+            <a
+              href="https://ifood.com.br"
+              className="flex items-center gap-4 p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all border border-[#FFA24D]/20 hover:border-[#FFA24D]"
+            >
+              <UtensilsCrossed className="w-8 h-8 text-[#FFA24D]" />
+              <div className="text-left">
+                <p className="font-semibold">iFood</p>
+                <p className="text-sm text-gray-400">Peça pelo app</p>
+              </div>
+            </a>
           </div>
         </div>
       </section>
