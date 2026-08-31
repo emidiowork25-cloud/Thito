@@ -53,7 +53,7 @@ export default function MenuPage() {
   };
 
   if (isLoading) {
-    return <div className="min-h-screen bg-gray-900 flex items-center justify-center">Carregando...</div>;
+    return <div className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17] flex items-center justify-center">Carregando...</div>;
   }
 
   if (!isAuthenticated) {
@@ -63,11 +63,11 @@ export default function MenuPage() {
 
   if (!storeIdParam) {
     return (
-      <main className="min-h-screen bg-gray-900">
-        <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80 backdrop-blur">
+      <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
+        <header className="border-b border-[#11BACA]/20 sticky top-0 z-50 bg-[#031B2B]/90 backdrop-blur">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Flame className="w-8 h-8 text-orange-500" />
+              <Flame className="w-8 h-8 text-[#FFA24D]" />
               <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
                 Chapa Quente
               </h1>
@@ -86,12 +86,12 @@ export default function MenuPage() {
     : menuItems;
 
   return (
-    <main className="min-h-screen bg-gray-900">
+    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
       {/* Header */}
-      <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80 backdrop-blur">
+      <header className="border-b border-[#11BACA]/20 sticky top-0 z-50 bg-[#031B2B]/90 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Flame className="w-8 h-8 text-orange-500" />
+            <Flame className="w-8 h-8 text-[#FFA24D]" />
             <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
               Chapa Quente
             </h1>
@@ -173,7 +173,7 @@ export default function MenuPage() {
 
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-2xl font-bold text-orange-500">
+                      <p className="text-2xl font-bold text-[#FFA24D]">
                         R$ {item.price.toFixed(2)}
                       </p>
                       {item.category && <p className="text-xs text-gray-500">{item.category}</p>}

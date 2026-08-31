@@ -53,20 +53,20 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-900 to-black flex items-center justify-center px-4">
+    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Flame className="w-12 h-12 text-orange-500" />
+            <Flame className="w-12 h-12 text-[#FFA24D]" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
             Chapa Quente
           </h1>
         </div>
 
         {/* Form */}
-        <div className="card-menu p-8">
+        <div className="card-highlight p-8">
           <h2 className="text-2xl font-bold mb-6">Criar Conta</h2>
 
           {error && (
@@ -83,7 +83,7 @@ export default function RegisterPage() {
                 onClick={() => setUserType('customer')}
                 className={`p-4 rounded-lg font-semibold transition-all ${
                   userType === 'customer'
-                    ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white'
+                    ? 'bg-gradient-to-r from-[#FFA24D] to-[#A60E35] text-white'
                     : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
                 }`}
               >
@@ -94,7 +94,7 @@ export default function RegisterPage() {
                 onClick={() => setUserType('store')}
                 className={`p-4 rounded-lg font-semibold transition-all ${
                   userType === 'store'
-                    ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white'
+                    ? 'bg-gradient-to-r from-[#FFA24D] to-[#A60E35] text-white'
                     : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
                 }`}
               >
@@ -148,7 +148,7 @@ export default function RegisterPage() {
             Já tem conta?{' '}
             <button
               onClick={() => router.push('/login')}
-              className="text-orange-500 hover:text-orange-400 font-semibold"
+              className="text-[#FFA24D] hover:text-[#ff9338] font-semibold"
             >
               Entre aqui
             </button>

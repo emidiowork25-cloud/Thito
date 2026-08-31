@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Chapa Quente Color Palette */
+:root {
+  --color-dark-bg: #031B2B;
+  --color-cyan: #11BACA;
+  --color-orange: #FFA24D;
+  --color-red: #A60E35;
+  --color-gray-900: #0a0e17;
+  --color-gray-800: #1a2332;
+  --color-gray-700: #2a3d52;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -15,35 +26,58 @@ html {
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
     'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  background: linear-gradient(135deg, var(--color-gray-900) 0%, var(--color-dark-bg) 100%);
 }
 
 /* Chapa Quente Branding */
 .brand-gradient {
-  background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%);
+  background: linear-gradient(135deg, #FFA24D 0%, #A60E35 100%);
 }
 
 .brand-gradient-dark {
-  background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+  background: linear-gradient(135deg, #A60E35 0%, #031B2B 100%);
+}
+
+.brand-gradient-cyan {
+  background: linear-gradient(135deg, #11BACA 0%, #FFA24D 100%);
 }
 
 .btn-primary {
   @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
-  @apply bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700;
-  @apply text-white shadow-lg hover:shadow-xl;
+  @apply bg-gradient-to-r from-[#FFA24D] to-[#A60E35] hover:from-[#ff9338] hover:to-[#8b0a2a];
+  @apply text-white shadow-lg hover:shadow-2xl;
 }
 
 .btn-secondary {
   @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
-  @apply bg-gray-700 hover:bg-gray-600 text-white border border-gray-600;
+  @apply bg-[#2a3d52] hover:bg-[#364a62] text-white border border-[#11BACA]/30 hover:border-[#11BACA]/60;
+}
+
+.btn-tertiary {
+  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
+  @apply bg-transparent border-2 border-[#11BACA] text-[#11BACA] hover:bg-[#11BACA]/10;
 }
 
 .card-menu {
-  @apply bg-gray-800 rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300;
-  @apply border border-gray-700 hover:border-orange-500;
+  @apply bg-[#1a2332] rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300;
+  @apply border border-[#2a3d52] hover:border-[#11BACA];
+}
+
+.card-highlight {
+  @apply bg-gradient-to-br from-[#1a2332] to-[#2a3d52] rounded-xl overflow-hidden;
+  @apply border border-[#11BACA]/20 hover:border-[#11BACA]/60 transition-all duration-300;
 }
 
 .flame-icon {
-  background: linear-gradient(135deg, #ff9100 0%, #ff6b35 100%);
+  background: linear-gradient(135deg, #FFA24D 0%, #A60E35 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.cyan-text {
+  color: #11BACA;
+}
+
+.orange-text {
+  color: #FFA24D;
 }

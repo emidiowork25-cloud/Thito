@@ -53,7 +53,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17] flex items-center justify-center">
         <p className="text-gray-400">Carregando pedido...</p>
       </main>
     );
@@ -61,17 +61,17 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
   if (error || !order) {
     return (
-      <main className="min-h-screen bg-gray-900">
+      <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
         <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-2">
-            <Flame className="w-8 h-8 text-orange-500" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+            <Flame className="w-8 h-8 text-[#FFA24D]" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
               Chapa Quente
             </h1>
           </div>
         </header>
         <div className="max-w-2xl mx-auto px-4 py-12">
-          <div className="card-menu p-8 text-center">
+          <div className="card-highlight p-8 text-center">
             <p className="text-red-400 mb-4">{error || 'Pedido não encontrado'}</p>
           </div>
         </div>
@@ -82,12 +82,12 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
   const statusInfo = statusMap[order.status as keyof typeof statusMap];
 
   return (
-    <main className="min-h-screen bg-gray-900">
+    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
       {/* Header */}
       <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-2">
-          <Flame className="w-8 h-8 text-orange-500" />
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+          <Flame className="w-8 h-8 text-[#FFA24D]" />
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
             Chapa Quente
           </h1>
         </div>
@@ -95,7 +95,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="card-menu p-8 mb-8">
+        <div className="card-highlight p-8 mb-8">
           <div className="flex items-start justify-between mb-8">
             <div>
               <p className="text-sm text-gray-400 mb-1">Pedido #</p>
@@ -141,7 +141,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
         </div>
 
         {/* Items */}
-        <div className="card-menu p-8">
+        <div className="card-highlight p-8">
           <h3 className="text-xl font-bold mb-6">Itens do Pedido</h3>
           <div className="space-y-4 mb-6 pb-6 border-b border-gray-700">
             {order.items.map((item, idx) => (
@@ -157,7 +157,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
           <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
-            <span className="text-orange-500">R$ {order.totalPrice.toFixed(2)}</span>
+            <span className="text-[#FFA24D]">R$ {order.totalPrice.toFixed(2)}</span>
           </div>
         </div>
       </div>

@@ -49,13 +49,13 @@ export default function CartPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-900">
+    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
       {/* Header */}
       <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Flame className="w-8 h-8 text-orange-500" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+            <Flame className="w-8 h-8 text-[#FFA24D]" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
               Chapa Quente
             </h1>
           </div>
@@ -81,7 +81,7 @@ export default function CartPage() {
         )}
 
         {items.length === 0 ? (
-          <div className="card-menu p-12 text-center">
+          <div className="card-highlight p-12 text-center">
             <p className="text-gray-400 mb-6">Seu carrinho está vazio</p>
             <button
               onClick={() => router.back()}
@@ -95,10 +95,10 @@ export default function CartPage() {
             {/* Items */}
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => (
-                <div key={item.menuItemId} className="card-menu p-6 flex justify-between items-center">
+                <div key={item.menuItemId} className="card-highlight p-6 flex justify-between items-center">
                   <div className="flex-1">
                     <h3 className="text-lg font-bold mb-1">{item.name}</h3>
-                    <p className="text-orange-500 font-semibold">
+                    <p className="text-[#FFA24D] font-semibold">
                       R$ {(item.price * item.quantity).toFixed(2)}
                     </p>
                   </div>
@@ -132,7 +132,7 @@ export default function CartPage() {
             </div>
 
             {/* Summary */}
-            <div className="card-menu p-6 h-fit">
+            <div className="card-highlight p-6 h-fit">
               <h3 className="text-xl font-bold mb-6">Resumo</h3>
 
               <div className="space-y-3 mb-6 pb-6 border-b border-gray-700">
@@ -148,7 +148,7 @@ export default function CartPage() {
 
               <div className="flex justify-between text-lg font-bold mb-6">
                 <span>Total</span>
-                <span className="text-orange-500">R$ {total.toFixed(2)}</span>
+                <span className="text-[#FFA24D]">R$ {total.toFixed(2)}</span>
               </div>
 
               <button

@@ -124,15 +124,15 @@ export default function StoreDashboardPage() {
   const pendingOrders = orders.filter((o) => o.status === 'pending').length;
 
   return (
-    <main className="min-h-screen bg-gray-900">
+    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
       {/* Header */}
       <header className="border-b border-gray-700 bg-gray-900/80 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
-              <Flame className="w-8 h-8 text-orange-500" />
+              <Flame className="w-8 h-8 text-[#FFA24D]" />
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
                   Chapa Quente
                 </h1>
                 <p className="text-sm text-gray-400">Dashboard - {user?.name}</p>
@@ -157,7 +157,7 @@ export default function StoreDashboardPage() {
               onClick={() => setTab('orders')}
               className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                 tab === 'orders'
-                  ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white'
+                  ? 'bg-gradient-to-r from-[#FFA24D] to-[#A60E35] text-white'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
               }`}
             >
@@ -167,7 +167,7 @@ export default function StoreDashboardPage() {
               onClick={() => setTab('menu')}
               className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                 tab === 'menu'
-                  ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white'
+                  ? 'bg-gradient-to-r from-[#FFA24D] to-[#A60E35] text-white'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
               }`}
             >
@@ -192,12 +192,12 @@ export default function StoreDashboardPage() {
         {tab === 'orders' && (
           <div className="space-y-4">
             {orders.length === 0 ? (
-              <div className="card-menu p-8 text-center">
+              <div className="card-highlight p-8 text-center">
                 <p className="text-gray-400">Nenhum pedido ainda</p>
               </div>
             ) : (
               orders.map((order) => (
-                <div key={order.id} className="card-menu p-6">
+                <div key={order.id} className="card-highlight p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-lg font-bold"># {order.id.substring(0, 8)}</h3>
@@ -233,7 +233,7 @@ export default function StoreDashboardPage() {
                   </div>
 
                   <div className="flex justify-between items-center mb-4">
-                    <p className="text-lg font-bold text-orange-500">
+                    <p className="text-lg font-bold text-[#FFA24D]">
                       R$ {order.totalPrice.toFixed(2)}
                     </p>
                     {order.estimatedTimeMinutes && (
@@ -301,7 +301,7 @@ export default function StoreDashboardPage() {
 
             {/* New Item Form */}
             {showNewItemForm && (
-              <div className="card-menu p-6">
+              <div className="card-highlight p-6">
                 <h3 className="text-lg font-bold mb-6">Adicionar Item</h3>
                 <div className="space-y-4">
                   <input
@@ -356,7 +356,7 @@ export default function StoreDashboardPage() {
 
             {/* Menu Items */}
             {menuItems.length === 0 ? (
-              <div className="card-menu p-8 text-center">
+              <div className="card-highlight p-8 text-center">
                 <p className="text-gray-400 mb-4">Seu cardápio ainda está vazio</p>
                 <button
                   onClick={() => setShowNewItemForm(true)}
@@ -368,10 +368,10 @@ export default function StoreDashboardPage() {
             ) : (
               <div className="grid md:grid-cols-2 gap-6">
                 {menuItems.map((item) => (
-                  <div key={item.id} className="card-menu p-6">
+                  <div key={item.id} className="card-highlight p-6">
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="text-lg font-bold flex-1">{item.name}</h3>
-                      <span className="text-orange-500 font-bold">R$ {item.price.toFixed(2)}</span>
+                      <span className="text-[#FFA24D] font-bold">R$ {item.price.toFixed(2)}</span>
                     </div>
 
                     {item.description && (

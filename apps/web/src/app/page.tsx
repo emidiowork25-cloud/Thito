@@ -9,13 +9,13 @@ export default function Home() {
   const { isAuthenticated, user } = useAuth();
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-black">
+    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] via-[#0a0e17] to-[#1a2332]">
       {/* Header */}
-      <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80 backdrop-blur">
+      <header className="border-b border-[#11BACA]/20 sticky top-0 z-50 bg-[#031B2B]/90 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Flame className="w-8 h-8 text-orange-500" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+            <Flame className="w-8 h-8 text-[#FFA24D]" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
               Chapa Quente
             </h1>
           </div>
@@ -51,16 +51,16 @@ export default function Home() {
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-4 py-24 text-center">
         <h2 className="text-5xl md:text-6xl font-bold mb-6">
-          Bem-vindo à <span className="bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">Chapa Quente</span>
+          Bem-vindo à <span className="bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">Chapa Quente</span>
         </h2>
-        <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">
+        <p className="text-xl text-[#11BACA]/70 mb-12 max-w-2xl mx-auto">
           O ponto certo da sua fome! Cardápio digital, pedidos rápidos e acompanhamento em tempo real.
         </p>
 
         <div className="grid md:grid-cols-2 gap-8 mt-16">
           {/* Customer CTA */}
-          <div className="card-menu p-8">
-            <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-orange-500" />
+          <div className="card-highlight p-8">
+            <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-[#FFA24D]" />
             <h3 className="text-2xl font-bold mb-4">Sou Cliente</h3>
             <p className="text-gray-400 mb-6">
               Explore nosso cardápio digital, personalize seu pedido e acompanhe em tempo real.
@@ -74,8 +74,8 @@ export default function Home() {
           </div>
 
           {/* Store CTA */}
-          <div className="card-menu p-8">
-            <Flame className="w-16 h-16 mx-auto mb-4 text-orange-500" />
+          <div className="card-highlight p-8">
+            <Flame className="w-16 h-16 mx-auto mb-4 text-[#FFA24D]" />
             <h3 className="text-2xl font-bold mb-4">Sou Loja</h3>
             <p className="text-gray-400 mb-6">
               Gerencie seu cardápio, pedidos e acompanhe seus clientes em tempo real.
@@ -108,16 +108,16 @@ export default function Home() {
               description: 'Saiba exatamente quando seu pedido estará pronto',
             },
           ].map((feature, i) => (
-            <div key={i} className="card-menu p-6 text-center">
-              <h4 className="text-xl font-bold mb-3">{feature.title}</h4>
-              <p className="text-gray-400">{feature.description}</p>
+            <div key={i} className="card-highlight p-6 text-center">
+              <h4 className="text-xl font-bold mb-3 text-[#11BACA]">{feature.title}</h4>
+              <p className="text-[#11BACA]/60">{feature.description}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-700 mt-24 py-8 text-center text-gray-500">
+      <footer className="border-t border-[#11BACA]/20 mt-24 py-8 text-center text-[#11BACA]/40">
         <p>&copy; 2024 Chapa Quente. Todos os direitos reservados. 🔥</p>
       </footer>
     </main>
