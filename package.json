@@ -1,0 +1,21 @@
+{
+  "name": "thito-monorepo",
+  "version": "0.1.0",
+  "description": "Sistema de Pedidos e Cardápio Digital",
+  "private": true,
+  "workspaces": [
+    "apps/backend",
+    "apps/web",
+    "packages/types"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "start": "npm start --workspaces",
+    "db:setup": "cd apps/backend && npm run db:setup",
+    "db:seed": "cd apps/backend && npm run db:seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
