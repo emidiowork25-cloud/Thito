@@ -77,10 +77,10 @@ export default function Home() {
           </p>
           <p className="text-xl text-gray-200 mb-12 max-w-2xl mx-auto">
             Hambúrgueres frescos, suculentos e personalizados do seu jeito
-        </p>
+          </p>
 
-        {/* Business Info Cards */}
-        <div className="grid md:grid-cols-3 gap-6 mb-16">
+          {/* Business Info Cards */}
+          <div className="grid md:grid-cols-3 gap-6 mb-16">
           {/* Hours */}
           <div className="card-highlight p-6 border border-[#FFC107]/30 hover:border-[#FFC107] transition-all">
             <Clock className="w-10 h-10 mx-auto mb-3 text-[#FFC107]" />
@@ -163,6 +163,7 @@ export default function Home() {
               </div>
             </a>
           </div>
+        </div>
         </div>
       </section>
 
