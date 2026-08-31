@@ -2,15 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Chapa Quente Color Palette */
+/* Chapa Quente BURGRY Style - Yellow Gold Palette */
 :root {
-  --color-dark-bg: #031B2B;
-  --color-cyan: #11BACA;
-  --color-orange: #FFA24D;
-  --color-red: #A60E35;
-  --color-gray-900: #0a0e17;
-  --color-gray-800: #1a2332;
-  --color-gray-700: #2a3d52;
+  --color-dark-bg: #1a1a1a;
+  --color-gold: #FFC107;
+  --color-dark: #2a2a2a;
+  --color-gray-900: #0f0f0f;
+  --color-gray-800: #2a2a2a;
+  --color-gray-700: #3a3a3a;
 }
 
 * {
@@ -26,58 +25,76 @@ html {
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
     'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  background: linear-gradient(135deg, var(--color-gray-900) 0%, var(--color-dark-bg) 100%);
+  background: #1a1a1a;
+  color: white;
 }
 
-/* Chapa Quente Branding */
+/* Title with Gold Underline */
+.title-underline {
+  position: relative;
+  padding-bottom: 15px;
+}
+
+.title-underline::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 4px;
+  background: #FFC107;
+  border-radius: 2px;
+}
+
+.title-underline.left::after {
+  left: 0;
+  transform: none;
+}
+
+/* Chapa Quente BURGRY Branding */
 .brand-gradient {
-  background: linear-gradient(135deg, #FFA24D 0%, #A60E35 100%);
+  background: linear-gradient(135deg, #FFC107 0%, #FFD700 100%);
 }
 
 .brand-gradient-dark {
-  background: linear-gradient(135deg, #A60E35 0%, #031B2B 100%);
-}
-
-.brand-gradient-cyan {
-  background: linear-gradient(135deg, #11BACA 0%, #FFA24D 100%);
+  background: #FFC107;
+  color: #1a1a1a;
 }
 
 .btn-primary {
-  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
-  @apply bg-gradient-to-r from-[#FFA24D] to-[#A60E35] hover:from-[#ff9338] hover:to-[#8b0a2a];
-  @apply text-white shadow-lg hover:shadow-2xl;
+  @apply px-6 py-3 rounded-lg font-bold transition-all duration-200;
+  @apply bg-[#FFC107] hover:bg-[#FFD700];
+  @apply text-[#1a1a1a] shadow-lg hover:shadow-2xl;
 }
 
 .btn-secondary {
-  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
-  @apply bg-[#2a3d52] hover:bg-[#364a62] text-white border border-[#11BACA]/30 hover:border-[#11BACA]/60;
+  @apply px-6 py-3 rounded-lg font-bold transition-all duration-200;
+  @apply bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white border border-[#FFC107]/30 hover:border-[#FFC107];
 }
 
 .btn-tertiary {
-  @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
-  @apply bg-transparent border-2 border-[#11BACA] text-[#11BACA] hover:bg-[#11BACA]/10;
+  @apply px-6 py-3 rounded-lg font-bold transition-all duration-200;
+  @apply bg-transparent border-2 border-[#FFC107] text-[#FFC107] hover:bg-[#FFC107]/10;
 }
 
 .card-menu {
-  @apply bg-[#1a2332] rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300;
-  @apply border border-[#2a3d52] hover:border-[#11BACA];
+  @apply bg-[#2a2a2a] rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-300;
+  @apply border border-[#3a3a3a] hover:border-[#FFC107];
 }
 
 .card-highlight {
-  @apply bg-gradient-to-br from-[#1a2332] to-[#2a3d52] rounded-xl overflow-hidden;
-  @apply border border-[#11BACA]/20 hover:border-[#11BACA]/60 transition-all duration-300;
+  @apply bg-[#2a2a2a] rounded-xl overflow-hidden;
+  @apply border border-[#3a3a3a] hover:border-[#FFC107]/60 transition-all duration-300;
 }
 
-.flame-icon {
-  background: linear-gradient(135deg, #FFA24D 0%, #A60E35 100%);
+.gold-text {
+  color: #FFC107;
+}
+
+.gold-gradient {
+  background: linear-gradient(to right, #FFC107, #FFD700);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-}
-
-.cyan-text {
-  color: #11BACA;
-}
-
-.orange-text {
-  color: #FFA24D;
+  background-clip: text;
 }

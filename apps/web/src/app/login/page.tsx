@@ -45,14 +45,14 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17] flex items-center justify-center px-4">
+    <main className="min-h-screen bg-[#1a1a1a] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Flame className="w-12 h-12 text-[#FFA24D]" />
+            <Flame className="w-12 h-12 text-[#FFC107]" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-[#FFC107]">
             Chapa Quente
           </h1>
         </div>
@@ -62,32 +62,32 @@ export default function LoginPage() {
           <h2 className="text-2xl font-bold mb-6">Entrar</h2>
 
           {error && (
-            <div className="mb-4 p-4 bg-[#A60E35]/20 border border-[#A60E35] rounded-lg text-[#FFA24D] text-sm">
+            <div className="mb-4 p-4 bg-[#FFC107]/20 border border-[#FFC107] rounded-lg text-[#FFC107] text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#11BACA]">Email</label>
+              <label className="block text-sm font-medium mb-2 text-[#FFC107]">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2 bg-[#2a3d52] border border-[#11BACA]/30 rounded-lg focus:outline-none focus:border-[#11BACA] text-white placeholder-[#11BACA]/40"
+                className="w-full px-4 py-2 bg-gray-800 border border-[#FFC107]/30 rounded-lg focus:outline-none focus:border-[#FFC107] text-white placeholder-[#FFC107]/40"
                 placeholder="seu@email.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-[#11BACA]">Senha</label>
+              <label className="block text-sm font-medium mb-2 text-[#FFC107]">Senha</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-2 bg-[#2a3d52] border border-[#11BACA]/30 rounded-lg focus:outline-none focus:border-[#11BACA] text-white placeholder-[#11BACA]/40"
+                className="w-full px-4 py-2 bg-gray-800 border border-[#FFC107]/30 rounded-lg focus:outline-none focus:border-[#FFC107] text-white placeholder-[#FFC107]/40"
                 placeholder="••••••••"
               />
             </div>
@@ -97,11 +97,11 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-[#11BACA]/60 text-sm mt-6">
+          <p className="text-center text-[#FFC107]/60 text-sm mt-6">
             Não tem conta?{' '}
             <button
               onClick={() => router.push('/register')}
-              className="text-[#FFA24D] hover:text-[#ff9338] font-semibold"
+              className="text-[#FFC107] hover:text-[#FFD700] font-semibold"
             >
               Cadastre-se
             </button>

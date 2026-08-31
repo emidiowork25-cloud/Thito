@@ -124,15 +124,15 @@ export default function StoreDashboardPage() {
   const pendingOrders = orders.filter((o) => o.status === 'pending').length;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
+    <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-gray-700 bg-gray-900/80 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-[#FFC107]/20 bg-[#1a1a1a]/90 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
-              <Flame className="w-8 h-8 text-[#FFA24D]" />
+              <Flame className="w-8 h-8 text-[#FFC107]" />
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold text-[#FFC107]">
                   Chapa Quente
                 </h1>
                 <p className="text-sm text-gray-400">Dashboard - {user?.name}</p>
@@ -157,7 +157,7 @@ export default function StoreDashboardPage() {
               onClick={() => setTab('orders')}
               className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                 tab === 'orders'
-                  ? 'bg-gradient-to-r from-[#FFA24D] to-[#A60E35] text-white'
+                  ? 'bg-[#FFC107] text-[#1a1a1a]'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
               }`}
             >
@@ -167,7 +167,7 @@ export default function StoreDashboardPage() {
               onClick={() => setTab('menu')}
               className={`px-6 py-2 rounded-lg font-semibold transition-all ${
                 tab === 'menu'
-                  ? 'bg-gradient-to-r from-[#FFA24D] to-[#A60E35] text-white'
+                  ? 'bg-[#FFC107] text-[#1a1a1a]'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
               }`}
             >
@@ -175,7 +175,7 @@ export default function StoreDashboardPage() {
             </button>
             <button
               onClick={() => router.push('/store/menu')}
-              className="px-6 py-2 rounded-lg font-semibold bg-[#11BACA]/20 text-[#11BACA] hover:bg-[#11BACA]/30 transition-all ml-auto"
+              className="px-6 py-2 rounded-lg font-semibold bg-[#FFC107]/20 text-[#FFC107] hover:bg-[#FFC107]/30 transition-all ml-auto"
             >
               ➜ Gerenciar Itens Completo
             </button>
@@ -239,7 +239,7 @@ export default function StoreDashboardPage() {
                   </div>
 
                   <div className="flex justify-between items-center mb-4">
-                    <p className="text-lg font-bold text-[#FFA24D]">
+                    <p className="text-lg font-bold text-[#FFC107]">
                       R$ {order.totalPrice.toFixed(2)}
                     </p>
                     {order.estimatedTimeMinutes && (
@@ -315,7 +315,7 @@ export default function StoreDashboardPage() {
                     placeholder="Nome do item"
                     value={newItem.name}
                     onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                   />
 
                   <input
@@ -324,7 +324,7 @@ export default function StoreDashboardPage() {
                     value={newItem.price}
                     onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
                     step="0.01"
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                   />
 
                   <input
@@ -332,7 +332,7 @@ export default function StoreDashboardPage() {
                     placeholder="Categoria (opcional)"
                     value={newItem.category}
                     onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-orange-500"
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                   />
 
                   <textarea
@@ -377,7 +377,7 @@ export default function StoreDashboardPage() {
                   <div key={item.id} className="card-highlight p-6">
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="text-lg font-bold flex-1">{item.name}</h3>
-                      <span className="text-[#FFA24D] font-bold">R$ {item.price.toFixed(2)}</span>
+                      <span className="text-[#FFC107] font-bold">R$ {item.price.toFixed(2)}</span>
                     </div>
 
                     {item.description && (

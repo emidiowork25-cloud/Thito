@@ -9,13 +9,13 @@ export default function Home() {
   const { isAuthenticated, user } = useAuth();
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] via-[#0a0e17] to-[#1a2332]">
+    <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-[#11BACA]/20 sticky top-0 z-50 bg-[#031B2B]/90 backdrop-blur">
+      <header className="border-b border-[#FFC107]/20 sticky top-0 z-50 bg-[#1a1a1a]/90 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Flame className="w-8 h-8 text-[#FFA24D]" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
+            <Flame className="w-8 h-8 text-[#FFC107]" />
+            <h1 className="text-2xl font-bold text-[#FFC107]">
               Chapa Quente
             </h1>
           </div>
@@ -82,34 +82,34 @@ export default function Home() {
         {/* Business Info Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-16">
           {/* Hours */}
-          <div className="card-highlight p-6 border border-[#FFA24D]/30 hover:border-[#FFA24D] transition-all">
-            <Clock className="w-10 h-10 mx-auto mb-3 text-[#FFA24D]" />
-            <h4 className="font-bold text-[#FFA24D] mb-2">HORÁRIO</h4>
+          <div className="card-highlight p-6 border border-[#FFC107]/30 hover:border-[#FFC107] transition-all">
+            <Clock className="w-10 h-10 mx-auto mb-3 text-[#FFC107]" />
+            <h4 className="font-bold text-[#FFC107] mb-2">HORÁRIO</h4>
             <p className="text-white font-semibold text-lg mb-1">16:00 às 02:00</p>
-            <p className="text-[#11BACA]/60 text-sm">Todos os dias</p>
+            <p className="text-[#FFC107]/60 text-sm">Todos os dias</p>
           </div>
 
           {/* Location */}
-          <div className="card-highlight p-6 border border-[#11BACA]/30 hover:border-[#11BACA] transition-all">
-            <MapPin className="w-10 h-10 mx-auto mb-3 text-[#11BACA]" />
-            <h4 className="font-bold text-[#11BACA] mb-2">LOCALIZAÇÃO</h4>
+          <div className="card-highlight p-6 border border-[#FFC107]/30 hover:border-[#FFC107] transition-all">
+            <MapPin className="w-10 h-10 mx-auto mb-3 text-[#FFC107]" />
+            <h4 className="font-bold text-[#FFC107] mb-2">LOCALIZAÇÃO</h4>
             <p className="text-white font-semibold text-lg mb-1">Charnequinha</p>
-            <p className="text-[#11BACA]/60 text-sm">Cabo de Santo Agostinho - PE</p>
+            <p className="text-[#FFC107]/60 text-sm">Cabo de Santo Agostinho - PE</p>
           </div>
 
           {/* Services */}
-          <div className="card-highlight p-6 border border-[#A60E35]/30 hover:border-[#A60E35] transition-all">
-            <Truck className="w-10 h-10 mx-auto mb-3 text-[#A60E35]" />
-            <h4 className="font-bold text-[#A60E35] mb-2">ATENDIMENTO</h4>
+          <div className="card-highlight p-6 border border-[#FFC107]/30 hover:border-[#FFC107] transition-all">
+            <Truck className="w-10 h-10 mx-auto mb-3 text-[#FFC107]" />
+            <h4 className="font-bold text-[#FFC107] mb-2">ATENDIMENTO</h4>
             <p className="text-white font-semibold text-lg mb-1">Loja & Delivery</p>
-            <p className="text-[#11BACA]/60 text-sm">iFood & WhatsApp</p>
+            <p className="text-[#FFC107]/60 text-sm">iFood & WhatsApp</p>
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 mt-12">
           {/* Customer CTA */}
           <div className="card-highlight p-8">
-            <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-[#FFA24D]" />
+            <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-[#FFC107]" />
             <h3 className="text-2xl font-bold mb-4">Sou Cliente</h3>
             <p className="text-gray-400 mb-6">
               Explore nosso cardápio digital, personalize seu pedido e acompanhe em tempo real.
@@ -124,7 +124,7 @@ export default function Home() {
 
           {/* Store CTA */}
           <div className="card-highlight p-8">
-            <Flame className="w-16 h-16 mx-auto mb-4 text-[#FFA24D]" />
+            <Flame className="w-16 h-16 mx-auto mb-4 text-[#FFC107]" />
             <h3 className="text-2xl font-bold mb-4">Sou Loja</h3>
             <p className="text-gray-400 mb-6">
               Gerencie seu cardápio, pedidos e acompanhe seus clientes em tempo real.
@@ -139,14 +139,14 @@ export default function Home() {
         </div>
 
         {/* Contact Section */}
-        <div className="mt-12 p-8 rounded-xl bg-gradient-to-r from-[#FFA24D]/10 to-[#A60E35]/10 border border-[#FFA24D]/20">
+        <div className="mt-12 p-8 rounded-xl bg-[#FFC107]/10 border border-[#FFC107]/20">
           <h3 className="text-2xl font-bold mb-6 text-white">Outras formas de Contato</h3>
           <div className="grid md:grid-cols-2 gap-6">
             <a
               href="https://wa.me/558799999999"
-              className="flex items-center gap-4 p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all border border-[#11BACA]/20 hover:border-[#11BACA]"
+              className="flex items-center gap-4 p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all border border-[#FFC107]/20 hover:border-[#FFC107]"
             >
-              <MessageCircle className="w-8 h-8 text-[#11BACA]" />
+              <MessageCircle className="w-8 h-8 text-[#FFC107]" />
               <div className="text-left">
                 <p className="font-semibold">WhatsApp</p>
                 <p className="text-sm text-gray-400">Faça seu pedido direto</p>
@@ -154,9 +154,9 @@ export default function Home() {
             </a>
             <a
               href="https://ifood.com.br"
-              className="flex items-center gap-4 p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all border border-[#FFA24D]/20 hover:border-[#FFA24D]"
+              className="flex items-center gap-4 p-4 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all border border-[#FFC107]/20 hover:border-[#FFC107]"
             >
-              <UtensilsCrossed className="w-8 h-8 text-[#FFA24D]" />
+              <UtensilsCrossed className="w-8 h-8 text-[#FFC107]" />
               <div className="text-left">
                 <p className="font-semibold">iFood</p>
                 <p className="text-sm text-gray-400">Peça pelo app</p>
@@ -168,7 +168,7 @@ export default function Home() {
 
       {/* Features */}
       <section className="max-w-7xl mx-auto px-4 py-24">
-        <h3 className="text-3xl font-bold text-center mb-16">Por que Chapa Quente?</h3>
+        <h3 className="text-3xl font-bold text-center mb-16 title-underline">Por que Chapa Quente?</h3>
         <div className="grid md:grid-cols-3 gap-8">
           {[
             {
@@ -185,15 +185,15 @@ export default function Home() {
             },
           ].map((feature, i) => (
             <div key={i} className="card-highlight p-6 text-center">
-              <h4 className="text-xl font-bold mb-3 text-[#11BACA]">{feature.title}</h4>
-              <p className="text-[#11BACA]/60">{feature.description}</p>
+              <h4 className="text-xl font-bold mb-3 text-[#FFC107]">{feature.title}</h4>
+              <p className="text-[#FFC107]/60">{feature.description}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#11BACA]/20 mt-24 py-8 text-center text-[#11BACA]/40">
+      <footer className="border-t border-[#FFC107]/20 mt-24 py-8 text-center text-[#FFC107]/40">
         <p>&copy; 2024 Chapa Quente. Todos os direitos reservados. 🔥</p>
       </footer>
     </main>

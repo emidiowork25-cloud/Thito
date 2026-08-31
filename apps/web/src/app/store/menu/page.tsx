@@ -156,15 +156,15 @@ export default function StoreMenuPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
+    <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-gray-700 bg-gray-900/80 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-[#FFC107]/20 bg-[#1a1a1a]/90 backdrop-blur sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
-              <Flame className="w-8 h-8 text-[#FFA24D]" />
+              <Flame className="w-8 h-8 text-[#FFC107]" />
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold text-[#FFC107]">
                   Gerenciar Cardápio
                 </h1>
                 <p className="text-sm text-gray-400">Chapa Quente</p>
@@ -207,7 +207,7 @@ export default function StoreMenuPage() {
 
         {/* Form Modal */}
         {showForm && (
-          <div className="card-highlight p-8 mb-12 border border-[#11BACA]/30">
+          <div className="card-highlight p-8 mb-12 border border-[#FFC107]/30">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold">
                 {editingId ? 'Editar Item' : 'Adicionar Novo Item'}
@@ -223,7 +223,7 @@ export default function StoreMenuPage() {
                 <label className="block text-sm font-semibold mb-3">Foto do Prato</label>
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-[#11BACA]/50 rounded-lg p-8 text-center cursor-pointer hover:border-[#11BACA] transition-all"
+                  className="border-2 border-dashed border-[#FFC107]/50 rounded-lg p-8 text-center cursor-pointer hover:border-[#FFC107] transition-all"
                 >
                   <input
                     ref={fileInputRef}
@@ -249,7 +249,7 @@ export default function StoreMenuPage() {
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-2">
-                      <Upload className="w-8 h-8 text-[#11BACA]" />
+                      <Upload className="w-8 h-8 text-[#FFC107]" />
                       <p className="font-semibold">
                         {uploading ? 'Enviando...' : 'Clique para enviar a foto'}
                       </p>
@@ -267,7 +267,7 @@ export default function StoreMenuPage() {
                   placeholder="Ex: Hamburger Especial"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#11BACA]"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                 />
               </div>
 
@@ -284,7 +284,7 @@ export default function StoreMenuPage() {
                     step="0.01"
                     value={form.price}
                     onChange={(e) => setForm({ ...form, price: e.target.value })}
-                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-r-lg focus:outline-none focus:border-[#11BACA]"
+                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-r-lg focus:outline-none focus:border-[#FFC107]"
                   />
                 </div>
               </div>
@@ -297,7 +297,7 @@ export default function StoreMenuPage() {
                   placeholder="Ex: Burgers, Bebidas"
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#11BACA]"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                 />
               </div>
 
@@ -376,7 +376,7 @@ export default function StoreMenuPage() {
                   <h3 className="text-lg font-bold mb-1">{item.name}</h3>
 
                   {item.category && (
-                    <p className="text-xs text-[#11BACA] mb-2 uppercase font-semibold">
+                    <p className="text-xs text-[#FFC107] mb-2 uppercase font-semibold">
                       {item.category}
                     </p>
                   )}
@@ -396,7 +396,7 @@ export default function StoreMenuPage() {
                   )}
 
                   <div className="flex justify-between items-center mb-4">
-                    <p className="text-lg font-bold text-[#FFA24D]">
+                    <p className="text-lg font-bold text-[#FFC107]">
                       R$ {item.price.toFixed(2)}
                     </p>
                     {item.isAvailable ? (

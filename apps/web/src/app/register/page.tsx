@@ -53,14 +53,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17] flex items-center justify-center px-4">
+    <main className="min-h-screen bg-[#1a1a1a] flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <Flame className="w-12 h-12 text-[#FFA24D]" />
+            <Flame className="w-12 h-12 text-[#FFC107]" />
           </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold text-[#FFC107]">
             Chapa Quente
           </h1>
         </div>
@@ -83,7 +83,7 @@ export default function RegisterPage() {
                 onClick={() => setUserType('customer')}
                 className={`p-4 rounded-lg font-semibold transition-all ${
                   userType === 'customer'
-                    ? 'bg-gradient-to-r from-[#FFA24D] to-[#A60E35] text-white'
+                    ? 'bg-[#FFC107] text-[#1a1a1a]'
                     : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
                 }`}
               >
@@ -94,7 +94,7 @@ export default function RegisterPage() {
                 onClick={() => setUserType('store')}
                 className={`p-4 rounded-lg font-semibold transition-all ${
                   userType === 'store'
-                    ? 'bg-gradient-to-r from-[#FFA24D] to-[#A60E35] text-white'
+                    ? 'bg-[#FFC107] text-[#1a1a1a]'
                     : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
                 }`}
               >
@@ -109,7 +109,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-orange-500"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                 placeholder="Seu nome"
               />
             </div>
@@ -121,7 +121,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-orange-500"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                 placeholder="seu@email.com"
               />
             </div>
@@ -134,7 +134,7 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-orange-500"
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                 placeholder="Mín. 6 caracteres"
               />
             </div>
@@ -148,7 +148,7 @@ export default function RegisterPage() {
             Já tem conta?{' '}
             <button
               onClick={() => router.push('/login')}
-              className="text-[#FFA24D] hover:text-[#ff9338] font-semibold"
+              className="text-[#FFC107] hover:text-[#FFD700] font-semibold"
             >
               Entre aqui
             </button>

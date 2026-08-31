@@ -114,7 +114,7 @@ export default function MenuPage() {
   };
 
   if (isLoading) {
-    return <div className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17] flex items-center justify-center">Carregando...</div>;
+    return <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">Carregando...</div>;
   }
 
   if (!isAuthenticated) {
@@ -124,12 +124,12 @@ export default function MenuPage() {
 
   if (!storeIdParam) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
-        <header className="border-b border-[#11BACA]/20 sticky top-0 z-50 bg-[#031B2B]/90 backdrop-blur">
+      <main className="min-h-screen bg-[#1a1a1a]">
+        <header className="border-b border-[#FFC107]/20 sticky top-0 z-50 bg-[#1a1a1a]/90 backdrop-blur">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Flame className="w-8 h-8 text-[#FFA24D]" />
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+              <Flame className="w-8 h-8 text-[#FFC107]" />
+              <h1 className="text-2xl font-bold text-[#FFC107]">
                 Chapa Quente
               </h1>
             </div>
@@ -147,13 +147,13 @@ export default function MenuPage() {
     : menuItems;
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
+    <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-[#11BACA]/20 sticky top-0 z-50 bg-[#031B2B]/90 backdrop-blur">
+      <header className="border-b border-[#FFC107]/20 sticky top-0 z-50 bg-[#1a1a1a]/90 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Flame className="w-8 h-8 text-[#FFA24D]" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-red-600 bg-clip-text text-transparent">
+            <Flame className="w-8 h-8 text-[#FFC107]" />
+            <h1 className="text-2xl font-bold text-[#FFC107]">
               Chapa Quente
             </h1>
           </div>
@@ -183,7 +183,7 @@ export default function MenuPage() {
               onClick={() => setSelectedCategory('')}
               className={`px-6 py-2 rounded-lg font-semibold whitespace-nowrap transition-all ${
                 selectedCategory === ''
-                  ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white'
+                  ? 'bg-[#FFC107] text-[#1a1a1a]'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
               }`}
             >
@@ -195,7 +195,7 @@ export default function MenuPage() {
                 onClick={() => setSelectedCategory(category)}
                 className={`px-6 py-2 rounded-lg font-semibold whitespace-nowrap transition-all ${
                   selectedCategory === category
-                    ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white'
+                    ? 'bg-[#FFC107] text-[#1a1a1a]'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                 }`}
               >
@@ -234,7 +234,7 @@ export default function MenuPage() {
 
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="text-2xl font-bold text-[#FFA24D]">
+                      <p className="text-2xl font-bold text-[#FFC107]">
                         R$ {item.price.toFixed(2)}
                       </p>
                       {item.category && <p className="text-xs text-gray-500">{item.category}</p>}
@@ -245,7 +245,7 @@ export default function MenuPage() {
                       disabled={!item.isAvailable}
                       className={`p-3 rounded-lg transition-all ${
                         item.isAvailable
-                          ? 'bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700'
+                          ? 'bg-[#FFC107] text-[#1a1a1a] hover:bg-[#FFD700]'
                           : 'bg-gray-700 text-gray-500 cursor-not-allowed'
                       }`}
                     >
@@ -264,9 +264,9 @@ export default function MenuPage() {
       {/* Customization Modal */}
       {selectedItem && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="card-highlight w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-[#FFA24D]/50">
+          <div className="card-highlight w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-[#FFC107]/50">
             {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-[#FFA24D]/20 to-[#A60E35]/20 border-b border-[#FFA24D]/30 p-6 flex justify-between items-start">
+            <div className="sticky top-0 bg-[#FFC107]/10 border-b border-[#FFC107]/30 p-6 flex justify-between items-start">
               <div className="flex-1">
                 <h2 className="text-3xl font-bold mb-2">{selectedItem.name}</h2>
                 {selectedItem.description && (
@@ -284,7 +284,7 @@ export default function MenuPage() {
             <div className="p-6 space-y-6">
               {/* Image */}
               {selectedItem.imageUrl && (
-                <div className="rounded-lg overflow-hidden border border-[#11BACA]/20">
+                <div className="rounded-lg overflow-hidden border border-[#FFC107]/20">
                   <img
                     src={selectedItem.imageUrl}
                     alt={selectedItem.name}
@@ -294,16 +294,16 @@ export default function MenuPage() {
               )}
 
               {/* Price Info */}
-              <div className="bg-gradient-to-r from-[#FFA24D]/10 to-[#A60E35]/10 border border-[#FFA24D]/20 rounded-lg p-4">
+              <div className="bg-[#FFC107]/10 border border-[#FFC107]/20 rounded-lg p-4">
                 <p className="text-sm text-gray-400 mb-1">Preço</p>
-                <p className="text-3xl font-bold text-[#FFA24D]">R$ {selectedItem.price.toFixed(2)}</p>
+                <p className="text-3xl font-bold text-[#FFC107]">R$ {selectedItem.price.toFixed(2)}</p>
               </div>
 
               {/* Ingredients - Remover */}
               {selectedItem.ingredients && (
                 <div>
                   <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <span className="text-[#FFA24D]">🥘</span>
+                    <span className="text-[#FFC107]">🥘</span>
                     Ingredientes Originais
                   </h3>
                   <div className="space-y-2">
@@ -317,7 +317,7 @@ export default function MenuPage() {
                             className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all ${
                               customizations.removed.includes(ingredient)
                                 ? 'bg-red-900/30 border-red-500 text-red-300 line-through'
-                                : 'bg-gray-700/50 border-gray-600 hover:border-[#11BACA] text-gray-200'
+                                : 'bg-gray-700/50 border-gray-600 hover:border-[#FFC107] text-gray-200'
                             }`}
                           >
                             <span className="mr-3">
@@ -341,7 +341,7 @@ export default function MenuPage() {
               {/* Ingredients - Adicionar */}
               <div>
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <span className="text-[#11BACA]">➕</span>
+                  <span className="text-[#FFC107]">➕</span>
                   Adicionar Ingredientes
                 </h3>
                 <div className="flex gap-2 mb-4">
@@ -351,11 +351,11 @@ export default function MenuPage() {
                     value={newIngredient}
                     onChange={(e) => setNewIngredient(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && addIngredient()}
-                    className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#11BACA]"
+                    className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107]"
                   />
                   <button
                     onClick={addIngredient}
-                    className="px-6 py-3 bg-gradient-to-r from-[#11BACA] to-[#11BACA]/70 text-white rounded-lg font-semibold hover:from-[#11BACA] hover:to-[#11BACA]/80 transition-all"
+                    className="px-6 py-3 bg-[#FFC107] text-[#1a1a1a] rounded-lg font-semibold hover:bg-[#FFD700] transition-all"
                   >
                     Adicionar
                   </button>
@@ -386,7 +386,7 @@ export default function MenuPage() {
 
               {/* Resumo de Customizações */}
               {(customizations.removed.length > 0 || customizations.added.length > 0) && (
-                <div className="bg-[#11BACA]/10 border border-[#11BACA]/30 rounded-lg p-4">
+                <div className="bg-[#FFC107]/10 border border-[#FFC107]/30 rounded-lg p-4">
                   <p className="text-sm font-semibold mb-2">Suas Customizações:</p>
                   <ul className="text-sm text-gray-300 space-y-1">
                     {customizations.removed.map((ing, idx) => (
@@ -401,7 +401,7 @@ export default function MenuPage() {
             </div>
 
             {/* Actions */}
-            <div className="sticky bottom-0 bg-gradient-to-t from-[#031B2B] to-transparent border-t border-[#FFA24D]/30 p-6 flex gap-3">
+            <div className="sticky bottom-0 bg-gradient-to-t from-[#1a1a1a] to-transparent border-t border-[#FFC107]/30 p-6 flex gap-3">
               <button
                 onClick={() => setSelectedItem(null)}
                 className="flex-1 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-semibold transition-all"
@@ -410,7 +410,7 @@ export default function MenuPage() {
               </button>
               <button
                 onClick={handleAddToCart}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-[#FFA24D] to-[#A60E35] hover:from-[#FFA24D]/90 hover:to-[#A60E35]/90 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+                className="flex-1 px-6 py-3 bg-[#FFC107] text-[#1a1a1a] hover:bg-[#FFD700] rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
               >
                 <ShoppingCart className="w-5 h-5" />
                 Adicionar ao Carrinho

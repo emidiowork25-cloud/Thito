@@ -50,13 +50,13 @@ export default function CartPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
+    <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80 backdrop-blur">
+      <header className="border-b border-[#FFC107]/20 sticky top-0 z-50 bg-[#1a1a1a]/90 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Flame className="w-8 h-8 text-[#FFA24D]" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
+            <Flame className="w-8 h-8 text-[#FFC107]" />
+            <h1 className="text-2xl font-bold text-[#FFC107]">
               Chapa Quente
             </h1>
           </div>
@@ -100,7 +100,7 @@ export default function CartPage() {
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <h3 className="text-lg font-bold mb-1">{item.name}</h3>
-                      <p className="text-[#FFA24D] font-semibold">
+                      <p className="text-[#FFC107] font-semibold">
                         R$ {(item.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
@@ -170,7 +170,7 @@ export default function CartPage() {
 
               <div className="flex justify-between text-lg font-bold mb-6">
                 <span>Total</span>
-                <span className="text-[#FFA24D]">R$ {total.toFixed(2)}</span>
+                <span className="text-[#FFC107]">R$ {total.toFixed(2)}</span>
               </div>
 
               <button
