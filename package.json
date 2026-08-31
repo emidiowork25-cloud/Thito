@@ -16,6 +16,8 @@
     "db:seed": "cd apps/backend && npm run db:seed"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/pg": "^8.23.1",
     "typescript": "^5.3.3"
   }
 }

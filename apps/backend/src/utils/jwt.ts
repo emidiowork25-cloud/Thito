@@ -10,7 +10,7 @@ export interface TokenPayload {
 }
 
 export function generateToken(payload: TokenPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
+  return (jwt.sign as any)(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
 }
 
 export function verifyTokenPayload(token: string): TokenPayload | null {

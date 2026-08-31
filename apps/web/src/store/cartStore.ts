@@ -1,12 +1,19 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export interface Customization {
+  removed: string[];
+  added: string[];
+}
+
 export interface CartItem {
   menuItemId: string;
   name: string;
   price: number;
   quantity: number;
   notes?: string;
+  ingredients?: string;
+  customizations?: Customization;
 }
 
 interface CartStore {

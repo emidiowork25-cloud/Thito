@@ -36,6 +36,12 @@ export const createOrderSchema = z.object({
       menuItemId: uuidSchema,
       quantity: z.number().int().positive(),
       notes: z.string().optional(),
+      customizations: z
+        .object({
+          removed: z.array(z.string()).optional(),
+          added: z.array(z.string()).optional(),
+        })
+        .optional(),
     })
   ),
   notes: z.string().optional(),

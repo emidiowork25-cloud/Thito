@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
-import { Flame, ShoppingCart, Plus } from 'lucide-react';
+import { Flame, ShoppingCart, Plus, X, Trash2 } from 'lucide-react';
 
 interface MenuItem {
   id: string;
   name: string;
   description?: string;
+  ingredients?: string;
   price: number;
   category?: string;
   imageUrl?: string;
@@ -27,6 +28,12 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [customizations, setCustomizations] = useState<{ removed: string[]; added: string[] }>({
+    removed: [],
+    added: [],
+  });
+  const [newIngredient, setNewIngredient] = useState('');
   const categories = Array.from(new Set(menuItems.map((item) => item.category).filter(Boolean)));
 
   useEffect(() => {
@@ -49,6 +56,60 @@ export default function MenuPage() {
       setError('Erro ao carregar cardápio');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenCustomizer = (item: MenuItem) => {
+    setSelectedItem(item);
+    setCustomizations({ removed: [], added: [] });
+    setNewIngredient('');
+  };
+
+  const toggleIngredient = (ingredient: string) => {
+    if (customizations.removed.includes(ingredient)) {
+      setCustomizations({
+        ...customizations,
+        removed: customizations.removed.filter((i) => i !== ingredient),
+      });
+    } else {
+      setCustomizations({
+        ...customizations,
+        removed: [...customizations.removed, ingredient],
+      });
+    }
+  };
+
+  const addIngredient = () => {
+    if (newIngredient.trim()) {
+      setCustomizations({
+        ...customizations,
+        added: [...customizations.added, newIngredient.trim()],
+      });
+      setNewIngredient('');
+    }
+  };
+
+  const removeAddedIngredient = (index: number) => {
+    setCustomizations({
+      ...customizations,
+      added: customizations.added.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleAddToCart = () => {
+    if (selectedItem) {
+      addItem({
+        menuItemId: selectedItem.id,
+        name: selectedItem.name,
+        price: selectedItem.price,
+        quantity: 1,
+        ingredients: selectedItem.ingredients,
+        customizations:
+          customizations.removed.length > 0 || customizations.added.length > 0
+            ? customizations
+            : undefined,
+      });
+      setSelectedItem(null);
     }
   };
 
@@ -180,14 +241,7 @@ export default function MenuPage() {
                     </div>
 
                     <button
-                      onClick={() =>
-                        addItem({
-                          menuItemId: item.id,
-                          name: item.name,
-                          price: item.price,
-                          quantity: 1,
-                        })
-                      }
+                      onClick={() => handleOpenCustomizer(item)}
                       disabled={!item.isAvailable}
                       className={`p-3 rounded-lg transition-all ${
                         item.isAvailable
@@ -206,6 +260,165 @@ export default function MenuPage() {
           </div>
         )}
       </div>
+
+      {/* Customization Modal */}
+      {selectedItem && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="card-highlight w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-[#FFA24D]/50">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-[#FFA24D]/20 to-[#A60E35]/20 border-b border-[#FFA24D]/30 p-6 flex justify-between items-start">
+              <div className="flex-1">
+                <h2 className="text-3xl font-bold mb-2">{selectedItem.name}</h2>
+                {selectedItem.description && (
+                  <p className="text-gray-400">{selectedItem.description}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedItem(null)}
+                className="p-2 hover:bg-gray-700 rounded-lg transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Image */}
+              {selectedItem.imageUrl && (
+                <div className="rounded-lg overflow-hidden border border-[#11BACA]/20">
+                  <img
+                    src={selectedItem.imageUrl}
+                    alt={selectedItem.name}
+                    className="w-full h-60 object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Price Info */}
+              <div className="bg-gradient-to-r from-[#FFA24D]/10 to-[#A60E35]/10 border border-[#FFA24D]/20 rounded-lg p-4">
+                <p className="text-sm text-gray-400 mb-1">Preço</p>
+                <p className="text-3xl font-bold text-[#FFA24D]">R$ {selectedItem.price.toFixed(2)}</p>
+              </div>
+
+              {/* Ingredients - Remover */}
+              {selectedItem.ingredients && (
+                <div>
+                  <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <span className="text-[#FFA24D]">🥘</span>
+                    Ingredientes Originais
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedItem.ingredients.split('\n').map((ing, idx) => {
+                      const ingredient = ing.trim();
+                      return (
+                        ingredient && (
+                          <button
+                            key={idx}
+                            onClick={() => toggleIngredient(ingredient)}
+                            className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all ${
+                              customizations.removed.includes(ingredient)
+                                ? 'bg-red-900/30 border-red-500 text-red-300 line-through'
+                                : 'bg-gray-700/50 border-gray-600 hover:border-[#11BACA] text-gray-200'
+                            }`}
+                          >
+                            <span className="mr-3">
+                              {customizations.removed.includes(ingredient) ? '✕' : '✓'}
+                            </span>
+                            {ingredient}
+                          </button>
+                        )
+                      );
+                    })}
+                  </div>
+                  {customizations.removed.length > 0 && (
+                    <p className="text-sm text-red-400 mt-3 flex items-center gap-1">
+                      <span>✕</span>
+                      Removendo: {customizations.removed.join(', ')}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Ingredients - Adicionar */}
+              <div>
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <span className="text-[#11BACA]">➕</span>
+                  Adicionar Ingredientes
+                </h3>
+                <div className="flex gap-2 mb-4">
+                  <input
+                    type="text"
+                    placeholder="Ex: Bacon, Ovo, Queijo Extra"
+                    value={newIngredient}
+                    onChange={(e) => setNewIngredient(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addIngredient()}
+                    className="flex-1 px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#11BACA]"
+                  />
+                  <button
+                    onClick={addIngredient}
+                    className="px-6 py-3 bg-gradient-to-r from-[#11BACA] to-[#11BACA]/70 text-white rounded-lg font-semibold hover:from-[#11BACA] hover:to-[#11BACA]/80 transition-all"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+
+                {customizations.added.length > 0 && (
+                  <div className="space-y-2">
+                    {customizations.added.map((ing, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between px-4 py-3 bg-green-900/30 border border-green-500/50 rounded-lg text-green-300"
+                      >
+                        <span className="flex items-center gap-2">
+                          <span>➕</span>
+                          {ing}
+                        </span>
+                        <button
+                          onClick={() => removeAddedIngredient(idx)}
+                          className="p-1 hover:bg-green-900/50 rounded transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Resumo de Customizações */}
+              {(customizations.removed.length > 0 || customizations.added.length > 0) && (
+                <div className="bg-[#11BACA]/10 border border-[#11BACA]/30 rounded-lg p-4">
+                  <p className="text-sm font-semibold mb-2">Suas Customizações:</p>
+                  <ul className="text-sm text-gray-300 space-y-1">
+                    {customizations.removed.map((ing, idx) => (
+                      <li key={idx}>✕ Sem {ing}</li>
+                    ))}
+                    {customizations.added.map((ing, idx) => (
+                      <li key={idx}>➕ Com {ing}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="sticky bottom-0 bg-gradient-to-t from-[#031B2B] to-transparent border-t border-[#FFA24D]/30 p-6 flex gap-3">
+              <button
+                onClick={() => setSelectedItem(null)}
+                className="flex-1 px-6 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-lg font-semibold transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddToCart}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-[#FFA24D] to-[#A60E35] hover:from-[#FFA24D]/90 hover:to-[#A60E35]/90 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                Adicionar ao Carrinho
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

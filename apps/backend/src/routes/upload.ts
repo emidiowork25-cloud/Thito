@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import multer from 'multer';
 import { v4 as uuid } from 'uuid';
 import { verifyToken, requireStore, AuthRequest } from '../middleware/auth';
@@ -9,7 +9,7 @@ const storage = multer.memoryStorage();
 const upload = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req: any, file: any, cb: any) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
@@ -18,7 +18,7 @@ const upload = multer({
   },
 });
 
-router.post('/image', verifyToken, requireStore, upload.single('image'), async (req: AuthRequest, res) => {
+router.post('/image', verifyToken, requireStore, upload.single('image'), async (req: any, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: { message: 'No image file provided' } });

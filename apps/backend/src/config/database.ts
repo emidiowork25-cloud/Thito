@@ -115,10 +115,17 @@ async function runMigrations() {
         unit_price DECIMAL(10, 2) NOT NULL,
         subtotal DECIMAL(10, 2) NOT NULL,
         notes TEXT,
+        customizations JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
       CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
       CREATE INDEX IF NOT EXISTS idx_order_items_menu_item_id ON order_items(menu_item_id);
+    `);
+
+    // Add customizations column if it doesn't exist
+    await client.query(`
+      ALTER TABLE IF EXISTS order_items
+      ADD COLUMN IF NOT EXISTS customizations JSONB;
     `);
 
     // Inventory table

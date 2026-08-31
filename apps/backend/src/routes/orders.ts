@@ -48,6 +48,7 @@ router.post('/', verifyToken, requireCustomer, async (req: AuthRequest, res: Res
           unitPrice: price,
           subtotal,
           notes: item.notes || null,
+          customizations: item.customizations || null,
         });
       }
 
@@ -64,9 +65,10 @@ router.post('/', verifyToken, requireCustomer, async (req: AuthRequest, res: Res
       // Create order items
       for (const item of orderItems) {
         await client.query(
-          `INSERT INTO order_items (order_id, menu_item_id, quantity, unit_price, subtotal, notes)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [order.id, item.menuItemId, item.quantity, item.unitPrice, item.subtotal, item.notes]
+          `INSERT INTO order_items (order_id, menu_item_id, quantity, unit_price, subtotal, notes, customizations)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [order.id, item.menuItemId, item.quantity, item.unitPrice, item.subtotal, item.notes,
+           item.customizations ? JSON.stringify(item.customizations) : null]
         );
       }
 
@@ -166,7 +168,7 @@ router.get('/:orderId', verifyToken, async (req: AuthRequest, res: Response) => 
 
     // Get order items
     const itemsResult = await pool.query(
-      `SELECT oi.id, oi.menu_item_id, mi.name, oi.quantity, oi.unit_price, oi.subtotal, oi.notes
+      `SELECT oi.id, oi.menu_item_id, mi.name, oi.quantity, oi.unit_price, oi.subtotal, oi.notes, oi.customizations
        FROM order_items oi
        JOIN menu_items mi ON oi.menu_item_id = mi.id
        WHERE oi.order_id = $1`,
@@ -188,6 +190,7 @@ router.get('/:orderId', verifyToken, async (req: AuthRequest, res: Response) => 
         unitPrice: row.unit_price,
         subtotal: row.subtotal,
         notes: row.notes,
+        customizations: row.customizations,
       })),
       createdAt: order.created_at,
       updatedAt: order.updated_at,

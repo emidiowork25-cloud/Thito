@@ -35,6 +35,7 @@ export default function CartPage() {
           menuItemId: item.menuItemId,
           quantity: item.quantity,
           notes: item.notes,
+          customizations: item.customizations,
         })),
       });
 
@@ -95,15 +96,43 @@ export default function CartPage() {
             {/* Items */}
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => (
-                <div key={item.menuItemId} className="card-highlight p-6 flex justify-between items-center">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-bold mb-1">{item.name}</h3>
-                    <p className="text-[#FFA24D] font-semibold">
-                      R$ {(item.price * item.quantity).toFixed(2)}
-                    </p>
+                <div key={item.menuItemId} className="card-highlight p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold mb-1">{item.name}</h3>
+                      <p className="text-[#FFA24D] font-semibold">
+                        R$ {(item.price * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => removeItem(item.menuItemId)}
+                      className="p-2 hover:bg-red-900/30 rounded-lg transition ml-4"
+                    >
+                      <Trash2 className="w-5 h-5 text-red-400" />
+                    </button>
                   </div>
 
-                  <div className="flex items-center gap-4 ml-6">
+                  {/* Customizações */}
+                  {item.customizations && (
+                    <div className="mb-4 pb-4 border-b border-gray-700">
+                      <p className="text-xs text-gray-500 mb-2 uppercase font-semibold">Customizações:</p>
+                      <div className="space-y-1">
+                        {item.customizations.removed.map((ing, idx) => (
+                          <p key={idx} className="text-sm text-red-400">
+                            ✕ Sem {ing}
+                          </p>
+                        ))}
+                        {item.customizations.added.map((ing, idx) => (
+                          <p key={idx} className="text-sm text-green-400">
+                            ➕ Com {ing}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 bg-gray-700 rounded-lg p-2">
                       <button
                         onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
@@ -119,13 +148,6 @@ export default function CartPage() {
                         <Plus className="w-4 h-4" />
                       </button>
                     </div>
-
-                    <button
-                      onClick={() => removeItem(item.menuItemId)}
-                      className="p-2 hover:bg-red-900/30 rounded-lg transition"
-                    >
-                      <Trash2 className="w-5 h-5 text-red-400" />
-                    </button>
                   </div>
                 </div>
               ))}
