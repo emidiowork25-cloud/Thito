@@ -68,6 +68,7 @@ async function runMigrations() {
         store_id UUID NOT NULL REFERENCES stores(id) ON DELETE CASCADE,
         name VARCHAR(255) NOT NULL,
         description TEXT,
+        ingredients TEXT,
         price DECIMAL(10, 2) NOT NULL,
         category VARCHAR(100),
         image_url VARCHAR(500),
@@ -77,6 +78,12 @@ async function runMigrations() {
       );
       CREATE INDEX IF NOT EXISTS idx_menu_items_store_id ON menu_items(store_id);
       CREATE INDEX IF NOT EXISTS idx_menu_items_category ON menu_items(category);
+    `);
+
+    // Add ingredients column if it doesn't exist
+    await client.query(`
+      ALTER TABLE IF EXISTS menu_items
+      ADD COLUMN IF NOT EXISTS ingredients TEXT;
     `);
 
     // Orders table

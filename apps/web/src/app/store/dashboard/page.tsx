@@ -173,6 +173,12 @@ export default function StoreDashboardPage() {
             >
               Cardápio
             </button>
+            <button
+              onClick={() => router.push('/store/menu')}
+              className="px-6 py-2 rounded-lg font-semibold bg-[#11BACA]/20 text-[#11BACA] hover:bg-[#11BACA]/30 transition-all ml-auto"
+            >
+              ➜ Gerenciar Itens Completo
+            </button>
           </div>
         </div>
       </header>

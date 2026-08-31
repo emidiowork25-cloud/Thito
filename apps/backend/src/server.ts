@@ -11,6 +11,7 @@ import { initializeRedis } from './config/redis';
 import authRoutes from './routes/auth';
 import menuRoutes from './routes/menu';
 import ordersRoutes from './routes/orders';
+import uploadRoutes from './routes/upload';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

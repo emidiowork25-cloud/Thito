@@ -19,6 +19,7 @@ export const loginSchema = z.object({
 export const createMenuItemSchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
+  ingredients: z.string().optional(),
   price: z.number().positive(),
   category: z.string().optional(),
   imageUrl: z.string().url().optional(),

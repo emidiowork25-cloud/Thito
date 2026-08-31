@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
 
     const pool = getPool();
     const result = await pool.query(
-      `SELECT id, name, description, price, category, image_url as imageUrl, is_available as isAvailable
+      `SELECT id, name, description, ingredients, price, category, image_url as imageUrl, is_available as isAvailable
        FROM menu_items
        WHERE store_id = $1 AND is_available = true
        ORDER BY category, name`,
@@ -59,7 +59,7 @@ router.get('/:itemId', async (req, res) => {
     const pool = getPool();
 
     const result = await pool.query(
-      `SELECT id, name, description, price, category, image_url as imageUrl, is_available as isAvailable
+      `SELECT id, name, description, ingredients, price, category, image_url as imageUrl, is_available as isAvailable
        FROM menu_items
        WHERE id = $1`,
       [itemId]
@@ -94,10 +94,10 @@ router.post('/', verifyToken, requireStore, async (req: AuthRequest, res: Respon
     const storeId = storeResult.rows[0].id;
 
     const result = await pool.query(
-      `INSERT INTO menu_items (store_id, name, description, price, category, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, description, price, category, image_url as imageUrl, is_available as isAvailable`,
-      [storeId, parsed.name, parsed.description, parsed.price, parsed.category, parsed.imageUrl]
+      `INSERT INTO menu_items (store_id, name, description, ingredients, price, category, image_url)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, description, ingredients, price, category, image_url as imageUrl, is_available as isAvailable`,
+      [storeId, parsed.name, parsed.description, parsed.ingredients, parsed.price, parsed.category, parsed.imageUrl]
     );
 
     // Create inventory entry
@@ -148,6 +148,11 @@ router.put('/:itemId', verifyToken, requireStore, async (req: AuthRequest, res: 
       values.push(parsed.description);
       paramCount++;
     }
+    if (parsed.ingredients !== undefined) {
+      updates.push(`ingredients = $${paramCount}`);
+      values.push(parsed.ingredients);
+      paramCount++;
+    }
     if (parsed.price) {
       updates.push(`price = $${paramCount}`);
       values.push(parsed.price);
@@ -178,7 +183,7 @@ router.put('/:itemId', verifyToken, requireStore, async (req: AuthRequest, res: 
     const result = await pool.query(
       `UPDATE menu_items SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
        WHERE id = $${paramCount}
-       RETURNING id, name, description, price, category, image_url as imageUrl, is_available as isAvailable`,
+       RETURNING id, name, description, ingredients, price, category, image_url as imageUrl, is_available as isAvailable`,
       values
     );
 
