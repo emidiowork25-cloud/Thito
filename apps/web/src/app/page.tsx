@@ -48,16 +48,35 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <h2 className="text-5xl md:text-6xl font-bold mb-6">
-          Bem-vindo à <span className="bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">Chapa Quente</span>
-        </h2>
-        <p className="text-2xl text-[#FFA24D] font-bold mb-4">
-          O ponto certo da sua fome! 🔥
-        </p>
-        <p className="text-lg text-[#11BACA]/70 mb-12 max-w-2xl mx-auto">
-          Mais sabor, mais qualidade, mais Chapa Quente!
+      {/* Hero Video Section */}
+      <section className="relative w-full h-screen flex items-center justify-center overflow-hidden">
+        {/* Video Background */}
+        <div className="absolute inset-0 w-full h-full">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            {/* Add your video sources below */}
+            <source src="/videos/hero.mp4" type="video/mp4" />
+            <source src="/videos/hero.webm" type="video/webm" />
+          </video>
+          {/* Overlay escuro para melhorar legibilidade do texto */}
+          <div className="absolute inset-0 bg-black/50"></div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 text-center px-4 max-w-4xl">
+          <h2 className="text-6xl md:text-7xl font-bold mb-6">
+            Bem-vindo à <span className="text-[#FFC107]">Chapa Quente</span>
+          </h2>
+          <p className="text-3xl text-[#FFC107] font-bold mb-4">
+            O ponto certo da sua fome! 🔥
+          </p>
+          <p className="text-xl text-gray-200 mb-12 max-w-2xl mx-auto">
+            Hambúrgueres frescos, suculentos e personalizados do seu jeito
         </p>
 
         {/* Business Info Cards */}
