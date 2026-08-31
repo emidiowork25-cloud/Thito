@@ -34,7 +34,7 @@ export default function MenuPage() {
     added: [],
   });
   const [newIngredient, setNewIngredient] = useState('');
-  const categories = Array.from(new Set(menuItems.map((item) => item.category).filter(Boolean)));
+  const categories = Array.from(new Set(menuItems.map((item) => item.category).filter((c): c is string => Boolean(c))));
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
