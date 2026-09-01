@@ -56,7 +56,7 @@ export default function StoreMenuPage() {
   const loadMenuItems = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/menu', { params: { storeId: user?.id } });
+      const response = await api.get('/menu');
       setMenuItems(response.data);
     } catch (err) {
       console.error('Erro ao carregar itens:', err);

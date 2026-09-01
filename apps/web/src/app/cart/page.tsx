@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,15 +9,29 @@ import { Flame, Trash2, Minus, Plus, ArrowLeft } from 'lucide-react';
 
 export default function CartPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { items, storeId, removeItem, updateQuantity, clear, total } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  if (!isAuthenticated) {
-    router.push('/login');
-    return null;
+  // Redirect from an effect, not from render: useAuth reports null until it
+  // has read localStorage, so redirecting during render bounced signed-in
+  // users to /login on every refresh (and broke prerendering).
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center text-[#FFC107]">
+        Carregando...
+      </div>
+    );
   }
+
+  if (!isAuthenticated) return null;
 
   const handleCheckout = async () => {
     if (!storeId || items.length === 0) {

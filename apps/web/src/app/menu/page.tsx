@@ -37,13 +37,41 @@ export default function MenuPage() {
   const categories = Array.from(new Set(menuItems.map((item) => item.category).filter((c): c is string => Boolean(c))));
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const storeId = params.get('storeId');
-    if (storeId) {
-      setStoreIdParam(storeId);
-      setStoreId(storeId);
-      loadMenu(storeId);
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
     }
+  }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get('storeId');
+
+    if (fromUrl) {
+      setStoreIdParam(fromUrl);
+      setStoreId(fromUrl);
+      loadMenu(fromUrl);
+      return;
+    }
+
+    // No store in the URL: fall back to the first registered store so the
+    // menu is reachable from the home page without a hand-built link.
+    (async () => {
+      setLoading(true);
+      try {
+        const { data } = await api.get('/stores');
+        if (data.length === 0) {
+          setError('Nenhuma loja cadastrada ainda');
+          return;
+        }
+        setStoreIdParam(data[0].id);
+        setStoreId(data[0].id);
+        await loadMenu(data[0].id);
+      } catch {
+        setError('Erro ao carregar lojas');
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [setStoreId]);
 
   const loadMenu = async (storeId: string) => {
@@ -117,10 +145,7 @@ export default function MenuPage() {
     return <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">Carregando...</div>;
   }
 
-  if (!isAuthenticated) {
-    router.push('/login');
-    return null;
-  }
+  if (!isAuthenticated) return null;
 
   if (!storeIdParam) {
     return (

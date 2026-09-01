@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface Customization {
   removed: string[];
@@ -68,6 +68,13 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cart-store',
+      // On the server there is no localStorage; hand persist a no-op store
+      // so prerendering does not blow up, then hydrate in the browser.
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined'
+          ? window.localStorage
+          : { getItem: () => null, setItem: () => {}, removeItem: () => {} }
+      ),
     }
   )
 );
