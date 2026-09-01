@@ -66,7 +66,7 @@ export default function CartPage() {
   return (
     <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-[#FFC107]/20 sticky top-0 z-50 bg-[#1a1a1a]/90 backdrop-blur">
+      <header className="border-b border-[#FFC107]/20 sticky top-0 safe-top z-50 bg-[#1a1a1a]/90 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Flame className="w-8 h-8 text-[#FFC107]" />
@@ -77,7 +77,7 @@ export default function CartPage() {
 
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition"
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition min-h-[44px] px-2 -mr-2"
           >
             <ArrowLeft className="w-5 h-5" />
             Voltar
@@ -121,7 +121,8 @@ export default function CartPage() {
 
                     <button
                       onClick={() => removeItem(item.menuItemId)}
-                      className="p-2 hover:bg-red-900/30 rounded-lg transition ml-4"
+                      aria-label={`Remover ${item.name} do carrinho`}
+                      className="tap-target hover:bg-red-900/30 rounded-lg transition ml-2 shrink-0"
                     >
                       <Trash2 className="w-5 h-5 text-red-400" />
                     </button>
@@ -147,19 +148,21 @@ export default function CartPage() {
                   )}
 
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 bg-gray-700 rounded-lg p-2">
+                    <div className="flex items-center gap-1 bg-gray-700 rounded-lg p-1">
                       <button
                         onClick={() => updateQuantity(item.menuItemId, item.quantity - 1)}
-                        className="p-1 hover:bg-gray-600 rounded"
+                        aria-label={`Diminuir quantidade de ${item.name}`}
+                        className="tap-target hover:bg-gray-600 rounded"
                       >
-                        <Minus className="w-4 h-4" />
+                        <Minus className="w-5 h-5" />
                       </button>
-                      <span className="w-8 text-center font-semibold">{item.quantity}</span>
+                      <span className="w-10 text-center font-semibold text-lg">{item.quantity}</span>
                       <button
                         onClick={() => updateQuantity(item.menuItemId, item.quantity + 1)}
-                        className="p-1 hover:bg-gray-600 rounded"
+                        aria-label={`Aumentar quantidade de ${item.name}`}
+                        className="tap-target hover:bg-gray-600 rounded"
                       >
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-5 h-5" />
                       </button>
                     </div>
                   </div>

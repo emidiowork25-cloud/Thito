@@ -1,4 +1,11 @@
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
+
+// node-postgres hands back DECIMAL/NUMERIC as a string to avoid float
+// precision loss. Every price in this app is read as a number by the UI
+// (item.price.toFixed(2) and friends), so parse them here instead of at each
+// of the ten call sites. Values are small currency amounts, well inside the
+// range a double represents exactly.
+types.setTypeParser(types.builtins.NUMERIC, (value) => parseFloat(value));
 
 // Serverless-safe singleton: Vercel reuses the module scope between warm
 // invocations, so we cache the pool on globalThis to avoid opening a new

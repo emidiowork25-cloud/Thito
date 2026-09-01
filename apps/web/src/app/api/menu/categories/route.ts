@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 import { fail, fromError } from '@/lib/server/http';
 
+// Reads the query string, so it must never be prerendered at build time.
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: Request) {
   try {
     const storeId = new URL(req.url).searchParams.get('storeId');

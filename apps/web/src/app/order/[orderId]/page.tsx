@@ -53,7 +53,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17] flex items-center justify-center">
+      <main className="min-h-screen bg-[#1a1a1a] flex items-center justify-center">
         <p className="text-gray-400">Carregando pedido...</p>
       </main>
     );
@@ -61,11 +61,11 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
   if (error || !order) {
     return (
-      <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
+      <main className="min-h-screen bg-[#1a1a1a]">
         <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80">
           <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-2">
-            <Flame className="w-8 h-8 text-[#FFA24D]" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
+            <Flame className="w-8 h-8 text-[#FFC107]" />
+            <h1 className="text-2xl font-bold text-[#FFC107]">
               Chapa Quente
             </h1>
           </div>
@@ -82,12 +82,12 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
   const statusInfo = statusMap[order.status as keyof typeof statusMap];
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#031B2B] to-[#0a0e17]">
+    <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
       <header className="border-b border-gray-700 sticky top-0 z-50 bg-gray-900/80 backdrop-blur">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center gap-2">
-          <Flame className="w-8 h-8 text-[#FFA24D]" />
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#FFA24D] to-[#A60E35] bg-clip-text text-transparent">
+          <Flame className="w-8 h-8 text-[#FFC107]" />
+          <h1 className="text-2xl font-bold text-[#FFC107]">
             Chapa Quente
           </h1>
         </div>
@@ -157,7 +157,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
           <div className="flex justify-between text-lg font-bold">
             <span>Total</span>
-            <span className="text-[#FFA24D]">R$ {order.totalPrice.toFixed(2)}</span>
+            <span className="text-[#FFC107]">R$ {order.totalPrice.toFixed(2)}</span>
           </div>
         </div>
       </div>

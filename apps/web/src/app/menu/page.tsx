@@ -150,7 +150,7 @@ export default function MenuPage() {
   if (!storeIdParam) {
     return (
       <main className="min-h-screen bg-[#1a1a1a]">
-        <header className="border-b border-[#FFC107]/20 sticky top-0 z-50 bg-[#1a1a1a]/90 backdrop-blur">
+        <header className="border-b border-[#FFC107]/20 sticky top-0 safe-top z-50 bg-[#1a1a1a]/90 backdrop-blur">
           <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Flame className="w-8 h-8 text-[#FFC107]" />
@@ -174,21 +174,27 @@ export default function MenuPage() {
   return (
     <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-[#FFC107]/20 sticky top-0 z-50 bg-[#1a1a1a]/90 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Flame className="w-8 h-8 text-[#FFC107]" />
-            <h1 className="text-2xl font-bold text-[#FFC107]">
+      <header className="border-b border-[#FFC107]/20 sticky top-0 safe-top z-50 bg-[#1a1a1a]/90 backdrop-blur">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between items-center gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-[#FFC107] shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-bold text-[#FFC107] truncate">
               Chapa Quente
             </h1>
           </div>
 
           <button
             onClick={() => router.push('/cart')}
-            className="relative btn-primary flex items-center gap-2"
+            aria-label={`Abrir carrinho, ${itemCount} ${itemCount === 1 ? 'item' : 'itens'}`}
+            className="relative btn-primary flex items-center gap-2 shrink-0 px-3 sm:px-6"
           >
             <ShoppingCart className="w-5 h-5" />
-            Carrinho ({itemCount})
+            <span className="hidden sm:inline">Carrinho ({itemCount})</span>
+            {itemCount > 0 && (
+              <span className="sm:hidden absolute -top-1.5 -right-1.5 bg-[#1a1a1a] text-[#FFC107] text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 border border-[#FFC107]">
+                {itemCount}
+              </span>
+            )}
           </button>
         </div>
       </header>
@@ -203,10 +209,10 @@ export default function MenuPage() {
 
         {/* Categories */}
         {categories.length > 0 && (
-          <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
+          <div className="mb-8 flex gap-2 scroll-x pb-2 -mx-4 px-4">
             <button
               onClick={() => setSelectedCategory('')}
-              className={`px-6 py-2 rounded-lg font-semibold whitespace-nowrap transition-all ${
+              className={`px-5 py-3 min-h-[44px] rounded-lg font-semibold whitespace-nowrap transition-all ${
                 selectedCategory === ''
                   ? 'bg-[#FFC107] text-[#1a1a1a]'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -218,7 +224,7 @@ export default function MenuPage() {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-6 py-2 rounded-lg font-semibold whitespace-nowrap transition-all ${
+                className={`px-5 py-3 min-h-[44px] rounded-lg font-semibold whitespace-nowrap transition-all ${
                   selectedCategory === category
                     ? 'bg-[#FFC107] text-[#1a1a1a]'
                     : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -288,25 +294,26 @@ export default function MenuPage() {
 
       {/* Customization Modal */}
       {selectedItem && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="card-highlight w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-[#FFC107]/50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="card-highlight w-full max-w-2xl max-h-[92svh] sm:max-h-[90vh] overflow-y-auto border-2 border-[#FFC107]/50 rounded-b-none sm:rounded-xl pb-[env(safe-area-inset-bottom)]">
             {/* Header */}
-            <div className="sticky top-0 bg-[#FFC107]/10 border-b border-[#FFC107]/30 p-6 flex justify-between items-start">
+            <div className="sticky top-0 bg-[#2a2a2a] border-b border-[#FFC107]/30 p-4 sm:p-6 flex justify-between items-start gap-2 z-10">
               <div className="flex-1">
-                <h2 className="text-3xl font-bold mb-2">{selectedItem.name}</h2>
+                <h2 className="text-xl sm:text-3xl font-bold mb-1 sm:mb-2">{selectedItem.name}</h2>
                 {selectedItem.description && (
                   <p className="text-gray-400">{selectedItem.description}</p>
                 )}
               </div>
               <button
                 onClick={() => setSelectedItem(null)}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-all"
+                aria-label="Fechar personalização"
+                className="tap-target hover:bg-gray-700 rounded-lg transition-all shrink-0"
               >
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-5 sm:space-y-6">
               {/* Image */}
               {selectedItem.imageUrl && (
                 <div className="rounded-lg overflow-hidden border border-[#FFC107]/20">

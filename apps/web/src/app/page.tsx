@@ -11,35 +11,38 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-[#FFC107]/20 sticky top-0 z-50 bg-[#1a1a1a]/90 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Flame className="w-8 h-8 text-[#FFC107]" />
-            <h1 className="text-2xl font-bold text-[#FFC107]">
+      <header className="border-b border-[#FFC107]/20 sticky top-0 safe-top z-50 bg-[#1a1a1a]/90 backdrop-blur">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4 flex justify-between items-center gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Flame className="w-7 h-7 sm:w-8 sm:h-8 text-[#FFC107] shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-bold text-[#FFC107] truncate">
               Chapa Quente
             </h1>
           </div>
 
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center gap-2 sm:gap-4 shrink-0">
             {isAuthenticated ? (
               <>
-                <span className="text-sm text-gray-400">{user?.name}</span>
+                {/* The greeting is the first thing to go when space is tight. */}
+                <span className="hidden md:inline text-sm text-gray-400 max-w-[12ch] truncate">
+                  {user?.name}
+                </span>
                 {user?.userType === 'customer' ? (
-                  <button onClick={() => router.push('/menu')} className="btn-primary text-sm">
+                  <button onClick={() => router.push('/menu')} className="btn-primary text-sm px-4 sm:px-6">
                     Cardápio
                   </button>
                 ) : (
-                  <button onClick={() => router.push('/store/dashboard')} className="btn-primary text-sm">
+                  <button onClick={() => router.push('/store/dashboard')} className="btn-primary text-sm px-4 sm:px-6">
                     Dashboard
                   </button>
                 )}
               </>
             ) : (
               <>
-                <button onClick={() => router.push('/login')} className="btn-secondary text-sm">
+                <button onClick={() => router.push('/login')} className="btn-secondary text-sm px-4 sm:px-6">
                   Login
                 </button>
-                <button onClick={() => router.push('/register')} className="btn-primary text-sm">
+                <button onClick={() => router.push('/register')} className="btn-primary text-sm px-4 sm:px-6">
                   Cadastro
                 </button>
               </>
@@ -49,7 +52,7 @@ export default function Home() {
       </header>
 
       {/* Hero Video Section */}
-      <section className="relative w-full h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative w-full min-h-[100svh] flex items-center justify-center overflow-hidden py-16">
         {/* Video Background */}
         <div className="absolute inset-0 w-full h-full">
           <video
@@ -69,13 +72,13 @@ export default function Home() {
 
         {/* Content */}
         <div className="relative z-10 text-center px-4 max-w-4xl">
-          <h2 className="text-6xl md:text-7xl font-bold mb-6">
+          <h2 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6">
             Bem-vindo à <span className="text-[#FFC107]">Chapa Quente</span>
           </h2>
-          <p className="text-3xl text-[#FFC107] font-bold mb-4">
+          <p className="text-xl sm:text-2xl md:text-3xl text-[#FFC107] font-bold mb-4">
             O ponto certo da sua fome! 🔥
           </p>
-          <p className="text-xl text-gray-200 mb-12 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl text-gray-200 mb-12 max-w-2xl mx-auto">
             Hambúrgueres frescos, suculentos e personalizados do seu jeito
           </p>
 

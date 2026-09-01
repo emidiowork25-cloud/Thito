@@ -22,27 +22,40 @@ export async function GET(req: Request) {
     ]);
     if (storeResult.rows.length === 0) return fail('Loja não encontrada', 404);
 
-    const storeId = storeResult.rows[0].id;
-    const filterByStatus = status && status !== 'all';
-
-    const values: unknown[] = [storeId];
-    let where = 'WHERE store_id = $1';
-    if (filterByStatus) {
+    const values: unknown[] = [storeResult.rows[0].id];
+    // Both queries alias the table as `o`, so one filter string serves both.
+    let statusFilter = '';
+    if (status && status !== 'all') {
       values.push(status);
-      where += ` AND status = $${values.length}`;
+      statusFilter = ` AND o.status = $${values.length}`;
     }
 
     const countResult = await pool.query(
-      `SELECT COUNT(*) FROM orders ${where}`,
+      `SELECT COUNT(*) FROM orders o WHERE o.store_id = $1${statusFilter}`,
       values
     );
 
+    // Each order carries its items, which the dashboard maps over directly.
+    // COALESCE keeps that an array rather than null for an order with none.
     const result = await pool.query(
-      `SELECT id, customer_id AS "customerId", status, total_price AS "totalPrice",
-              notes, estimated_time_minutes AS "estimatedTimeMinutes",
-              created_at AS "createdAt", updated_at AS "updatedAt"
-       FROM orders ${where}
-       ORDER BY created_at DESC
+      `SELECT o.id, o.customer_id AS "customerId", o.status,
+              o.total_price AS "totalPrice", o.notes,
+              o.estimated_time_minutes AS "estimatedTimeMinutes",
+              o.created_at AS "createdAt", o.updated_at AS "updatedAt",
+              COALESCE(items.list, '[]'::json) AS items
+       FROM orders o
+       LEFT JOIN LATERAL (
+         SELECT json_agg(json_build_object(
+                  'name', mi.name,
+                  'quantity', oi.quantity,
+                  'customizations', oi.customizations
+                ) ORDER BY oi.created_at) AS list
+         FROM order_items oi
+         JOIN menu_items mi ON mi.id = oi.menu_item_id
+         WHERE oi.order_id = o.id
+       ) items ON true
+       WHERE o.store_id = $1${statusFilter}
+       ORDER BY o.created_at DESC
        LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,
       [...values, limit, offset]
     );

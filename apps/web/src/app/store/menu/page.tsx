@@ -28,7 +28,7 @@ interface FormState {
 
 export default function StoreMenuPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -46,12 +46,16 @@ export default function StoreMenuPage() {
   });
 
   useEffect(() => {
+    // useAuth reports null until it has read localStorage, so acting on the
+    // first render bounced signed-in owners to /login on every refresh.
+    if (authLoading) return;
+
     if (!isAuthenticated || user?.userType !== 'store') {
       router.push('/login');
       return;
     }
     loadMenuItems();
-  }, [isAuthenticated, user]);
+  }, [authLoading, isAuthenticated, user]);
 
   const loadMenuItems = async () => {
     setLoading(true);
@@ -151,6 +155,14 @@ export default function StoreMenuPage() {
     setShowForm(false);
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#1a1a1a] flex items-center justify-center text-[#FFC107]">
+        Carregando...
+      </div>
+    );
+  }
+
   if (!isAuthenticated || user?.userType !== 'store') {
     return null;
   }
@@ -158,7 +170,7 @@ export default function StoreMenuPage() {
   return (
     <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-[#FFC107]/20 bg-[#1a1a1a]/90 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-[#FFC107]/20 bg-[#1a1a1a]/90 backdrop-blur sticky top-0 safe-top z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
@@ -308,7 +320,7 @@ export default function StoreMenuPage() {
                   placeholder="Descreva o prato (sabor, presentação, etc.)"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#11BACA] h-20 resize-none"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107] h-20 resize-none"
                 />
               </div>
 
@@ -319,7 +331,7 @@ export default function StoreMenuPage() {
                   placeholder="Separe os ingredientes por vírgula ou quebra de linha"
                   value={form.ingredients}
                   onChange={(e) => setForm({ ...form, ingredients: e.target.value })}
-                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#11BACA] h-24 resize-none"
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-[#FFC107] h-24 resize-none"
                 />
               </div>
             </div>
@@ -414,14 +426,14 @@ export default function StoreMenuPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(item)}
-                      className="flex-1 px-3 py-2 bg-blue-900/30 hover:bg-blue-900/50 text-blue-400 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                      className="flex-1 px-3 min-h-[44px] bg-blue-900/30 hover:bg-blue-900/50 text-blue-400 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
                     >
                       <Edit2 className="w-4 h-4" />
                       Editar
                     </button>
                     <button
                       onClick={() => handleDelete(item.id)}
-                      className="flex-1 px-3 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                      className="flex-1 px-3 min-h-[44px] bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
                     >
                       <Trash2 className="w-4 h-4" />
                       Deletar

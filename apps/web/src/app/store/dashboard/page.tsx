@@ -26,7 +26,7 @@ interface Order {
 
 export default function StoreDashboardPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [tab, setTab] = useState<'orders' | 'menu'>('orders');
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -38,6 +38,10 @@ export default function StoreDashboardPage() {
   const [newItem, setNewItem] = useState({ name: '', price: '', description: '', category: '' });
 
   useEffect(() => {
+    // useAuth reports null until it has read localStorage, so acting on the
+    // first render bounced signed-in owners to /login on every refresh.
+    if (authLoading) return;
+
     if (!isAuthenticated || user?.userType !== 'store') {
       router.push('/login');
       return;
@@ -47,7 +51,7 @@ export default function StoreDashboardPage() {
     loadMenuItems();
     const interval = setInterval(loadOrders, 5000);
     return () => clearInterval(interval);
-  }, [isAuthenticated, user]);
+  }, [authLoading, isAuthenticated, user]);
 
   const loadOrders = async () => {
     try {
@@ -126,7 +130,7 @@ export default function StoreDashboardPage() {
   return (
     <main className="min-h-screen bg-[#1a1a1a]">
       {/* Header */}
-      <header className="border-b border-[#FFC107]/20 bg-[#1a1a1a]/90 backdrop-blur sticky top-0 z-50">
+      <header className="border-b border-[#FFC107]/20 bg-[#1a1a1a]/90 backdrop-blur sticky top-0 safe-top z-50">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
@@ -152,10 +156,10 @@ export default function StoreDashboardPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 scroll-x -mx-4 px-4 pb-1">
             <button
               onClick={() => setTab('orders')}
-              className={`px-6 py-2 rounded-lg font-semibold transition-all ${
+              className={`px-5 min-h-[44px] rounded-lg font-semibold whitespace-nowrap shrink-0 transition-all ${
                 tab === 'orders'
                   ? 'bg-[#FFC107] text-[#1a1a1a]'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -165,7 +169,7 @@ export default function StoreDashboardPage() {
             </button>
             <button
               onClick={() => setTab('menu')}
-              className={`px-6 py-2 rounded-lg font-semibold transition-all ${
+              className={`px-5 min-h-[44px] rounded-lg font-semibold whitespace-nowrap shrink-0 transition-all ${
                 tab === 'menu'
                   ? 'bg-[#FFC107] text-[#1a1a1a]'
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -175,9 +179,9 @@ export default function StoreDashboardPage() {
             </button>
             <button
               onClick={() => router.push('/store/menu')}
-              className="px-6 py-2 rounded-lg font-semibold bg-[#FFC107]/20 text-[#FFC107] hover:bg-[#FFC107]/30 transition-all ml-auto"
+              className="px-5 min-h-[44px] rounded-lg font-semibold whitespace-nowrap shrink-0 bg-[#FFC107]/20 text-[#FFC107] hover:bg-[#FFC107]/30 transition-all sm:ml-auto"
             >
-              ➜ Gerenciar Itens Completo
+              ➜ <span className="sm:hidden">Gerenciar</span><span className="hidden sm:inline">Gerenciar Itens Completo</span>
             </button>
           </div>
         </div>
@@ -255,7 +259,7 @@ export default function StoreDashboardPage() {
                     {order.status === 'pending' && (
                       <button
                         onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
-                        className="flex-1 px-4 py-2 bg-blue-900/30 hover:bg-blue-900/50 text-blue-400 rounded-lg text-sm font-semibold transition-all"
+                        className="flex-1 px-4 min-h-[44px] bg-blue-900/30 hover:bg-blue-900/50 text-blue-400 rounded-lg text-sm font-semibold transition-all"
                       >
                         Confirmar
                       </button>
@@ -263,7 +267,7 @@ export default function StoreDashboardPage() {
                     {order.status === 'confirmed' && (
                       <button
                         onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
-                        className="flex-1 px-4 py-2 bg-orange-900/30 hover:bg-orange-900/50 text-orange-400 rounded-lg text-sm font-semibold transition-all"
+                        className="flex-1 px-4 min-h-[44px] bg-orange-900/30 hover:bg-orange-900/50 text-orange-400 rounded-lg text-sm font-semibold transition-all"
                       >
                         Começar Preparo
                       </button>
@@ -271,7 +275,7 @@ export default function StoreDashboardPage() {
                     {order.status === 'preparing' && (
                       <button
                         onClick={() => handleUpdateOrderStatus(order.id, 'ready')}
-                        className="flex-1 px-4 py-2 bg-green-900/30 hover:bg-green-900/50 text-green-400 rounded-lg text-sm font-semibold transition-all"
+                        className="flex-1 px-4 min-h-[44px] bg-green-900/30 hover:bg-green-900/50 text-green-400 rounded-lg text-sm font-semibold transition-all"
                       >
                         Marcar Pronto
                       </button>
@@ -279,7 +283,7 @@ export default function StoreDashboardPage() {
                     {order.status === 'ready' && (
                       <button
                         onClick={() => handleUpdateOrderStatus(order.id, 'completed')}
-                        className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-semibold transition-all"
+                        className="flex-1 px-4 min-h-[44px] bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-semibold transition-all"
                       >
                         Entregue
                       </button>
@@ -391,7 +395,7 @@ export default function StoreDashboardPage() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleDeleteMenuItem(item.id)}
-                        className="flex-1 px-4 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
+                        className="flex-1 px-4 min-h-[44px] bg-red-900/30 hover:bg-red-900/50 text-red-400 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2"
                       >
                         <Trash2 className="w-4 h-4" />
                         Deletar
