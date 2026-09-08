@@ -141,7 +141,7 @@
 <body class="sem-guia">
   <div id="barra">
     <span><span class="luz" id="luz"></span><span id="estado">conectando</span></span>
-    <span id="trava">tela livre</span>
+    <span id="trava" title="Estado da trava de tela">tela livre</span>
     <span id="relogio"></span>
   </div>
 
@@ -563,54 +563,190 @@ window.__cfg = (function () {
   /* ---------------- trava de suspensão ---------------- */
 
   /*
-   * A trava é o que faz a ideia inteira funcionar: um celular que apaga sozinho
-   * no meio da leitura não é teleprompter, é um susto no ar.
+   * Manter a tela acesa é o que faz a ideia inteira funcionar: um celular que
+   * apaga sozinho no meio da leitura não é teleprompter, é um susto no ar.
    *
-   * Duas coisas que a versão anterior errava. A primeira: só pedia a trava no
-   * primeiro toque — quem lesse o QR e começasse a ler sem tocar em nada ficava
-   * sem trava nenhuma. A segunda, mais traiçoeira: o navegador SOLTA a trava
-   * quando a tela é ocultada, e a variável continuava apontando para a trava
-   * já morta. Como a volta só pedia de novo `se (!wakeLock)`, e wakeLock não
-   * era nulo, ela nunca era repedida — a primeira interrupção matava a trava
-   * para o resto da sessão.
+   * São DUAS travas, porque uma só não cobre a realidade.
+   *
+   * A primeira é a Screen Wake Lock, a via oficial. Funciona no Chrome do
+   * Android e no Safari do iPhone (16.4 em diante). Quando ela pega, é ela que
+   * manda.
+   *
+   * A segunda é um vídeo mudo rodando em laço, escondido num canto de um pixel.
+   * Ela existe porque a primeira tem um buraco conhecido e comum: com o MODO DE
+   * BAIXO CONSUMO ligado, o iPhone RECUSA a trava — e recusa em silêncio, que é
+   * o pior jeito de recusar. O sistema, porém, não apaga a tela enquanto há
+   * vídeo tocando. Então quando a via oficial falha, entra o vídeo.
+   *
+   * E há uma terceira coisa, que não é trava e sim teimosia: um vigia que
+   * confere a cada poucos segundos se alguma das duas ainda está de pé. A
+   * versão anterior pedia a trava na abertura e no primeiro toque, e depois
+   * disso confiava. Confiar é o que não dá: o navegador solta a trava a cada
+   * troca de aba, a cada chamada recebida, a cada notificação em tela cheia —
+   * e uma trava que não é repedida é uma trava que existiu por dez minutos.
    */
-  var trava = null;
+  var trava = null;                 // sentinela da Wake Lock
+  var video = null;                 // o plano B
+  var motivoSemTrava = '';          // o que dizer quando nada segurou
+  var pedindo = false;              // um pedido de trava por vez
+  // Se o vídeo DEVE estar tocando. Sem esta bandeira, o ouvinte de `pause`
+  // religa o vídeo que a própria trava acabou de desligar, e os dois ficam de
+  // pé ao mesmo tempo consumindo bateria por nada.
+  var videoDesejado = false;
+
+  function travaViva() { return !!trava && !trava.released; }
+  function videoVivo() { return !!video && !video.paused && !video.ended; }
 
   function pintarTrava() {
-    var presa = !!trava && !trava.released;
-    travaTxt.textContent = presa ? '🔒 tela travada' : 'tela livre';
-    travaTxt.style.opacity = presa ? '1' : '.55';
+    if (travaViva()) {
+      travaTxt.textContent = '🔒 tela travada';
+      travaTxt.style.opacity = '1';
+      travaTxt.title = 'A tela não vai apagar (trava do navegador).';
+    } else if (videoVivo()) {
+      travaTxt.textContent = '🔒 tela travada (vídeo)';
+      travaTxt.style.opacity = '1';
+      travaTxt.title = 'O navegador recusou a trava — provavelmente Modo de Baixo Consumo. '
+        + 'Estou segurando com um vídeo mudo rodando, que costuma bastar.';
+    } else {
+      travaTxt.textContent = '⚠ tela pode apagar';
+      travaTxt.style.opacity = '1';
+      travaTxt.title = motivoSemTrava || 'Não consegui impedir a tela de apagar.';
+    }
   }
 
-  function segurarTela() {
-    if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
-    if (trava && !trava.released) return;
-    navigator.wakeLock.request('screen').then(function (sentinela) {
-      trava = sentinela;
-      // O próprio navegador avisa quando desiste. Sem escutar isto, não há
-      // como saber que a trava caiu.
-      sentinela.addEventListener('release', function () { pintarTrava(); });
+  /* ---- via oficial ---- */
+
+  /*
+   * Existir a chave não é existir a função.
+   *
+   * `'wakeLock' in navigator` era o teste antigo, e ele passa em casos onde a
+   * propriedade está lá valendo `undefined` — é o que acontece FORA DE CONTEXTO
+   * SEGURO, ou seja, ao abrir o exibidor por http:// numa rede local. O código
+   * seguia adiante, chamava `.request` de undefined, e o erro derrubava a
+   * função inteira: ficava sem trava, sem plano B e sem aviso. Perguntar pela
+   * função é a única pergunta que vale.
+   */
+  function temWakeLock() {
+    try { return !!(navigator.wakeLock && typeof navigator.wakeLock.request === 'function'); }
+    catch (e) { return false; }
+  }
+
+  function pedirWakeLock() {
+    if (!temWakeLock()) {
+      motivoSemTrava = 'Este navegador não oferece a trava de tela aqui. '
+        + 'Se o endereço começa com http:// em vez de https://, é por isso — a trava só existe em conexão segura.';
+      ligarVideo();
       pintarTrava();
-    }).catch(function () {
+      return;
+    }
+    if (document.visibilityState !== 'visible' || travaViva() || pedindo) return;
+    pedindo = true;
+    navigator.wakeLock.request('screen').then(function (sentinela) {
+      pedindo = false;
+      trava = sentinela;
+      // O próprio navegador avisa quando desiste. Sem escutar isto, não há como
+      // saber que a trava caiu — e era assim que ela morria calada.
+      sentinela.addEventListener('release', function () { ligarVideo(); pintarTrava(); });
+      motivoSemTrava = '';
+      // Quem decide desligar o plano B é a CHEGADA da trava, e não o palpite de
+      // quem pediu: a resposta é assíncrona, e decidir antes dela significava
+      // ligar o vídeo em toda abertura para desligá-lo oito segundos depois.
+      desligarVideo();
+      pintarTrava();
+    }).catch(function (e) {
+      pedindo = false;
       trava = null;
+      motivoSemTrava = 'O navegador recusou a trava (' + (e && e.name ? e.name : 'motivo não informado')
+        + '). No iPhone isso quase sempre é o Modo de Baixo Consumo — desligue-o em Ajustes › Bateria.';
+      ligarVideo();
       pintarTrava();
     });
+  }
+
+  /* ---- plano B: vídeo mudo em laço ---- */
+
+  /*
+   * O quadro vem de um <canvas>, e não de um arquivo.
+   *
+   * Um arquivo de vídeo embutido em base64 seria mais previsível, mas eu teria
+   * de colar aqui um blob binário que ninguém consegue ler nem conferir — e um
+   * blob corrompido falharia EXATAMENTE como um funcionando: em silêncio. Com o
+   * canvas, o que roda está escrito aqui, em três linhas legíveis.
+   */
+  function desligarVideo() {
+    videoDesejado = false;
+    if (video) { try { video.pause(); } catch (e) { /* tudo bem */ } }
+  }
+
+  function ligarVideo() {
+    videoDesejado = true;
+    if (videoVivo()) return;
+    try {
+      if (!video) {
+        var tela = document.createElement('canvas');
+        tela.width = 2; tela.height = 2;
+        var ctx = tela.getContext('2d');
+        // Um pixel que muda de vez em quando: fluxo parado pode ser descartado
+        // como "sem conteúdo", e aí não há reprodução para segurar coisa nenhuma.
+        setInterval(function () {
+          if (!ctx) return;
+          ctx.fillStyle = ctx.fillStyle === '#000001' ? '#000002' : '#000001';
+          ctx.fillRect(0, 0, 2, 2);
+        }, 1000);
+
+        video = document.createElement('video');
+        video.muted = true;
+        video.defaultMuted = true;
+        video.loop = true;
+        video.setAttribute('muted', '');
+        video.setAttribute('playsinline', '');       // sem isto o iPhone abre em tela cheia
+        video.setAttribute('webkit-playsinline', '');
+        video.setAttribute('aria-hidden', 'true');
+        // Precisa estar no documento e "visível" para o navegador tratar como
+        // reprodução de verdade; um display:none costuma ser tratado como nada.
+        video.style.cssText = 'position:fixed;left:0;bottom:0;width:1px;height:1px;opacity:.01;pointer-events:none;z-index:-1';
+        video.srcObject = tela.captureStream(2);
+        document.body.appendChild(video);
+        // Só religa o que ainda é para estar tocando.
+        video.addEventListener('pause', function () {
+          if (videoDesejado) setTimeout(ligarVideo, 300);
+        });
+      }
+      var p = video.play();
+      if (p && p.catch) p.catch(function () { /* falta gesto; o vigia tenta de novo */ });
+    } catch (e) { /* sem canvas.captureStream: resta a via oficial */ }
+  }
+
+  /* ---- teimosia ---- */
+
+  function segurarTela() {
+    try { segurarMesmo(); } catch (e) { pintarTrava(); }
+  }
+
+  function segurarMesmo() {
+    if (travaViva()) { desligarVideo(); pintarTrava(); return; }
+    // Pede a oficial e deixa que a RESPOSTA dela decida se o plano B entra.
+    // Só quando não há nem API para pedir é que o vídeo assume de saída.
+    pedirWakeLock();
+    pintarTrava();
   }
 
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'visible') segurarTela();
   });
-  // Pedida já na abertura, e de novo ao primeiro toque: alguns navegadores só
-  // concedem depois de um gesto, e não há como saber qual sem tentar os dois.
-  segurarTela();
-  palco.addEventListener('pointerdown', segurarTela, { once: true });
+  document.addEventListener('fullscreenchange', segurarTela);
+  window.addEventListener('focus', segurarTela);
+  window.addEventListener('orientationchange', segurarTela);
+  // Alguns navegadores só concedem depois de um gesto. Qualquer toque serve, e
+  // não só o primeiro: se a trava caiu, o próximo toque a traz de volta.
+  document.addEventListener('pointerdown', segurarTela);
 
-  if (!('wakeLock' in navigator)) {
-    travaTxt.textContent = 'sem trava';
-    travaTxt.style.opacity = '.55';
-  } else {
-    pintarTrava();
-  }
+  segurarTela();
+
+  // O vigia. Barato, e é o que transforma "pedi uma vez" em "não largo".
+  setInterval(function () {
+    if (document.visibilityState === 'visible') segurarTela();
+  }, 8000);
 
   setInterval(function () {
     var d = new Date();
