@@ -2,12 +2,22 @@ import { NextResponse } from 'next/server';
 import { getPool } from '@/lib/server/db';
 import { getAuth } from '@/lib/server/auth';
 import { createOrderSchema } from '@/lib/server/validation';
-import { fail, unauthorized, forbidden, fromError } from '@/lib/server/http';
+import { clientIp, rateLimit, LIMITS } from '@/lib/server/rate-limit';
+import { fail, unauthorized, forbidden, tooManyRequests, fromError } from '@/lib/server/http';
 
 export async function POST(req: Request) {
   const auth = getAuth(req);
   if (!auth) return unauthorized();
   if (auth.userType !== 'customer') return forbidden('Acesso restrito a clientes');
+
+  // Bounded before any database work: order creation writes several rows and
+  // is the most expensive thing an authenticated caller can trigger in a loop.
+  const { allowed, retryAfterSeconds } = await rateLimit(
+    `order:${auth.userId}:${clientIp(req)}`,
+    LIMITS.createOrder.limit,
+    LIMITS.createOrder.windowSeconds
+  );
+  if (!allowed) return tooManyRequests(retryAfterSeconds);
 
   const pool = getPool();
   const client = await pool.connect();

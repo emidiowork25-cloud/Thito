@@ -3,16 +3,32 @@ import bcrypt from 'bcryptjs';
 import { getPool } from '@/lib/server/db';
 import { generateToken } from '@/lib/server/auth';
 import { registerSchema } from '@/lib/server/validation';
-import { fail, fromError } from '@/lib/server/http';
+import { clientIp, rateLimit, LIMITS } from '@/lib/server/rate-limit';
+import { fail, tooManyRequests, fromError } from '@/lib/server/http';
+
+// Work factor for new passwords. Existing hashes carry their own cost inside
+// the hash string, so raising this does not invalidate them.
+const BCRYPT_ROUNDS = 12;
 
 export async function POST(req: Request) {
   const pool = getPool();
-  const client = await pool.connect();
+  let client;
 
   try {
-    const parsed = registerSchema.parse(await req.json());
-    const hashedPassword = await bcrypt.hash(parsed.password, 10);
+    const body = await req.json();
+    const parsed = registerSchema.parse(body);
 
+    const ip = clientIp(req);
+    const { allowed, retryAfterSeconds } = await rateLimit(
+      `register:ip:${ip}`,
+      LIMITS.register.limit,
+      LIMITS.register.windowSeconds
+    );
+    if (!allowed) return tooManyRequests(retryAfterSeconds);
+
+    const hashedPassword = await bcrypt.hash(parsed.password, BCRYPT_ROUNDS);
+
+    client = await pool.connect();
     await client.query('BEGIN');
 
     const result = await client.query(
@@ -52,12 +68,17 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error: any) {
-    await client.query('ROLLBACK').catch(() => {});
+    await client?.query('ROLLBACK').catch(() => {});
+
+    // This does confirm the address is taken, which is a disclosure. The
+    // alternative — a generic reply plus a confirmation email — needs mail
+    // infrastructure this app does not have, so the rate limit above is what
+    // keeps it from being usable for bulk enumeration.
     if (error.code === '23505') {
-      return fail('Email já cadastrado', 400);
+      return fail('Este e-mail já está cadastrado', 409);
     }
     return fromError(error, 'Falha no cadastro');
   } finally {
-    client.release();
+    client?.release();
   }
 }
