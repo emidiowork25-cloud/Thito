@@ -214,3 +214,40 @@ export async function projetoAlcancavel() {
     return false;
   }
 }
+
+/**
+ * O aparelho tem internet? — perguntado ao PRÓPRIO endereço do app.
+ *
+ * Um `fetch` que falha não diz por quê: "sem internet", "servidor dormindo" e
+ * "CORS" chegam todos como o mesmo `Failed to fetch`. E o palpite mais fácil —
+ * culpar a conexão — é o que mais irrita, porque manda a pessoa reiniciar o
+ * roteador enquanto o problema está do outro lado.
+ *
+ * O endereço perguntado é o do próprio JARBAS, e não o de um serviço qualquer:
+ * um hub privado não precisa avisar a terceiros que este aparelho acordou. A
+ * busca vai com um número único para o service worker não responder do cache e
+ * fazer a pergunta parecer respondida quando não houve rede nenhuma.
+ */
+export async function temInternet() {
+  if (navigator.onLine === false) return false;
+  try {
+    await fetch(`./manifest.webmanifest?probe=${Date.now()}`, { cache: 'no-store' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Por que a chamada falhou, em três palavras possíveis:
+ *   'sem-internet'  — o aparelho está fora do ar
+ *   'servidor-fora' — a internet vai, o projeto Supabase é que não responde
+ *                     (no plano free ele HIBERNA depois de alguns dias parado)
+ *   'outra'         — a falha não era de rede
+ */
+export async function diagnosticarRede(err) {
+  const msg = String(err?.message || err);
+  if (!/Failed to fetch|NetworkError|Load failed|ERR_NETWORK/i.test(msg)) return 'outra';
+  if (!(await temInternet())) return 'sem-internet';
+  return 'servidor-fora';
+}

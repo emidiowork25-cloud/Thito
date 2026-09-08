@@ -214,7 +214,19 @@ export function telaDeLogin(raiz) {
         } else if (/Invalid login|invalid_credentials|invalid_grant/i.test(msg)) {
           erro('E-mail ou senha não conferem.');
         } else if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) {
-          erro('Sem conexão para entrar agora. O login precisa de internet uma vez; depois disso o app abre offline neste aparelho.');
+          // Antes esta linha dizia "sem conexão" e pronto — e mandava a pessoa
+          // olhar o wi-fi enquanto o problema estava do outro lado do mundo.
+          // Um projeto Supabase no plano free HIBERNA depois de alguns dias sem
+          // uso, e a falha dele chega com a mesma cara de internet caída.
+          erro('Verificando…');
+          const causa = await sb.diagnosticarRede(err);
+          if (causa === 'sem-internet') {
+            erro('Sem conexão para entrar agora. O login precisa de internet uma vez; depois disso o app abre offline neste aparelho.');
+          } else {
+            erro('Sua internet está funcionando — quem não respondeu foi o servidor do JARBAS. '
+              + 'No plano gratuito, o Supabase hiberna o projeto depois de alguns dias parado. '
+              + 'Abra supabase.com/dashboard, entre no projeto e clique em "Restore" — leva uns minutos e o login volta.');
+          }
         } else {
           erro(msg);
         }
