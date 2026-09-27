@@ -91,7 +91,14 @@ h1,h2,h3{font-family:Montserrat,system-ui,sans-serif;margin:0;text-wrap:balance}
 .stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + 74px)}
 @media (max-width:860px){.stage{position:static}}
 .frame{width:100%;aspect-ratio:1080/1350;position:relative;border-radius:14px;cursor:grab;user-select:none;overflow:hidden;box-shadow:var(--shadow);background:#141E30}
-.frame .slide{position:absolute;top:0;left:0;transform-origin:0 0}
+/* O MESMO HTML do slide serve a prévia e o PNG, e ele traz um
+   `position:relative` embutido no atributo style — que ganha desta regra.
+   No renderizador escondido isso é o certo: lá a caixa de 1080px É o tamanho
+   final. Aqui dentro do quadro, não: uma caixa de 1080px EM FLUXO vira a
+   largura mínima da coluna, da .wrap e do editor inteiro, e no celular a tela
+   de 326px passa a desenhar um layout de 1080px — tudo cortado pro lado.
+   O !important é o que devolve a prévia para fora do fluxo. */
+.frame .slide{position:absolute!important;top:0;left:0;transform-origin:0 0}
 .frame.stories{aspect-ratio:1080/1920}
 .fmt{display:flex;gap:6px;margin-bottom:10px}
 .fmt button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px;cursor:pointer}

@@ -929,9 +929,15 @@
 }
 
 @media (max-width: 700px) {
-  /* No celular o editor precisa de toda a altura que houver: com 78vh sobra
-     uma faixa inútil embaixo e falta espaço onde importa. */
-  .pd-quadro { height: calc(100vh - 230px); min-height: 460px; }
+  /* Aqui só vale enquanto o editor não carregou: a partir daí quem manda na
+     altura é o acompanharAltura() do destino.js, que mede a página de dentro e
+     dá ao quadro o tamanho exato dela — uma rolagem só, a da página.
+
+     O `min-height` antigo era pior que inútil: 460px num iPhone SE, que tem
+     568px de tela inteira, punha o fim do quadro fora do alcance da vista.
+     E `dvh` é a medida que sobe e desce junto com as barras do Safari; o `vh`
+     logo acima fica de rede para quem ainda não conhece `dvh`. */
+  .pd-quadro { height: 60vh; height: 60dvh; min-height: 0; }
   .pd-palco-barra { padding: 8px 10px; padding-top: calc(8px + env(safe-area-inset-top, 0)); }
   .pd-palco-titulo { font-size: 14px; }
 }

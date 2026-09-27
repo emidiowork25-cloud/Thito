@@ -58,8 +58,71 @@ function quadroLigado(extras = {}) {
   return { quadro, pintar, desligar };
 }
 
+/**
+ * No celular, quem se ajusta é o quadro — não o conteúdo.
+ *
+ * O editor tem quase três mil pixels de altura. Metido numa janela de 460px,
+ * ele vira duas rolagens empilhadas: o polegar ora move a página do JARBAS,
+ * ora move o miolo do editor, e qual das duas depende de onde o dedo encostou.
+ * Numa tela de celular isso é o bastante para a interface parecer travada.
+ *
+ * Como a página do editor é da MESMA origem, dá para medir a altura real dela
+ * e dar exatamente essa altura ao quadro. Aí existe uma rolagem só, a da
+ * página — a que o polegar espera.
+ *
+ * Só no celular: no computador o quadro contido funciona bem, e a prévia do
+ * card fica grudada ao lado justamente porque HÁ rolagem interna.
+ */
+const ESTREITO = '(max-width: 700px)';
+
+function acompanharAltura(quadro) {
+  const tela = window.matchMedia(ESTREITO);
+  let observador = null;
+
+  /*
+   * A medida sai do BODY, não do <html>.
+   *
+   * `documentElement.scrollHeight` nunca é menor que a janela — e a janela,
+   * aqui, é a altura que este próprio código acabou de definir. Medir por ali
+   * é medir a si mesmo: o quadro cresceria e nunca mais encolheria, então
+   * trocar de Stories para Feed deixaria para trás uma faixa vazia enorme.
+   * A caixa do body não depende da janela: ela é o conteúdo, e só.
+   */
+  const medir = () => {
+    if (!quadro.isConnected) return soltar();
+    const corpo = quadro.contentDocument?.body;
+    if (!corpo) return;
+    const estilo = quadro.contentWindow.getComputedStyle(corpo);
+    const alta = Math.ceil(corpo.getBoundingClientRect().height
+      + parseFloat(estilo.marginTop) + parseFloat(estilo.marginBottom));
+    if (!alta) return;
+    // A folga de 2px evita ficar oscilando por causa de arredondamento.
+    if (Math.abs(alta - (parseFloat(quadro.style.height) || 0)) > 2) quadro.style.height = `${alta}px`;
+  };
+
+  const soltar = () => {
+    observador?.disconnect();
+    observador = null;
+    quadro.style.height = '';
+  };
+
+  const ligar = () => {
+    soltar();
+    const corpo = quadro.contentDocument?.body;
+    if (!corpo || !window.ResizeObserver) return;
+    observador = new ResizeObserver(medir);
+    observador.observe(corpo);
+    medir();
+  };
+
+  const decidir = () => (tela.matches ? ligar() : soltar());
+  quadro.addEventListener('load', decidir);
+  tela.addEventListener('change', decidir);
+}
+
 export function render(root) {
   const { quadro } = quadroLigado({ class: 'pd-quadro' });
+  acompanharAltura(quadro);
 
   const acoes = [
     el('button', {
