@@ -20,6 +20,7 @@ import * as rede from '../views/rede.js';
 import * as reunioes from '../views/reunioes.js';
 import * as apresentacoes from '../views/apresentacoes.js';
 import * as freela from '../views/freela.js';
+import * as destino from '../views/destino.js';
 import * as eventos from '../views/eventos.js';
 import * as copywriter from '../views/copywriter.js';
 import * as rotina from '../views/rotina.js';
@@ -39,6 +40,7 @@ export const VIEWS = {
   apresentacoes: { mod: apresentacoes, title: 'Apresentações', icon: '▷' },
   compras: { mod: compras, title: 'Compras', icon: '▦' },
   copywriter: { mod: copywriter, title: 'Copywriter', icon: '✎' },
+  destino: { mod: destino, title: 'Próximo Destino', icon: '✈' },
   eventos: { mod: eventos, title: 'Eventos', icon: '◎' },
   financas: { mod: financas, title: 'Finanças', icon: '◈' },
   freela: { mod: freela, title: 'Freela', icon: '◆' },

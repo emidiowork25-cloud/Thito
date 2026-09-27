@@ -9,7 +9,7 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'jarbas-v50';
+const VERSAO = 'jarbas-v51';
 
 const CASCA = [
   './',
@@ -61,6 +61,7 @@ const CASCA = [
   './app/views/convite.js',
   './app/views/copywriter.js',
   './app/views/dashboard.js',
+  './app/views/destino.js',
   './app/views/eventos.js',
   './app/views/financas.js',
   './app/views/freela.js',
@@ -91,6 +92,19 @@ const CASCA = [
   './assets/fontes/montserrat-700-latin.woff2',
   './assets/fontes/montserrat-800-latin-ext.woff2',
   './assets/fontes/montserrat-800-latin.woff2',
+  './assets/proximo-destino/index.html',
+  './assets/proximo-destino/assinatura.png',
+  './assets/proximo-destino/fonts/barlow-latin-600-normal.woff',
+  './assets/proximo-destino/fonts/barlow-latin-700-normal.woff',
+  './assets/proximo-destino/fonts/barlow-latin-800-normal.woff',
+  './assets/proximo-destino/fonts/montserrat-latin-600-normal.woff',
+  './assets/proximo-destino/fonts/montserrat-latin-800-normal.woff',
+  './assets/proximo-destino/fonts/montserrat-latin-700-normal.woff',
+  './assets/proximo-destino/fotos/agachado.jpg',
+  './assets/proximo-destino/fotos/apontando.jpg',
+  './assets/proximo-destino/fotos/em-pe.jpg',
+  './assets/proximo-destino/fotos/estudio.png',
+  './assets/proximo-destino/fotos/plateia.jpg',
   './assets/jarbas-retrato.png',
   './assets/jarbas-cerebro.png',
   './assets/icone-180.png',
