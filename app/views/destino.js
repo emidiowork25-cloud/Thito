@@ -14,20 +14,52 @@
 // build — o JARBAS não tem nenhum dos dois, e não precisou ter.
 
 import { el } from '../core/util.js';
+import * as settings from '../core/settings.js';
+import { criarPonte } from '../core/destino-ponte.js';
 import { sectionCard } from '../ui/components.js';
 
 const PAGINA = './assets/proximo-destino/index.html';
 
-export function render(root) {
+/**
+ * Liga a ponte e devolve o quadro pronto.
+ *
+ * A ordem aqui não é estilo: o editor lê `window.PD_ADAPTER` uma única vez, no
+ * instante em que o script dele roda. Pôr a ponte DEPOIS de criar o quadro é
+ * pôr depois da carruagem — ele já teria decidido usar o armazenamento próprio,
+ * e as viagens ficariam onde ninguém mais as veria.
+ */
+function quadroLigado(extras = {}) {
+  const { ponte, desligar } = criarPonte();
+  window.PD_ADAPTER = ponte;
+
   const quadro = el('iframe', {
     src: PAGINA,
     title: 'Editor Próximo Destino',
-    class: 'pd-quadro',
-    // Sem `allow-same-origin` o navegador trata o iframe como outra origem e o
-    // IndexedDB dele fica inacessível — as viagens não salvariam. Mesma origem
-    // é justamente o que a página precisa, e é o que ela tem servida daqui.
+    // Sem `allow-same-origin` o navegador trata o iframe como outra origem: a
+    // ponte fica invisível para ele E o armazenamento próprio some junto. As
+    // viagens simplesmente não salvariam, sem erro nenhum na tela.
     sandbox: 'allow-scripts allow-same-origin allow-downloads allow-popups allow-modals',
+    ...extras,
   });
+
+  // O editor já vem com tema escuro pronto, na mesma chave que o JARBAS usa
+  // (`data-theme`). Então escurecer não é injetar CSS por cima — é dizer a ele
+  // qual tema usar, e deixá-lo pintar com as cores que o próprio autor
+  // escolheu. O CARD não muda: ele tem cores fixas no desenho, e é assim que
+  // se garante que a peça publicada sai igual em qualquer tela.
+  const pintar = () => {
+    try {
+      const d = quadro.contentDocument;
+      if (d?.documentElement) d.documentElement.dataset.theme = settings.get('theme') === 'light' ? 'light' : 'dark';
+    } catch { /* ainda carregando */ }
+  };
+  quadro.addEventListener('load', pintar);
+
+  return { quadro, pintar, desligar };
+}
+
+export function render(root) {
+  const { quadro } = quadroLigado({ class: 'pd-quadro' });
 
   const acoes = [
     el('button', {
@@ -42,8 +74,9 @@ export function render(root) {
 
   root.append(sectionCard('Próximo Destino', acoes, quadro,
     el('div', { class: 'tiny dim', style: 'margin-top:8px' },
-      'As viagens e as fotos ficam guardadas NESTE aparelho, no armazenamento do próprio editor — '
-      + 'elas não viajam pela nuvem do JARBAS como a agenda e as finanças. Os PNGs saem pelo download normal.')));
+      'As viagens e as fotos ficam nas suas coleções do JARBAS: sincronizam entre os seus aparelhos e '
+      + 'entram no backup, como a agenda. As fotos enviadas são reduzidas para 1280px antes de guardar — '
+      + 'maior que o card, que é 1080, e pequeno o bastante para viajar. Os PNGs saem pelo download normal.')));
 }
 
 /**
@@ -56,17 +89,14 @@ export function render(root) {
  */
 function apresentar() {
   const caixa = el('div', { class: 'pd-palco' });
-  const quadro = el('iframe', {
-    src: PAGINA,
-    title: 'Editor Próximo Destino',
-    sandbox: 'allow-scripts allow-same-origin allow-downloads allow-popups allow-modals',
-  });
+  const { quadro, desligar } = quadroLigado();
 
   const emTelaCheia = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
 
   const sair = () => {
     window.removeEventListener('keydown', tecla);
     if (emTelaCheia()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+    desligar();
     caixa.remove();
   };
 

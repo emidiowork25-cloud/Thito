@@ -5,7 +5,7 @@
 // JARBAS, mas trocar o nome aqui esconderia todos os dados que já estão gravados no
 // navegador de quem usou a versão anterior. Nome interno não é marca.
 const DB_NAME = 'thito';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 export const COLLECTIONS = [
   'events',      // agenda
@@ -49,6 +49,21 @@ export const COLLECTIONS = [
   'campaigns',   // campanhas que agrupam peças
   'metrics',     // métricas coladas do Meta Business e afins
   'scripts',     // roteiros do teleprompter
+
+  // v7 — módulo PRÓXIMO DESTINO.
+  //
+  // O id de cada registro é o CAMINHO que o editor usa ("viagens/abc",
+  // "meta/galeria"), e não um uuid nosso. É de propósito: o editor veio pronto
+  // e fala por caminhos; traduzir para ids daqui exigiria uma tabela de
+  // conversão nos dois sentidos, que é código novo cuja única função seria
+  // desfazer uma escolha que já estava feita e funcionando.
+  'viagens',
+
+  // As fotos enviadas, uma por registro e reduzidas antes de guardar. Ficam
+  // SEPARADAS das viagens porque sincronizam pelo mesmo cano: uma foto de
+  // cinco megabytes dentro do registro da viagem faria cada mexida no título
+  // reenviar a foto inteira.
+  'viagemFotos',
 ];
 
 let dbp = null;
