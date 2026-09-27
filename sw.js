@@ -9,7 +9,7 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'jarbas-v52';
+const VERSAO = 'jarbas-v53';
 
 const CASCA = [
   './',
@@ -152,7 +152,20 @@ self.addEventListener('fetch', (evento) => {
      * Só o hub tem direito à resposta pronta do cache. As outras páginas
      * passam pela rede e caem no cache DELAS quando a rede falta.
      */
-    const ehOHub = url.pathname === '/' || url.pathname.endsWith('/index.html');
+    /*
+     * O hub é UM endereço, não qualquer um que termine em /index.html.
+     *
+     * `endsWith` parecia inofensivo e não era: o editor do Próximo Destino mora
+     * em /assets/proximo-destino/index.html, que termina exatamente assim. O
+     * service worker devolvia o index do HUB dentro do quadro do editor — com
+     * os cabeçalhos do hub, inclusive o X-Frame-Options DENY, que o navegador
+     * então usava para recusar o próprio quadro. Resultado: um retângulo cinza,
+     * sem erro em lugar nenhum, com o servidor respondendo tudo certo.
+     *
+     * É a terceira vez que este arquivo erra por comparar caminho por sufixo.
+     * A comparação exata não tem esse tipo de surpresa guardada.
+     */
+    const ehOHub = url.pathname === '/' || url.pathname === '/index.html';
 
     evento.respondWith((async () => {
       if (ehOHub) {
