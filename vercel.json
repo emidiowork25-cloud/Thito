@@ -46,7 +46,7 @@
       ]
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/proximo-destino).*)",
       "headers": [
         {
           "key": "X-Content-Type-Options",
@@ -57,12 +57,37 @@
           "value": "same-origin"
         },
         {
+          "key": "Permissions-Policy",
+          "value": "microphone=(self), camera=(), geolocation=(), interest-cohort=()"
+        },
+        {
           "key": "X-Frame-Options",
           "value": "DENY"
+        }
+      ]
+    },
+    {
+      "source": "/assets/proximo-destino/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "same-origin"
         },
         {
           "key": "Permissions-Policy",
           "value": "microphone=(self), camera=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self'"
         }
       ]
     }
