@@ -1,0 +1,200 @@
+/*
+ * editor.css  ·  Estilos do editor de carrosséis
+ *
+ * Tudo abaixo de .kl-carrossel e com prefixo kl-, para não colidir com o CSS
+ * do app. As cores saem de variáveis: sobrescreva no seu tema se quiser.
+ * A arte do slide não usa nada daqui, ela é toda inline, e é por isso que o
+ * PNG sai igual em qualquer app.
+ */
+
+.kl-carrossel {
+  --kl-fundo:#F3F3F7; --kl-superficie:#FFFFFF; --kl-afundado:#EAEAF1;
+  --kl-tinta:#14141A; --kl-suave:#5E5E6E; --kl-linha:#E3E3EB;
+  --kl-acento:#3B4EE0; --kl-acento-claro:#EEF0FE;
+  --kl-alerta:#B04A12; --kl-alerta-claro:#FDF0E7;
+  --kl-ok:#17855C; --kl-ok-claro:#E7F5EF;
+  --kl-sombra:0 1px 2px rgba(20,20,40,.06),0 8px 24px rgba(20,20,40,.07);
+
+  background:var(--kl-fundo); color:var(--kl-tinta);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  font-size:15px; line-height:1.5; -webkit-text-size-adjust:100%;
+}
+@media (prefers-color-scheme:dark){
+  .kl-carrossel:not([data-tema="claro"]){
+    --kl-fundo:#111117; --kl-superficie:#1A1A22; --kl-afundado:#232330;
+    --kl-tinta:#EDEDF3; --kl-suave:#9797A8; --kl-linha:#2A2A35;
+    --kl-acento:#8791F2; --kl-acento-claro:#232744;
+    --kl-alerta:#F0A878; --kl-alerta-claro:#332015;
+    --kl-ok:#4BC08D; --kl-ok-claro:#18302A;
+    --kl-sombra:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+.kl-carrossel[data-tema="escuro"]{
+  --kl-fundo:#111117; --kl-superficie:#1A1A22; --kl-afundado:#232330;
+  --kl-tinta:#EDEDF3; --kl-suave:#9797A8; --kl-linha:#2A2A35;
+  --kl-acento:#8791F2; --kl-acento-claro:#232744;
+  --kl-alerta:#F0A878; --kl-alerta-claro:#332015;
+  --kl-ok:#4BC08D; --kl-ok-claro:#18302A;
+  --kl-sombra:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+
+.kl-carrossel *{box-sizing:border-box}
+.kl-carrossel h2,.kl-carrossel h3{font-family:Poppins,system-ui,sans-serif;margin:0;text-wrap:balance}
+.kl-wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+
+/* topo */
+.kl-bar{position:sticky;top:0;z-index:5;background:var(--kl-fundo);border-bottom:1px solid var(--kl-linha)}
+.kl-bar-in{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:12px}
+.kl-brand{font-family:Poppins,system-ui,sans-serif;font-weight:700;font-size:17px;letter-spacing:-.02em}
+.kl-brand span{color:var(--kl-suave);font-weight:500}
+.kl-stat{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:12.5px;
+         color:var(--kl-suave);font-variant-numeric:tabular-nums}
+.kl-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--kl-suave)}
+.kl-dot.on{background:var(--kl-ok)}
+.kl-dot.off{background:var(--kl-alerta)}
+
+/* trilho */
+.kl-rail{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;max-width:1180px;margin:0 auto;scrollbar-width:thin}
+.kl-rail::-webkit-scrollbar{height:6px}
+.kl-rail::-webkit-scrollbar-thumb{background:var(--kl-linha);border-radius:3px}
+.kl-tab{flex:none;display:flex;flex-direction:column;gap:2px;align-items:flex-start;
+        padding:9px 13px;border:1px solid var(--kl-linha);border-radius:10px;
+        background:var(--kl-superficie);color:var(--kl-tinta);cursor:pointer;font:inherit;
+        text-align:left;min-width:150px;transition:border-color .12s,background .12s}
+.kl-tab:hover{border-color:var(--kl-acento)}
+.kl-tab[aria-selected="true"]{background:var(--kl-acento-claro);border-color:var(--kl-acento)}
+.kl-tab b{font-family:Poppins,system-ui,sans-serif;font-size:13px;font-weight:600;letter-spacing:-.01em;
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+.kl-tab small{font-size:11px;color:var(--kl-suave);font-variant-numeric:tabular-nums}
+.kl-num{font-family:Poppins,system-ui,sans-serif;font-size:10.5px;font-weight:700;
+        color:var(--kl-acento);letter-spacing:.08em}
+.kl-thumb{width:26px;height:33px;border-radius:5px;background:#0D1B3E center/cover no-repeat;
+          border:1px solid var(--kl-linha);margin-bottom:2px}
+.kl-tab.feito{border-color:var(--kl-ok)}
+.kl-tab.feito .kl-num::after{content:" ✓";color:var(--kl-ok)}
+.kl-tab.feito b{color:var(--kl-suave);text-decoration:line-through;text-decoration-color:var(--kl-linha)}
+.kl-tab.feito small{color:var(--kl-ok)}
+.kl-tab.feito:not([aria-selected="true"]){opacity:.62}
+.kl-tab[aria-selected="true"].feito{background:var(--kl-ok-claro);opacity:1}
+
+/* cabeçalho do carrossel */
+.kl-head{padding-block:22px 6px;display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.kl-head h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.03em}
+.kl-origem{font-size:12.5px;color:var(--kl-suave);font-variant-numeric:tabular-nums;
+           border-left:2px solid var(--kl-linha);padding-left:12px;line-height:1.35}
+.kl-origem b{color:var(--kl-tinta);font-weight:600}
+
+/* já usado */
+.kl-usado .kl-frame,.kl-usado .kl-fields,.kl-usado .kl-legenda textarea,
+.kl-usado .kl-head h2,.kl-usado .kl-origem{opacity:.42;transition:opacity .15s}
+.kl-usado .kl-fields:focus-within,.kl-usado .kl-legenda textarea:focus{opacity:1}
+.kl-usado .kl-frame{filter:saturate(.35)}
+
+/* passos */
+.kl-steps{display:flex;gap:6px;flex-wrap:wrap;padding-block:14px}
+.kl-step{width:38px;height:38px;border-radius:9px;border:1px solid var(--kl-linha);
+         background:var(--kl-superficie);color:var(--kl-suave);cursor:pointer;
+         font-family:Poppins,system-ui,sans-serif;font-weight:600;font-size:13px;position:relative}
+.kl-step[aria-selected="true"]{background:var(--kl-tinta);color:var(--kl-fundo);border-color:var(--kl-tinta)}
+.kl-flag{position:absolute;top:-4px;right:-4px;width:11px;height:11px;border-radius:50%;
+         background:var(--kl-alerta);border:2px solid var(--kl-fundo);display:none}
+.kl-step.over .kl-flag{display:block}
+
+/* edição */
+.kl-edit{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:26px;
+         align-items:start;padding-bottom:40px}
+@media (max-width:860px){.kl-edit{grid-template-columns:1fr}}
+.kl-stage{position:sticky;top:74px}
+@media (max-width:860px){.kl-stage{position:static}}
+.kl-frame{width:100%;aspect-ratio:1080/1350;position:relative;border-radius:14px;overflow:hidden;
+          box-shadow:var(--kl-sombra);background:#0D1B3E;touch-action:none}
+
+.kl-aviso{margin-top:10px;display:none;gap:8px;align-items:flex-start;background:var(--kl-alerta-claro);
+          color:var(--kl-alerta);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.4}
+.kl-aviso.on{display:flex}
+.kl-aviso b{font-weight:600}
+
+.kl-fields{display:flex;flex-direction:column;gap:16px;min-width:0}
+.kl-fld{display:flex;flex-direction:column;gap:6px}
+.kl-fld>label{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--kl-suave)}
+.kl-fld textarea,.kl-legenda textarea{width:100%;background:var(--kl-superficie);color:var(--kl-tinta);
+  border:1px solid var(--kl-linha);border-radius:10px;padding:10px 12px;font:inherit;font-size:14.5px;
+  line-height:1.45;resize:vertical;min-height:46px}
+.kl-fld textarea:focus,.kl-legenda textarea:focus{outline:2px solid var(--kl-acento);outline-offset:-1px;border-color:transparent}
+.kl-hint{font-size:11.5px;color:var(--kl-suave)}
+.kl-item{border:1px solid var(--kl-linha);border-radius:12px;padding:12px;background:var(--kl-afundado);
+         display:flex;flex-direction:column;gap:10px}
+.kl-tag{font-family:Poppins,system-ui,sans-serif;font-size:11px;font-weight:700;color:var(--kl-acento);letter-spacing:.08em}
+.kl-azul>label::after{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;
+                      background:var(--kl-acento);margin-left:7px;vertical-align:-1px}
+
+/* seletor de três estados */
+.kl-seg{display:flex;border:1px solid var(--kl-linha);border-radius:9px;overflow:hidden;background:var(--kl-superficie)}
+.kl-seg button{flex:1;border:0;background:transparent;color:var(--kl-suave);padding:8px 6px;
+               font:inherit;font-size:13px;cursor:pointer;border-right:1px solid var(--kl-linha)}
+.kl-seg button:last-child{border-right:0}
+.kl-seg button:hover{color:var(--kl-acento)}
+.kl-seg button[aria-pressed="true"]{background:var(--kl-tinta);color:var(--kl-fundo);font-weight:500}
+
+/* foto */
+.kl-grupo{display:flex;flex-direction:column;gap:8px;border:1px solid var(--kl-linha);
+          border-radius:12px;padding:13px;background:var(--kl-afundado)}
+.kl-grupo>label{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--kl-suave)}
+.kl-fotoBox{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.kl-fotoAtual{width:72px;height:90px;border-radius:8px;background:#0D1B3E center/cover no-repeat;
+              flex:none;border:1px solid var(--kl-linha)}
+.kl-fotoAtual.vazio{background:repeating-linear-gradient(135deg,var(--kl-superficie) 0 5px,var(--kl-linha) 5px 10px)}
+.kl-fotoAcoes{display:flex;flex-direction:column;gap:6px;flex:1;min-width:160px}
+.kl-fotoAcoes .kl-btn{width:100%;text-align:center}
+.kl-fotoAcoes input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.kl-galeria{display:flex;gap:6px;flex-wrap:wrap}
+.kl-galeria button{width:46px;height:58px;border-radius:7px;border:2px solid transparent;padding:0;
+                   background:#2a3350 center/cover no-repeat;cursor:pointer}
+.kl-galeria button:hover{border-color:var(--kl-acento)}
+.kl-galeria button[aria-pressed="true"]{border-color:var(--kl-acento);box-shadow:0 0 0 2px var(--kl-acento-claro)}
+.kl-vazioTxt{font-size:11.5px;color:var(--kl-suave)}
+.kl-ajustes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.kl-ajustes{grid-template-columns:1fr}}
+.kl-aj{display:flex;flex-direction:column;gap:6px}
+.kl-aj label{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--kl-suave)}
+.kl-aj input[type=range]{width:100%;accent-color:var(--kl-acento)}
+.kl-val{font-size:11.5px;color:var(--kl-suave);font-variant-numeric:tabular-nums;
+        font-weight:500;text-transform:none;letter-spacing:0}
+
+/* marcar como postado */
+.kl-postar{margin-top:14px;width:100%;display:flex;align-items:center;gap:11px;cursor:pointer;
+           border:1px solid var(--kl-linha);background:var(--kl-superficie);color:var(--kl-tinta);
+           border-radius:11px;padding:12px 14px;font:inherit;font-size:14px;text-align:left;
+           -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+           transition:border-color .12s,background .12s,color .12s}
+.kl-postar:hover{border-color:var(--kl-ok)}
+.kl-postar:active{transform:translateY(1px)}
+.kl-tick{width:19px;height:19px;flex:none;border-radius:5px;border:2px solid var(--kl-suave);
+         display:inline-flex;align-items:center;justify-content:center;transition:all .12s}
+.kl-tick::after{content:"";width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;
+                transform:rotate(-45deg) translate(1px,-1px);opacity:0}
+.kl-postar.feito{background:var(--kl-ok-claro);border-color:var(--kl-ok);color:var(--kl-ok);font-weight:500}
+.kl-postar.feito .kl-tick{background:var(--kl-ok);border-color:var(--kl-ok)}
+.kl-postar.feito .kl-tick::after{opacity:1}
+
+/* botões e progresso */
+.kl-btn{border:1px solid var(--kl-linha);background:var(--kl-superficie);color:var(--kl-tinta);
+        border-radius:9px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer;display:inline-block}
+.kl-btn:hover{border-color:var(--kl-acento);color:var(--kl-acento)}
+.kl-btn:disabled{opacity:.45;cursor:default}
+.kl-btn.kl-forte{background:var(--kl-acento);border-color:var(--kl-acento);color:#fff;font-weight:500}
+.kl-btn.kl-forte:hover{color:#fff;filter:brightness(1.08)}
+.kl-acoes{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.kl-prog{display:none;margin-top:10px;align-items:center;gap:10px;font-size:12.5px;
+         color:var(--kl-suave);font-variant-numeric:tabular-nums}
+.kl-prog.on{display:flex}
+.kl-barra{flex:1;height:5px;background:var(--kl-afundado);border-radius:3px;overflow:hidden;min-width:80px}
+.kl-barra i{display:block;height:100%;width:0;background:var(--kl-acento);transition:width .15s}
+
+/* legenda */
+.kl-legenda{border-top:1px solid var(--kl-linha);padding-block:24px 48px}
+.kl-legenda h3{font-size:14px;font-weight:600;letter-spacing:-.01em;margin-bottom:10px}
+.kl-legenda textarea{min-height:260px;font-size:14px;line-height:1.6;padding:14px 16px;border-radius:12px}
+
+.kl-carrossel :focus-visible{outline:2px solid var(--kl-acento);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.kl-carrossel *{transition:none!important}}

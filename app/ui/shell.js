@@ -23,6 +23,7 @@ import * as freela from '../views/freela.js';
 import * as destino from '../views/destino.js';
 import * as frases from '../views/frases.js';
 import * as eventos from '../views/eventos.js';
+import * as carrossel from '../views/carrossel.js';
 import * as copywriter from '../views/copywriter.js';
 import * as rotina from '../views/rotina.js';
 import * as senhas from '../views/senhas.js';
@@ -39,6 +40,7 @@ export const VIEWS = {
 
   agenda: { mod: agenda, title: 'Agenda', icon: '▤' },
   apresentacoes: { mod: apresentacoes, title: 'Apresentações', icon: '▷' },
+  carrossel: { mod: carrossel, title: 'Carrossel Kadu Lins', icon: '❏' },
   compras: { mod: compras, title: 'Compras', icon: '▦' },
   copywriter: { mod: copywriter, title: 'Copywriter', icon: '✎' },
   destino: { mod: destino, title: 'Próximo Destino', icon: '✈' },
@@ -99,14 +101,31 @@ function parseHash() {
   return { view: VIEWS[view] ? view : null, id: id || null };
 }
 
+/*
+ * O módulo que está na tela agora.
+ *
+ * Quase todo módulo daqui é desenho puro: limpar o `#view` leva tudo junto, e
+ * não sobra nada para desligar. O Carrossel não é assim — ele põe escutas na
+ * JANELA e mantém um timer de gravação, e a janela continua existindo depois
+ * que a tela troca. Sem avisá-lo, cada visita deixaria para trás um ouvinte de
+ * `resize` apontando para nós que já saíram do documento.
+ *
+ * Então quem tiver o que desmontar exporta `destruir`, e é chamado ANTES de a
+ * tela ser limpa. Quem não tiver continua como sempre foi.
+ */
+let montado = null;
+
 export function render() {
   const view = VIEWS[current];
   if (!view) return;
   const container = $('#view');
   $('#view-title').textContent = view.title;
+  try { montado?.destruir?.(); } catch (err) { console.error('[view:destruir]', err); }
+  montado = null;
   container.innerHTML = '';
   try {
     view.mod.render(container, currentParams);
+    montado = view.mod;
   } catch (err) {
     console.error(`[view:${current}]`, err);
     container.append(el('div', { class: 'card' },

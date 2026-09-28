@@ -5,7 +5,7 @@
 // JARBAS, mas trocar o nome aqui esconderia todos os dados que já estão gravados no
 // navegador de quem usou a versão anterior. Nome interno não é marca.
 const DB_NAME = 'thito';
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 
 export const COLLECTIONS = [
   'events',      // agenda
@@ -69,6 +69,11 @@ export const COLLECTIONS = [
   // `frase/7` é o card número 7 e `meta/galeria` é a lista de fotos enviadas.
   'frases',
   'fraseFotos',   // uma foto por registro, reduzida antes de guardar
+
+  // v9 — módulo CARROSSEL KADU LINS. Mesmo desenho: `carrossel/7` é o
+  // carrossel de número 7, com os cinco slides dentro do próprio registro.
+  'carrosseis',
+  'carrosselFotos',
 ];
 
 let dbp = null;

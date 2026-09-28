@@ -941,3 +941,21 @@
   .pd-palco-barra { padding: 8px 10px; padding-top: calc(8px + env(safe-area-inset-top, 0)); }
   .pd-palco-titulo { font-size: 14px; }
 }
+
+/* ---------- Carrossel Kadu Lins ----------
+   O editor desenha a interface inteira dentro deste nó, com estilo próprio sob
+   .kl-carrossel. Daqui só sai o encaixe: onde ele começa e até onde vai. */
+.kl-palco {
+  border: 1px solid var(--linha, #1d2a33);
+  border-radius: 10px;
+  overflow: hidden;
+}
+/* Na tela cheia ele fica com toda a altura que sobrar da barra, e a rolagem é
+   dele — ao contrário dos módulos em quadro, aqui não há página de dentro. */
+.kl-palco-cheio {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 0;
+}
