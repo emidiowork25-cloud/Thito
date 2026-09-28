@@ -37,7 +37,7 @@
       ]
     },
     {
-      "source": "/assets/((?!proximo-destino/index\\.html)(?!frases-com-foto/index\\.html).*)",
+      "source": "/assets/((?!proximo-destino/index\\.html)(?!frases-com-foto/index\\.html)(?!frases-com-foto/frases\\.json).*)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -47,6 +47,15 @@
     },
     {
       "source": "/assets/frases-com-foto/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/assets/frases-com-foto/frases.json",
       "headers": [
         {
           "key": "Cache-Control",
