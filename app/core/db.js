@@ -5,7 +5,7 @@
 // JARBAS, mas trocar o nome aqui esconderia todos os dados que já estão gravados no
 // navegador de quem usou a versão anterior. Nome interno não é marca.
 const DB_NAME = 'thito';
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 
 export const COLLECTIONS = [
   'events',      // agenda
@@ -64,6 +64,11 @@ export const COLLECTIONS = [
   // cinco megabytes dentro do registro da viagem faria cada mexida no título
   // reenviar a foto inteira.
   'viagemFotos',
+
+  // v8 — módulo FRASES COM FOTO KADU. O caminho vira o id, como nas viagens:
+  // `frase/7` é o card número 7 e `meta/galeria` é a lista de fotos enviadas.
+  'frases',
+  'fraseFotos',   // uma foto por registro, reduzida antes de guardar
 ];
 
 let dbp = null;

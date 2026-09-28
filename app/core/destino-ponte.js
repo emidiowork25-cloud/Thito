@@ -15,51 +15,7 @@
 
 import * as store from './store.js';
 import { on } from './bus.js';
-
-/** Largura máxima que a foto precisa ter. */
-const LARGURA_MAX = 1280;
-const QUALIDADE = 0.82;
-
-/**
- * Reduz a foto antes de guardar.
- *
- * Sem isto a ponte seria pior que o armazenamento local: uma foto de celular
- * tem de três a oito megabytes, e ela subiria inteira, em base64, dentro de um
- * registro que a sincronização reenvia por completo a cada mudança. Reduzida
- * para 1280px ela cabe no bolso e continua maior que o card, que é 1080.
- */
-async function reduzir(file) {
-  const dataUrl = await new Promise((res, rej) => {
-    const f = new FileReader();
-    f.onload = () => res(f.result);
-    f.onerror = () => rej(f.error);
-    f.readAsDataURL(file);
-  });
-
-  // Foto pequena ou formato que não dá para redesenhar: vai como veio.
-  if (!/^data:image\/(jpeg|png|webp)/i.test(dataUrl)) return dataUrl;
-
-  try {
-    const img = await new Promise((res, rej) => {
-      const i = new Image();
-      i.onload = () => res(i);
-      i.onerror = () => rej(new Error('imagem ilegível'));
-      i.src = dataUrl;
-    });
-    if (img.width <= LARGURA_MAX) return dataUrl;
-
-    const escala = LARGURA_MAX / img.width;
-    const tela = document.createElement('canvas');
-    tela.width = Math.round(img.width * escala);
-    tela.height = Math.round(img.height * escala);
-    tela.getContext('2d').drawImage(img, 0, 0, tela.width, tela.height);
-    const menor = tela.toDataURL('image/jpeg', QUALIDADE);
-    // Se o "menor" saiu maior (acontece com PNG de pouca cor), fica o original.
-    return menor.length < dataUrl.length ? menor : dataUrl;
-  } catch {
-    return dataUrl;
-  }
-}
+import { reduzir } from './imagem.js';
 
 /**
  * Monta o adaptador. Quem chama é a tela do módulo, antes de criar o quadro —

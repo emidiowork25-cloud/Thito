@@ -37,11 +37,20 @@
       ]
     },
     {
-      "source": "/assets/((?!proximo-destino/index\\.html).*)",
+      "source": "/assets/((?!proximo-destino/index\\.html)(?!frases-com-foto/index\\.html).*)",
       "headers": [
         {
           "key": "Cache-Control",
           "value": "public, max-age=604800"
+        }
+      ]
+    },
+    {
+      "source": "/assets/frases-com-foto/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },
@@ -55,7 +64,7 @@
       ]
     },
     {
-      "source": "/((?!assets/proximo-destino).*)",
+      "source": "/((?!assets/proximo-destino)(?!assets/frases-com-foto).*)",
       "headers": [
         {
           "key": "X-Content-Type-Options",
@@ -77,6 +86,31 @@
     },
     {
       "source": "/assets/proximo-destino/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "same-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "microphone=(self), camera=(), geolocation=(), interest-cohort=()"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self'"
+        }
+      ]
+    },
+    {
+      "source": "/assets/frases-com-foto/(.*)",
       "headers": [
         {
           "key": "X-Content-Type-Options",

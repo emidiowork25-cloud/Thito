@@ -9,7 +9,7 @@
  * finanças e o resto moram no IndexedDB, que o navegador já mantém sozinho.
  */
 
-const VERSAO = 'jarbas-v54';
+const VERSAO = 'jarbas-v55';
 
 const CASCA = [
   './',
@@ -31,6 +31,8 @@ const CASCA = [
   './app/core/leitor.js',
   './app/core/rede.js',
   './app/core/destino-ponte.js',
+  './app/core/frases-ponte.js',
+  './app/core/imagem.js',
   './app/core/modelo.js',
   './app/core/prefs.js',
   './app/core/qr.js',
@@ -65,6 +67,7 @@ const CASCA = [
   './app/views/destino.js',
   './app/views/eventos.js',
   './app/views/financas.js',
+  './app/views/frases.js',
   './app/views/freela.js',
   './app/views/mindmap.js',
   './app/views/rede.js',
@@ -106,6 +109,13 @@ const CASCA = [
   './assets/proximo-destino/fotos/em-pe.jpg',
   './assets/proximo-destino/fotos/estudio.png',
   './assets/proximo-destino/fotos/plateia.jpg',
+  './assets/frases-com-foto/index.html',
+  './assets/frases-com-foto/frases.json',
+  './assets/frases-com-foto/avatar.png',
+  './assets/frases-com-foto/marca.svg',
+  './assets/frases-com-foto/poppins-400.ttf',
+  './assets/frases-com-foto/poppins-500.ttf',
+  './assets/frases-com-foto/poppins-700.ttf',
   './assets/jarbas-retrato.png',
   './assets/jarbas-cerebro.png',
   './assets/icone-180.png',

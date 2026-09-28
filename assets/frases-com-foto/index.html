@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Frases com Foto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Poppins servida pelo próprio artefato: a prévia e o PNG exportado usam
+   exatamente os mesmos arquivos de fonte, então o que você vê é o que sai. */
+@font-face{font-family:Poppins;src:url(./poppins-400.ttf) format("truetype");font-weight:400;font-display:block}
+@font-face{font-family:Poppins;src:url(./poppins-500.ttf) format("truetype");font-weight:500;font-display:block}
+@font-face{font-family:Poppins;src:url(./poppins-700.ttf) format("truetype");font-weight:700;font-display:block}
+:root{
+  --ground:#F3F3F7; --surface:#FFFFFF; --sunk:#EAEAF1;
+  --ink:#14141A; --muted:#5E5E6E; --line:#E3E3EB;
+  --accent:#3B4EE0; --accent-soft:#EEF0FE;
+  --warn:#B04A12; --warn-soft:#FDF0E7; --ok:#17855C; --ok-soft:#E7F5EF;
+  --shadow:0 1px 2px rgba(20,20,40,.06),0 8px 24px rgba(20,20,40,.07);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --ground:#111117; --surface:#1A1A22; --sunk:#232330;
+  --ink:#EDEDF3; --muted:#9797A8; --line:#2A2A35;
+  --accent:#8791F2; --accent-soft:#232744;
+  --warn:#F0A878; --warn-soft:#332015; --ok:#4BC08D; --ok-soft:#18302A;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#111117; --surface:#1A1A22; --sunk:#232330;
+  --ink:#EDEDF3; --muted:#9797A8; --line:#2A2A35;
+  --accent:#8791F2; --accent-soft:#232744;
+  --warn:#F0A878; --warn-soft:#332015; --ok:#4BC08D; --ok-soft:#18302A;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+     font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:15px;line-height:1.5;
+     -webkit-text-size-adjust:100%}
+h1,h2,h3{font-family:Poppins,system-ui,sans-serif;margin:0;text-wrap:balance}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+
+/* ---------- topo ---------- */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;
+     background:color-mix(in srgb,var(--ground) 88%,transparent);
+     backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.bar-in{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:12px}
+.brand{font-family:Poppins;font-weight:700;font-size:17px;letter-spacing:-.02em}
+.brand span{color:var(--muted);font-weight:500}
+.stat{margin-left:auto;display:flex;align-items:center;gap:14px;
+      font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex:none}
+.dot.on{background:var(--ok)}
+.dot.off{background:var(--warn)}
+.ver{font-size:11px;font-weight:600;letter-spacing:.06em;color:var(--muted);
+     border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+.stale{position:fixed;left:0;right:0;top:0;z-index:100;display:flex;gap:14px;
+       align-items:center;justify-content:center;flex-wrap:wrap;
+       background:var(--warn);color:#fff;padding:12px 16px;font-size:14px;
+       padding-top:calc(12px + env(safe-area-inset-top,0px))}
+.stale b{font-weight:600}
+.stale button{border:1px solid rgba(255,255,255,.55);background:transparent;color:#fff;
+       border-radius:8px;padding:7px 13px;font:inherit;font-size:13.5px;cursor:pointer}
+
+/* ---------- trilho ---------- */
+.rail{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;scrollbar-width:thin;
+      max-width:1180px;margin:0 auto}
+.rail::-webkit-scrollbar{height:6px}
+.rail::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+.tab{flex:none;display:flex;gap:10px;align-items:center;
+     padding:7px 11px 7px 7px;border:1px solid var(--line);border-radius:10px;
+     background:var(--surface);color:var(--ink);cursor:pointer;font:inherit;text-align:left;
+     min-width:170px;transition:border-color .12s,background .12s}
+.tab:hover{border-color:var(--accent)}
+.tab[aria-selected="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.tab .thumb{width:34px;height:42px;border-radius:6px;background:#0D1B3E center/cover no-repeat;flex:none;
+            position:relative;overflow:hidden}
+.tab .thumb.vazio{background:repeating-linear-gradient(135deg,var(--sunk) 0 4px,var(--line) 4px 8px)}
+.tab .txt{display:flex;flex-direction:column;gap:1px;min-width:0}
+.tab b{font-family:Poppins;font-size:12.5px;font-weight:600;letter-spacing:-.01em;
+       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.tab small{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.tab .num{font-family:Poppins;font-size:10.5px;font-weight:700;color:var(--accent);
+          letter-spacing:.08em}
+.tab.feito{border-color:var(--ok)}
+.tab.feito .num::after{content:" ✓";color:var(--ok)}
+.tab.feito b{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line)}
+.tab.feito small{color:var(--ok)}
+.tab.feito:not([aria-selected="true"]){opacity:.62}
+.tab[aria-selected="true"].feito{background:var(--ok-soft);opacity:1}
+
+/* ---------- cabeçalho ---------- */
+.head{padding-block:22px 6px;display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
+.head h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;letter-spacing:-.03em}
+.origem{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;
+        border-left:2px solid var(--line);padding-left:12px;line-height:1.35}
+.origem b{color:var(--ink);font-weight:600}
+
+/* ---------- postado ---------- */
+.postar{margin-top:14px;width:100%;display:flex;align-items:center;gap:11px;cursor:pointer;
+        border:1px solid var(--line);background:var(--surface);color:var(--ink);
+        border-radius:11px;padding:12px 14px;font:inherit;font-size:14px;text-align:left;
+        -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+        transition:border-color .12s,background .12s,color .12s}
+.postar:hover{border-color:var(--ok)}
+.postar .tick{width:19px;height:19px;flex:none;border-radius:5px;border:2px solid var(--muted);
+        display:inline-flex;align-items:center;justify-content:center;transition:all .12s}
+.postar .tick::after{content:"";width:9px;height:5px;border-left:2.5px solid #fff;
+        border-bottom:2.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px);opacity:0}
+.postar.feito{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);font-weight:500}
+.postar.feito .tick{background:var(--ok);border-color:var(--ok)}
+.postar.feito .tick::after{opacity:1}
+.usado .frame,.usado .fields,.usado .legenda textarea,.usado .head h2,.usado .origem{opacity:.42;transition:opacity .15s}
+.usado .fields:focus-within,.usado .legenda textarea:focus{opacity:1}
+.usado .frame{filter:saturate(.35)}
+
+/* ---------- área de edição ---------- */
+.edit{display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:26px;
+      align-items:start;padding-bottom:40px}
+@media (max-width:860px){.edit{grid-template-columns:1fr}}
+.stage{position:sticky;top:calc(env(safe-area-inset-top,0px) + 74px)}
+@media (max-width:860px){.stage{position:static}}
+.frame{width:100%;aspect-ratio:1080/1440;position:relative;border-radius:14px;cursor:grab;user-select:none;
+       overflow:hidden;box-shadow:var(--shadow);background:#0D1B3E}
+/* O MESMO HTML do slide serve a prévia e o PNG, e ele traz um
+   `position:relative` embutido no atributo style — que ganha desta regra.
+   No renderizador escondido isso é o certo: lá a caixa de 1080px É o tamanho
+   final. Aqui dentro do quadro, não: uma caixa de 1080px EM FLUXO vira a
+   largura mínima da coluna e do editor inteiro, e no celular a tela de 326px
+   passa a desenhar um layout de 1080px — tudo cortado pro lado. */
+.frame .slide{position:absolute!important;top:0;left:0;transform-origin:0 0}
+.frame.stories{aspect-ratio:1080/1920}
+.fmt{display:flex;gap:6px;margin-bottom:10px}
+.fmt button{flex:1;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px;cursor:pointer}
+.fmt button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.fmt button small{display:block;font-size:11px;opacity:.75}
+.aviso{margin-top:10px;display:none;gap:8px;align-items:flex-start;
+       background:var(--warn-soft);color:var(--warn);border-radius:10px;
+       padding:10px 12px;font-size:12.5px;line-height:1.4}
+.aviso.on{display:flex}
+.aviso b{font-weight:600}
+
+.fields{display:flex;flex-direction:column;gap:16px;min-width:0}
+.fld{display:flex;flex-direction:column;gap:6px}
+.fld label,.grupo>label{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.fld textarea{width:100%;background:var(--surface);color:var(--ink);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  font:inherit;font-size:14.5px;line-height:1.45;resize:vertical;min-height:46px}
+.fld textarea:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
+.fld .hint,.grupo .hint{font-size:11.5px;color:var(--muted)}
+
+/* ---------- foto ---------- */
+.grupo{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--sunk);
+       display:flex;flex-direction:column;gap:10px}
+.fotoBox{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.fotoAtual{width:72px;height:90px;border-radius:8px;background:#0D1B3E center/cover no-repeat;flex:none;
+           border:1px solid var(--line)}
+.fotoAtual.vazio{background:repeating-linear-gradient(135deg,var(--surface) 0 5px,var(--line) 5px 10px)}
+.fotoAcoes{display:flex;flex-direction:column;gap:6px;flex:1;min-width:160px}
+.fotoAcoes .btn{width:100%;text-align:center}
+.fotoAcoes input[type=file]{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.galeria{display:flex;gap:6px;flex-wrap:wrap}
+.galeria button{width:46px;height:58px;border-radius:7px;border:2px solid transparent;padding:0;
+                background:#2a3350 center/cover no-repeat;cursor:pointer}
+.galeria button:hover{border-color:var(--accent)}
+.galeria button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.galeria .vazioTxt{font-size:11.5px;color:var(--muted)}
+
+/* ---------- ajustes ---------- */
+.ajustes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:480px){.ajustes{grid-template-columns:1fr}}
+.aj{display:flex;flex-direction:column;gap:6px}
+.aj label{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.aj input[type=range]{width:100%;accent-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface)}
+.seg button{flex:1;border:0;background:transparent;color:var(--muted);padding:8px 6px;font:inherit;font-size:13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--ground)}
+.cores{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cores button{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.cores button[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--surface) inset}
+.cores input[type=color]{width:30px;height:30px;border:1px solid var(--line);border-radius:50%;padding:0;background:none;cursor:pointer}
+.val{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;font-weight:500;text-transform:none;letter-spacing:0}
+
+/* ---------- legenda ---------- */
+.legenda{border-top:1px solid var(--line);padding-block:24px 48px}
+.legenda h3{font-size:14px;font-weight:600;letter-spacing:-.01em;margin-bottom:10px}
+.legenda textarea{width:100%;min-height:220px;background:var(--surface);color:var(--ink);
+  border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+  font:inherit;font-size:14px;line-height:1.6;resize:vertical}
+.legenda textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);
+     border-radius:9px;padding:8px 13px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.forte{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.btn.forte:hover{color:#fff;filter:brightness(1.08)}
+.acoes{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
+.prog{display:none;margin-top:10px;align-items:center;gap:10px;font-size:12.5px;color:var(--muted);
+      font-variant-numeric:tabular-nums}
+.prog.on{display:flex}
+.prog .barra{flex:1;height:5px;background:var(--sunk);border-radius:3px;overflow:hidden;min-width:80px}
+.prog .barra i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+#oculto{position:fixed;left:-99999px;top:0;width:1080px;height:1920px;pointer-events:none}
+.foot{border-top:1px solid var(--line);padding-block:20px 40px;font-size:12.5px;
+      color:var(--muted);line-height:1.6}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <div class="brand">Frases com Foto <span>@kadu.lins</span></div>
+    <div class="stat">
+      <span id="placar">30 frases · 2 formatos</span>
+      <span id="save"><span class="dot" id="dot"></span> <span id="saveTxt">carregando</span></span>
+    </div>
+  </div>
+  <div class="rail" id="rail" role="tablist"></div>
+</div>
+
+<div class="wrap">
+  <div class="head">
+    <h2 id="tit">.</h2>
+    <div class="origem" id="origem"></div>
+  </div>
+
+  <div class="edit">
+    <div class="stage">
+      <div class="fmt" id="fmt" role="tablist">
+        <button type="button" data-fmt="feed" aria-pressed="true">Feed <small>1080×1440</small></button>
+        <button type="button" data-fmt="stories" aria-pressed="false">Stories <small>1080×1920</small></button>
+      </div>
+      <div class="frame" id="frame"></div>
+      <div class="aviso" id="aviso">
+        <span>⚠</span>
+        <span><b>Texto estourando o card.</b> <span id="avisoTxt"></span> Encurta a frase, senão a arte quebra na exportação.</span>
+      </div>
+      <button type="button" class="postar" id="postarBox" aria-pressed="false">
+        <span class="tick" aria-hidden="true"></span>
+        <span id="postadoTxt">Já postei esta frase</span>
+      </button>
+      <div class="acoes">
+        <button class="btn forte" id="dlSlide">Baixar este card <span id="dlFmt">(1080×1440)</span></button>
+        <button class="btn" id="dlAmbos">Baixar este nos 2 formatos</button>
+        <button class="btn" id="dlTudo">Baixar as 30 nos 2 formatos</button>
+        <button class="btn" id="reset">Desfazer este card</button>
+      </div>
+      <div class="prog" id="prog"><div class="barra"><i id="progBar"></i></div><span id="progTxt"></span></div>
+    </div>
+    <div class="fields" id="fields"></div>
+  </div>
+
+  <div class="legenda">
+    <h3>Legenda do post</h3>
+    <textarea id="legenda" spellcheck="true"></textarea>
+  </div>
+
+  <div id="oculto" aria-hidden="true"></div>
+
+  <div class="foot">
+    Edite a frase e escolha a foto à direita: a arte se redesenha na hora. As fotos que você envia ficam
+    guardadas aqui e aparecem na galeria para reaproveitar em outras frases. O fundo azul marinho é fixo:
+    a foto entra por cima dele como uma camada sutil, com presença de no máximo 20%, então o texto
+    branco sempre lê bem. Os botões geram os PNGs em 1080×1440 (feed) e 1080×1920 (stories) no seu
+    próprio navegador, então o que você vê é exatamente o que baixa. Depois de publicar, marque a
+    frase como postada: ela ganha o selo verde no trilho e o placar mostra quantas ainda estão na fila.
+    Nesta versão as edições e fotos ficam no armazenamento do navegador (IndexedDB) deste computador.
+  </div>
+</div>
+
+<script>
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const rich = s => esc(s).replace(/&lt;b&gt;/g,"<b>").replace(/&lt;\/b&gt;/g,"</b>");
+const plain = s => String(s).replace(/<\/?b>/g,"");
+const nlen = s => plain(s).length;
+
+/* =====================================================================
+   CAMADA DE ARMAZENAMENTO (Store)
+   Esta é a única parte que fala com "o backend". A versão abaixo usa
+   IndexedDB do navegador, então o editor funciona sozinho, sem servidor.
+   Para ligar no seu app, reimplemente estes 7 métodos (mesmas assinaturas)
+   chamando a sua API; o resto do editor não precisa mudar.
+   ---------------------------------------------------------------------
+   Store.listFrases()            -> Promise<Array<card>>        (cards salvos)
+   Store.saveFrase(card)         -> Promise<void>
+   Store.getGaleria()            -> Promise<string[]>           (ids de foto)
+   Store.saveGaleria(ids)        -> Promise<void>
+   Store.uploadFoto(file)        -> Promise<{id:string}>
+   Store.fotoURL(id)             -> string  (URL exibível; síncrono)
+   Store.preloadFotos(ids)       -> Promise<void> (garante que fotoURL resolve)
+   Store.download(filename,bytes)-> Promise<boolean>
+   ===================================================================== */
+/*
+ * O armazenamento tem dois donos possíveis.
+ *
+ * O README desta pasta descreve um contrato de nove métodos e diz, com todas as
+ * letras, que para ligar num app basta reimplementá-los. É o que o JARBAS faz:
+ * ele põe a implementação dele em `FRASES_ADAPTER` ANTES de abrir este quadro,
+ * e aí as frases e as fotos moram nas coleções do hub — sincronizam entre os
+ * aparelhos e entram no backup, como a agenda.
+ *
+ * Sem anfitrião (a pasta aberta sozinha, ou numa aba solta), cai no IndexedDB
+ * próprio logo abaixo e continua funcionando exatamente como antes.
+ */
+const Store=(()=>{
+  const anfitriao = (()=>{
+    try{ return (window.parent && window.parent!==window && window.parent.FRASES_ADAPTER)
+                || window.FRASES_ADAPTER || null; }
+    catch(e){ return null; } // outra origem: nem dá para perguntar
+  })();
+  if(anfitriao) return anfitriao;
+
+  const DB_NAME="frases-com-foto", VER=1;
+  let dbp=null; const urls={};
+  function open(){
+    if(dbp) return dbp;
+    dbp=new Promise((res,rej)=>{
+      const r=indexedDB.open(DB_NAME,VER);
+      r.onupgradeneeded=()=>{const d=r.result;
+        if(!d.objectStoreNames.contains("frases")) d.createObjectStore("frases",{keyPath:"n"});
+        if(!d.objectStoreNames.contains("meta")) d.createObjectStore("meta");
+        if(!d.objectStoreNames.contains("fotos")) d.createObjectStore("fotos");};
+      r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+    });
+    return dbp;
+  }
+  const tx=(store,mode,fn)=>open().then(d=>new Promise((res,rej)=>{
+    const t=d.transaction(store,mode), st=t.objectStore(store), out=fn(st);
+    t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out); t.onerror=()=>rej(t.error);
+  }));
+  const req=(store,mode,fn)=>open().then(d=>new Promise((res,rej)=>{
+    const r=fn(d.transaction(store,mode).objectStore(store));
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  }));
+  const uid=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join("");
+  return {
+    listFrases: ()=>req("frases","readonly",st=>st.getAll()),
+    saveFrase: c=>tx("frases","readwrite",st=>st.put(c)),
+    getGaleria: ()=>req("meta","readonly",st=>st.get("galeria")).then(v=>Array.isArray(v)?v:[]),
+    saveGaleria: ids=>tx("meta","readwrite",st=>st.put(ids,"galeria")),
+    async uploadFoto(file){
+      if(file.size>20*1024*1024) throw Object.assign(new Error("too_large"),{code:"too_large"});
+      const id=uid(); await tx("fotos","readwrite",st=>st.put(file,id));
+      urls[id]=URL.createObjectURL(file); return {id};
+    },
+    fotoURL: id=>urls[id]||"",
+    async preloadFotos(ids){
+      for(const id of ids){ if(urls[id]) continue;
+        const b=await req("fotos","readonly",st=>st.get(id)).catch(()=>null);
+        if(b) urls[id]=URL.createObjectURL(b);
+      }
+    },
+    async download(filename,bytes){
+      const blob=new Blob([bytes],{type:filename.endsWith(".zip")?"application/zip":"image/png"});
+      const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),4000); return true;
+    }
+  };
+})();
+
+const blobURL = id => Store.fotoURL(id);
+const CORES=["#3B4EE0","#EE3968","#F9A03C","#17855C","#FFFFFF"];
+
+/* ---------- desenho do card ---------- */
+const HEADER = `<div style="display:flex;align-items:center;gap:22px;">
+ <div style="width:104px;height:104px;border-radius:50%;padding:4px;background:linear-gradient(135deg,#f9a03c 0%,#ee3968 45%,#b2519f 100%);box-sizing:border-box;flex:none;">
+  <div style="width:100%;height:100%;border-radius:50%;overflow:hidden;background:#fff;padding:3px;box-sizing:border-box;">
+   <img data-k="av" src="./avatar.png" alt="" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;"></div></div>
+ <div style="display:flex;flex-direction:column;gap:2px;">
+  <div style="display:flex;align-items:flex-start;gap:8px;">
+   <span style="font-size:40px;font-weight:700;color:#fff;letter-spacing:-0.02em;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.35);">Kadu Lins</span>
+   <span style="width:24px;height:24px;border-radius:50%;background:#1d9bf0;display:inline-flex;align-items:center;justify-content:center;margin-top:6px;flex:none;">
+    <span style="width:10px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg) translate(1px,-1px);"></span></span></div>
+  <span style="font-size:28px;font-weight:400;color:rgba(255,255,255,.8);line-height:1.2;">@kadu.lins</span></div></div>`;
+
+const FOOT = `<div style="display:flex;align-items:flex-end;justify-content:space-between;">
+ <img data-k="mc" src="./marca.svg" alt="Kadu Lins" style="height:56px;width:173px;display:block;opacity:.95;">
+ <span style="font-size:24px;font-weight:500;color:rgba(255,255,255,.72);letter-spacing:.06em;">kadulins.com.br</span></div>`;
+
+const opacidade=v=>Math.max(0,Math.min(20,+v||0))/100;
+/* formatos de saída: feed 1080×1440 e stories 1080×1920 */
+const FORMATOS={
+  // stories: cabeçalho no topo e marca/site no rodapé, com 60px de folga em cima e embaixo
+  feed:   {id:"feed",   w:1080, h:1440, rotulo:"1080×1440", pasta:"feed-1080x1440",    padT:64,  padB:64},
+  stories:{id:"stories",w:1080, h:1920, rotulo:"1080×1920", pasta:"stories-1080x1920", padT:60, padB:60}
+};
+let fmt="feed";
+const F=()=>FORMATOS[fmt];
+function slideHTML(c, fotoSrc, fo){
+  fo=fo||F(); const W=fo.w, H=fo.h;
+  const s=c.slide, L=nlen(s.h);
+  const fs = L<=24?104:(L<=48?88:(L<=72?76:66));
+  const cor=c.cor||CORES[0];
+  const img = c.foto ? `<img data-k="foto" src="${fotoSrc||blobURL(c.foto)}" alt="" style="position:absolute;top:0;left:0;width:${W}px;height:${H}px;object-fit:cover;object-position:${c.posX}% ${c.posY}%;transform:scale(${(c.escala||100)/100});transform-origin:${c.posX}% ${c.posY}%;display:block;opacity:${opacidade(c.opac)};">` : "";
+  const apoio = (s.p||"").trim() ? `<p style="margin:0;font-size:36px;font-weight:400;line-height:1.35;color:rgba(255,255,255,.86);max-width:760px;text-wrap:pretty;">${rich(s.p)}</p>` : "";
+  return `<div class="slide" style="position:relative;overflow:hidden;width:${W}px;height:${H}px;background:${NAVY};font-family:Poppins,Helvetica,sans-serif;color:#fff;">
+   ${img}
+   <div class="conteudo" style="position:absolute;top:0;left:0;width:${W}px;height:${H}px;box-sizing:border-box;padding:${fo.padT}px 64px ${fo.padB}px;display:flex;flex-direction:column;justify-content:space-between;gap:40px;">
+    ${HEADER}
+    <div class="mid" style="display:flex;flex-direction:column;gap:28px;align-items:flex-start;">
+     <div style="width:96px;height:10px;border-radius:5px;background:${cor};"></div>
+     <h1 style="margin:0;font-size:${fs}px;font-weight:700;line-height:1.06;letter-spacing:-0.03em;color:#fff;text-wrap:balance;max-width:920px;text-shadow:0 2px 18px rgba(0,0,0,.35);">${rich(s.h)}</h1>
+     ${apoio}
+    </div>
+    ${FOOT}
+   </div></div>`;
+}
+
+/* ---------- estado ---------- */
+let BASE=[], DATA=[], cur=0, db=null, assetsCap=null, saveT=null, GALERIA=[];
+const $=id=>document.getElementById(id);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const NAVY="#0D1B3E";
+const normal=c=>{const o=Object.assign({foto:null,opac:20,escala:100,posX:50,posY:50,cor:CORES[0],postado:false,postadoEm:null},c);
+  o.opac=Math.max(0,Math.min(20,+o.opac||0)); delete o.sombra;
+  if(o.pos){ o.posY = o.pos==="topo"?0:(o.pos==="base"?100:50); delete o.pos; }
+  o.escala=Math.max(100,Math.min(300,+o.escala||100)); o.posX=Math.max(0,Math.min(100,+o.posX||0)); o.posY=Math.max(0,Math.min(100,+o.posY||0));
+  return o;};
+
+function setSave(state,txt){
+  $("dot").className="dot"+(state?" "+state:"");
+  $("saveTxt").textContent=txt;
+}
+
+/* ---------- render ---------- */
+function renderRail(){
+  $("rail").innerHTML=DATA.map((c,i)=>`<button class="tab${c.postado?" feito":""}" role="tab" aria-selected="${i===cur}" data-i="${i}">
+    <span class="thumb${c.foto?"":" vazio"}" style="${c.foto?`background-image:url('${blobURL(c.foto)}')`:""}"></span>
+    <span class="txt"><span class="num">${String(c.n).padStart(2,"0")}</span>
+    <b>${esc(plain(c.slide.h))}</b>
+    <small>${c.postado ? "postado"+(c.postadoEm?" em "+c.postadoEm:"") : (c.foto?"sugestão "+c.dia:"sem foto · "+c.dia)}</small></span></button>`).join("");
+  const feitos=DATA.filter(c=>c.postado).length, comFoto=DATA.filter(c=>c.foto).length;
+  $("placar").textContent = feitos
+    ? `${feitos} de ${DATA.length} postadas · ${DATA.length-feitos} na fila`
+    : `${DATA.length} frases · ${comFoto} com foto`;
+}
+function renderPostado(){
+  const c=DATA[cur];
+  $("postarBox").classList.toggle("feito",!!c.postado);
+  $("postarBox").setAttribute("aria-pressed", c.postado?"true":"false");
+  document.body.classList.toggle("usado",!!c.postado);
+  $("postadoTxt").textContent = c.postado ? (c.postadoEm ? "Postada em "+c.postadoEm : "Postada") : "Já postei esta frase";
+}
+function fitStage(){
+  const f=$("frame"), sl=f.querySelector(".slide");
+  if(!sl) return;
+  sl.style.transform=`scale(${f.clientWidth/F().w})`;
+}
+function checkOverflow(el){
+  const k=el._k||1, cont=el.querySelector(".conteudo");
+  const kids=[...cont.children];
+  const gap=parseFloat(getComputedStyle(cont).rowGap)||0;
+  const soma=kids.reduce((a,x)=>a+x.getBoundingClientRect().height/k,0)+gap*(kids.length-1);
+  const avail=F().h-F().padT-F().padB;
+  return {over:soma>avail-1, excesso:Math.round(soma-avail)};
+}
+function renderStage(){
+  const c=DATA[cur];
+  $("frame").classList.toggle("stories",fmt==="stories");
+  $("frame").innerHTML=slideHTML(c);
+  const el=$("frame").querySelector(".slide");
+  const k=$("frame").clientWidth/F().w;
+  el._k=k; el.style.transform=`scale(${k})`;
+  requestAnimationFrame(()=>{
+    const r=checkOverflow(el);
+    $("aviso").classList.toggle("on",r.over);
+    $("avisoTxt").textContent = r.over ? `Passou ${r.excesso}px do espaço disponível.` : "";
+  });
+}
+function fld(label,val,on,hint){
+  const w=document.createElement("div"); w.className="fld";
+  w.innerHTML=`<label>${esc(label)}</label><textarea spellcheck="true"></textarea>${hint?`<span class="hint">${esc(hint)}</span>`:""}`;
+  const ta=w.querySelector("textarea");
+  ta.value=val; ta.rows=Math.min(6,Math.max(2,Math.ceil(val.length/42)));
+  ta.addEventListener("input",()=>{on(ta.value);renderStage();queueSave();});
+  return w;
+}
+function renderFoto(){
+  const c=DATA[cur], g=document.createElement("div"); g.className="grupo"; g.id="fotoGrupo";
+  const podeEnviar=!!assetsCap;
+  g.innerHTML=`<label>Foto de fundo</label>
+   <div class="fotoBox">
+    <div class="fotoAtual${c.foto?"":" vazio"}" id="fotoAtual" style="${c.foto?`background-image:url('${blobURL(c.foto)}')`:""}"></div>
+    <div class="fotoAcoes">
+     <label class="btn forte" for="fotoInput" style="${podeEnviar?"":"opacity:.45;pointer-events:none"}">Enviar foto</label>
+     <input type="file" id="fotoInput" accept="image/png,image/jpeg,image/webp" ${podeEnviar?"":"disabled"}>
+     <button type="button" class="btn" id="fotoTirar" ${c.foto?"":"disabled"}>Tirar foto</button>
+    </div>
+   </div>
+   <span class="hint">${podeEnviar?"JPG, PNG ou WebP até 20 MB. A foto entra como uma camada bem sutil (até 20%) por cima do azul marinho, que é o fundo fixo do post.":"O envio de fotos só funciona para quem pode editar este artefato."}</span>
+   <label style="margin-top:4px">Galeria</label>
+   <div class="galeria" id="galeria"></div>`;
+  const gal=g.querySelector("#galeria");
+  if(!GALERIA.length) gal.innerHTML=`<span class="vazioTxt">As fotos enviadas aparecem aqui para usar em outras frases.</span>`;
+  else gal.innerHTML=GALERIA.map(id=>`<button type="button" data-foto="${id}" aria-pressed="${id===c.foto}" title="Usar esta foto" style="background-image:url('${blobURL(id)}')"></button>`).join("");
+  return g;
+}
+function renderAjustes(){
+  const c=DATA[cur], g=document.createElement("div"); g.className="grupo";
+  g.innerHTML=`<label>Ajustes</label>
+   <div class="ajustes">
+    <div class="aj"><label for="opac">Presença da foto <span class="val" id="opacVal">${c.opac}%</span></label>
+     <input type="range" id="opac" min="0" max="20" step="1" value="${c.opac}"><span class="hint">Máximo 20%: a foto fica como textura por cima do azul marinho.</span></div>
+    <div class="aj"><label for="escala">Escala da foto <span class="val" id="escalaVal">${c.escala}%</span></label>
+     <input type="range" id="escala" min="100" max="300" step="5" value="${c.escala}"><span class="hint">100% cobre o card inteiro; acima disso dá zoom no ponto de foco.</span></div>
+    <div class="aj"><label for="posX">Posição horizontal <span class="val" id="posXVal">${c.posX}%</span></label>
+     <input type="range" id="posX" min="0" max="100" step="1" value="${c.posX}"></div>
+    <div class="aj"><label for="posY">Posição vertical <span class="val" id="posYVal">${c.posY}%</span></label>
+     <input type="range" id="posY" min="0" max="100" step="1" value="${c.posY}"><span class="hint">Você também pode arrastar a foto direto na prévia.</span></div>
+    <div class="aj" style="grid-column:1/-1"><label>Cor da barra</label>
+     <div class="cores" id="cores">${CORES.map(h=>`<button type="button" data-cor="${h}" aria-pressed="${(c.cor||CORES[0]).toUpperCase()===h.toUpperCase()}" title="${h}" style="background:${h};${h==="#FFFFFF"?"border-color:var(--line)":""}"></button>`).join("")}
+      <input type="color" id="corLivre" value="${c.cor||CORES[0]}" title="Outra cor"></div></div>
+   </div>`;
+  return g;
+}
+function renderFields(){
+  const c=DATA[cur], s=c.slide, box=$("fields");
+  box.innerHTML="";
+  box.append(fld("Frase",s.h,v=>s.h=v,"Use <b>palavra</b> para deixar em negrito. O tamanho da letra se ajusta ao comprimento."));
+  box.append(fld("Linha de apoio (opcional)",s.p||"",v=>s.p=v,"Deixe vazio para o card sair só com a frase."));
+  box.append(renderFoto());
+  box.append(renderAjustes());
+}
+function renderAll(){
+  const c=DATA[cur];
+  $("tit").textContent="Frase "+String(c.n).padStart(2,"0");
+  $("origem").innerHTML=`Pilar <b>Frase</b>, 06h<br>data sugerida ${c.dia}`;
+  $("legenda").value=c.legenda;
+  renderRail(); renderPostado(); renderStage(); renderFields();
+}
+
+/* ---------- exportação em PNG ---------- */
+const b64 = async u => {
+  const r = await fetch(u); if(!r.ok) throw new Error("asset "+u);
+  const b = await r.blob();
+  return await new Promise(res=>{const f=new FileReader();f.onload=()=>res(f.result);f.readAsDataURL(b);});
+};
+let ASSETS=null; const FOTOS={};
+async function assets(){
+  if(ASSETS) return ASSETS;
+  const [av,mc,f4,f5,f7]=await Promise.all([
+    b64("./avatar.png"),b64("./marca.svg"),
+    b64("./poppins-400.ttf"),b64("./poppins-500.ttf"),b64("./poppins-700.ttf")]);
+  ASSETS={av,mc,css:
+    `@font-face{font-family:Poppins;src:url(${f4}) format("truetype");font-weight:400}`+
+    `@font-face{font-family:Poppins;src:url(${f5}) format("truetype");font-weight:500}`+
+    `@font-face{font-family:Poppins;src:url(${f7}) format("truetype");font-weight:700}`};
+  return ASSETS;
+}
+async function fotoB64(id){ if(!FOTOS[id]) FOTOS[id]=await b64(blobURL(id)); return FOTOS[id]; }
+function dataURL(svg){
+  const bytes=new TextEncoder().encode(svg);
+  let bin="", CH=0x8000;
+  for(let j=0;j<bytes.length;j+=CH) bin+=String.fromCharCode.apply(null,bytes.subarray(j,j+CH));
+  return "data:image/svg+xml;base64,"+btoa(bin);
+}
+async function slidePNG(c, fo){
+  fo=fo||F(); const W=fo.w, H=fo.h;
+  const A=await assets();
+  const foto = c.foto ? await fotoB64(c.foto) : null;
+  await document.fonts.ready;
+  const host=$("oculto");
+  host.innerHTML=slideHTML(c, foto, fo);
+  const el=host.firstElementChild;
+  el.style.boxSizing="border-box";
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+  const cl=el.cloneNode(true);
+  cl.querySelectorAll("img").forEach(img=>{
+    const k=img.getAttribute("data-k");
+    if(k==="av") img.setAttribute("src",A.av); else if(k==="mc") img.setAttribute("src",A.mc);
+  });
+  cl.setAttribute("xmlns","http://www.w3.org/1999/xhtml");
+  const body=new XMLSerializer().serializeToString(cl);
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'">'+
+    '<defs><style type="text/css"><![CDATA['+A.css+']]></style></defs>'+
+    '<foreignObject x="0" y="0" width="'+W+'" height="'+H+'">'+body+'</foreignObject></svg>';
+  const img=new Image(); img.width=W; img.height=H;
+  await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error("render"));img.src=dataURL(svg);});
+  const cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+  const cx=cv.getContext("2d"); cx.fillStyle="#0D1B3E"; cx.fillRect(0,0,W,H);
+  cx.drawImage(img,0,0,W,H);
+  host.innerHTML="";
+  const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+/* ---------- ZIP ---------- */
+const CRCT=(()=>{const t=new Uint32Array(256);
+  for(let i=0;i<256;i++){let c=i;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[i]=c>>>0;}return t;})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRCT[(c^u8[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function zipSync(entries){
+  const enc=new TextEncoder(), parts=[], central=[]; let off=0;
+  const u16=n=>[n&255,(n>>8)&255], u32=n=>[n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255];
+  for(const e of entries){
+    const name=enc.encode(e.name), c=crc32(e.data), sz=e.data.length;
+    const lf=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0),
+      ...u32(c),...u32(sz),...u32(sz),...u16(name.length),...u16(0)]);
+    parts.push(lf,name,e.data);
+    central.push(new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0),
+      ...u32(c),...u32(sz),...u32(sz),...u16(name.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(off)]),name);
+    off+=lf.length+name.length+sz;
+  }
+  let cs=0; for(const p of central) cs+=p.length;
+  const end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(entries.length),...u16(entries.length),
+    ...u32(cs),...u32(off),...u16(0)]);
+  return new Blob([...parts,...central,end],{type:"application/zip"});
+}
+
+/* ---------- entrega ---------- */
+const slug=s=>s.toLowerCase().normalize("NFD").replace(/[^\x00-\x7F]/g,"")
+  .replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,32);
+function prog(on,txt,pct){
+  $("prog").classList.toggle("on",on);
+  $("progTxt").textContent=txt||"";
+  $("progBar").style.width=(pct||0)+"%";
+}
+function travar(v){ ["dlSlide","dlAmbos","dlTudo","reset"].forEach(i=>$(i).disabled=v); }
+async function entregar(filename,data){
+  try{ await Store.download(filename,data); prog(false); return true; }
+  catch(e){ prog(true,"Não consegui entregar o arquivo.",0); return false; }
+}
+const nome=c=>`frase-${String(c.n).padStart(2,"0")}-${slug(plain(c.slide.h))}`;
+async function baixarSlide(){
+  travar(true);
+  try{
+    const c=DATA[cur];
+    prog(true,"Gerando o card…",40);
+    const png=await slidePNG(c);
+    prog(true,"Quase lá…",90);
+    await entregar(`${nome(c)}-${F().w}x${F().h}.png`, png);
+  }catch(e){ prog(true,"Falhou ao gerar o card.",0); }
+  finally{ travar(false); }
+}
+async function baixarAmbos(){
+  travar(true);
+  try{
+    const c=DATA[cur], arqs=[];
+    let k=0;
+    for(const fo of Object.values(FORMATOS)){
+      prog(true,`Gerando ${fo.rotulo}…`,(++k/2)*90);
+      arqs.push({name:`${nome(c)}-${fo.w}x${fo.h}.png`, data:await slidePNG(c,fo)});
+    }
+    prog(true,"Montando o ZIP…",96);
+    const zip=await zipSync(arqs).arrayBuffer();
+    await entregar(`${nome(c)}.zip`, zip);
+  }catch(e){ prog(true,"Falhou ao gerar os cards.",0); }
+  finally{ travar(false); }
+}
+async function baixarTudo(){
+  travar(true);
+  try{
+    const enc=new TextEncoder(), todos=[]; let k=0;
+    const total=DATA.length*2;
+    for(const c of DATA){
+      for(const fo of Object.values(FORMATOS)){
+        prog(true,`Card ${++k} de ${total} (${fo.rotulo})…`,(k/total)*96);
+        todos.push({name:`${fo.pasta}/${nome(c)}-${fo.w}x${fo.h}.png`, data:await slidePNG(c,fo)});
+      }
+    }
+    todos.push({name:"LEGENDAS.txt", data:enc.encode(
+      DATA.map(c=>`FRASE ${String(c.n).padStart(2,"0")} (sugestão ${c.dia})${c.postado?"  [POSTADA"+(c.postadoEm?" em "+c.postadoEm:"")+"]":""}${c.foto?"":"  [sem foto]"}\n\n${c.legenda}`).join("\n\n--------------------\n\n"))});
+    prog(true,"Montando o ZIP…",98);
+    const zip=await zipSync(todos).arrayBuffer();
+    await entregar("frases-com-foto-kadu-lins.zip", zip);
+  }catch(e){ prog(true,"Falhou ao gerar o pacote.",0); }
+  finally{ travar(false); }
+}
+
+/* ---------- fotos ---------- */
+async function enviarFoto(file){
+  if(!file) return;
+  const lbl=document.querySelector('label[for="fotoInput"]');
+  if(lbl) lbl.textContent="Enviando…";
+  try{
+    const r=await Store.uploadFoto(file);
+    DATA[cur].foto=r.id;
+    if(!GALERIA.includes(r.id)){ GALERIA.unshift(r.id); salvarGaleria(); }
+    renderStage(); renderFields(); renderRail(); queueSave();
+  }catch(e){
+    const c=e&&e.code;
+    setSave("off", c==="too_large"?"foto acima de 20 MB":c==="unsupported_type"?"formato não aceito":c==="quota_or_state"?"espaço de fotos esgotado":"falha ao enviar a foto");
+    if(lbl) lbl.textContent="Enviar foto";
+  }
+}
+async function salvarGaleria(){
+  try{ await Store.saveGaleria(GALERIA); }catch(e){}
+}
+
+/* ---------- persistência ---------- */
+function queueSave(){
+  setSave(null,"editando");
+  clearTimeout(saveT);
+  saveT=setTimeout(save,900);
+}
+async function save(){
+  try{ await Store.saveFrase(DATA[cur]); setSave("on","salvo"); }
+  catch(e){ setSave("off","falha ao salvar"); }
+}
+
+
+async function boot(){
+  try{
+    const res=await fetch("./frases.json");
+    if(!res.ok) throw new Error(res.status);
+    BASE=(await res.json()).map(normal);
+  }catch(err){
+    $("tit").textContent="Não consegui carregar as frases";
+    $("origem").textContent="Recarregue a página. Se continuar, me avisa no chat.";
+    setSave("off","erro ao carregar");
+    return;
+  }
+  DATA=clone(BASE);
+  assetsCap=true; // upload sempre disponível nesta versão
+  setSave(null,"carregando");
+  try{
+    const salvos=await Store.listFrases();
+    salvos.forEach(v=>{ if(v&&v.n){const i=DATA.findIndex(x=>x.n===v.n); if(i>=0) DATA[i]=normal(clone(v));} });
+    GALERIA=(await Store.getGaleria()).filter(x=>typeof x==="string");
+    DATA.forEach(c=>{ if(c.foto&&!GALERIA.includes(c.foto)) GALERIA.push(c.foto); });
+    await Store.preloadFotos(GALERIA);
+    renderAll();
+    setSave("on","salvo");
+  }catch(e){ renderAll(); setSave("off","sem armazenamento (edições só nesta aba)"); }
+}
+
+/* ---------- eventos ---------- */
+$("rail").addEventListener("click",e=>{
+  const b=e.target.closest("[data-i]"); if(!b) return;
+  cur=+b.dataset.i; renderAll();
+  window.scrollTo({top:0,behavior:"smooth"});
+});
+$("legenda").addEventListener("input",e=>{DATA[cur].legenda=e.target.value;queueSave();});
+$("reset").addEventListener("click",()=>{
+  const c=DATA[cur], b=BASE[cur];
+  c.slide=clone(b.slide); c.opac=b.opac; c.escala=b.escala; c.posX=b.posX; c.posY=b.posY; c.cor=b.cor;
+  renderStage(); renderFields(); queueSave();
+});
+$("dlSlide").addEventListener("click",baixarSlide);
+$("dlAmbos").addEventListener("click",baixarAmbos);
+$("fmt").addEventListener("click",e=>{
+  const b=e.target.closest("[data-fmt]"); if(!b||!FORMATOS[b.dataset.fmt]) return;
+  fmt=b.dataset.fmt;
+  document.querySelectorAll("#fmt [data-fmt]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.fmt===fmt?"true":"false"));
+  $("dlFmt").textContent=`(${F().rotulo})`;
+  renderStage();
+});
+$("dlTudo").addEventListener("click",baixarTudo);
+function alternarPostado(){
+  const c=DATA[cur]; c.postado=!c.postado;
+  c.postadoEm = c.postado ? new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"}) : null;
+  renderPostado(); renderRail(); save();
+}
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.closest("#postarBox")){ e.preventDefault(); alternarPostado(); return; }
+  const gf=t.closest("[data-foto]");
+  if(gf){ DATA[cur].foto=gf.dataset.foto; renderStage(); renderFields(); renderRail(); queueSave(); return; }
+  if(t.closest("#fotoTirar")){ DATA[cur].foto=null; renderStage(); renderFields(); renderRail(); queueSave(); return; }
+  const cb=t.closest("[data-cor]");
+  if(cb){ DATA[cur].cor=cb.dataset.cor; renderStage(); renderFields(); queueSave(); return; }
+});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.id==="opac"){ DATA[cur].opac=Math.min(20,+t.value); $("opacVal").textContent=DATA[cur].opac+"%"; renderStage(); queueSave(); }
+  else if(t.id==="escala"){ DATA[cur].escala=+t.value; $("escalaVal").textContent=t.value+"%"; renderStage(); queueSave(); }
+  else if(t.id==="posX"){ DATA[cur].posX=+t.value; $("posXVal").textContent=t.value+"%"; renderStage(); queueSave(); }
+  else if(t.id==="posY"){ DATA[cur].posY=+t.value; $("posYVal").textContent=t.value+"%"; renderStage(); queueSave(); }
+  else if(t.id==="corLivre"){ DATA[cur].cor=t.value; renderStage(); queueSave();
+    document.querySelectorAll("[data-cor]").forEach(b=>b.setAttribute("aria-pressed","false")); }
+});
+document.addEventListener("change",e=>{
+  if(e.target.id==="fotoInput"){ const f=e.target.files&&e.target.files[0]; if(f) enviarFoto(f); }
+});
+addEventListener("resize",fitStage);
+/* arrastar a foto na prévia: move o ponto de foco */
+(function(){
+  const f=$("frame"); let drag=null;
+  f.style.touchAction="none";
+  f.addEventListener("pointerdown",e=>{
+    const c=DATA[cur]; if(!c||!c.foto) return;
+    drag={x:e.clientX,y:e.clientY,px:c.posX,py:c.posY,w:f.clientWidth,h:f.clientHeight};
+    f.setPointerCapture(e.pointerId); f.style.cursor="grabbing";
+  });
+  f.addEventListener("pointermove",e=>{
+    if(!drag) return;
+    const c=DATA[cur], k=Math.max(1,(c.escala||100)/100);
+    // arrastar para a direita mostra mais do lado esquerdo da foto: o foco diminui
+    c.posX=Math.round(Math.max(0,Math.min(100,drag.px-(e.clientX-drag.x)/drag.w*100/k*1.5)));
+    c.posY=Math.round(Math.max(0,Math.min(100,drag.py-(e.clientY-drag.y)/drag.h*100/k*1.5)));
+    renderStage();
+    const sx=$("posX"), sy=$("posY");
+    if(sx){sx.value=c.posX; $("posXVal").textContent=c.posX+"%";}
+    if(sy){sy.value=c.posY; $("posYVal").textContent=c.posY+"%";}
+  });
+  const fim=()=>{ if(!drag) return; drag=null; f.style.cursor=""; queueSave(); };
+  f.addEventListener("pointerup",fim); f.addEventListener("pointercancel",fim);
+})();
+boot();
+</script>
+
+</body>
+</html>
