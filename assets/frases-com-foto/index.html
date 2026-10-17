@@ -394,14 +394,16 @@ const FORMATOS={
 };
 let fmt="feed";
 const F=()=>FORMATOS[fmt];
-function slideHTML(c, fotoSrc, fo){
+function slideHTML(c, fotoSrc, fo, opcoes){
   fo=fo||F(); const W=fo.w, H=fo.h;
+  // Na exportação a foto e o fundo não vêm por aqui: vão direto no canvas.
+  const semFoto = !!(opcoes && opcoes.semFoto);
   const s=c.slide, L=nlen(s.h);
   const fs = L<=24?104:(L<=48?88:(L<=72?76:66));
   const cor=c.cor||CORES[0];
-  const img = c.foto ? `<img data-k="foto" src="${fotoSrc||blobURL(c.foto)}" alt="" style="position:absolute;top:0;left:0;width:${W}px;height:${H}px;object-fit:cover;object-position:${c.posX}% ${c.posY}%;transform:scale(${(c.escala||100)/100});transform-origin:${c.posX}% ${c.posY}%;display:block;opacity:${opacidade(c.opac)};">` : "";
+  const img = (c.foto && !semFoto) ? `<img data-k="foto" src="${fotoSrc||blobURL(c.foto)}" alt="" style="position:absolute;top:0;left:0;width:${W}px;height:${H}px;object-fit:cover;object-position:${c.posX}% ${c.posY}%;transform:scale(${(c.escala||100)/100});transform-origin:${c.posX}% ${c.posY}%;display:block;opacity:${opacidade(c.opac)};">` : "";
   const apoio = (s.p||"").trim() ? `<p style="margin:0;font-size:36px;font-weight:400;line-height:1.35;color:rgba(255,255,255,.86);max-width:760px;text-wrap:pretty;">${rich(s.p)}</p>` : "";
-  return `<div class="slide" style="position:relative;overflow:hidden;width:${W}px;height:${H}px;background:${NAVY};font-family:Poppins,Helvetica,sans-serif;color:#fff;">
+  return `<div class="slide" style="position:relative;overflow:hidden;width:${W}px;height:${H}px;background:${semFoto?"transparent":NAVY};font-family:Poppins,Helvetica,sans-serif;color:#fff;">
    ${img}
    <div class="conteudo" style="position:absolute;top:0;left:0;width:${W}px;height:${H}px;box-sizing:border-box;padding:${fo.padT}px 64px ${fo.padB}px;display:flex;flex-direction:column;justify-content:space-between;gap:40px;">
     ${HEADER}
@@ -543,7 +545,7 @@ const b64 = async u => {
   const b = await r.blob();
   return await new Promise(res=>{const f=new FileReader();f.onload=()=>res(f.result);f.readAsDataURL(b);});
 };
-let ASSETS=null; const FOTOS={};
+let ASSETS=null;
 async function assets(){
   if(ASSETS) return ASSETS;
   const [av,mc,f4,f5,f7]=await Promise.all([
@@ -555,7 +557,51 @@ async function assets(){
     `@font-face{font-family:Poppins;src:url(${f7}) format("truetype");font-weight:700}`};
   return ASSETS;
 }
-async function fotoB64(id){ if(!FOTOS[id]) FOTOS[id]=await b64(blobURL(id)); return FOTOS[id]; }
+/*
+ * A FOTO DE FUNDO VAI DIRETO NO CANVAS, e não dentro do SVG.
+ *
+ * O card é desenhado embrulhando o HTML num <svg><foreignObject> e
+ * rasterizando. O Safari — e o navegador do iPhone, que é o mesmo motor —
+ * dispara o `load` desse SVG ANTES de decodificar as imagens de dentro, na
+ * primeira vez que cada uma aparece. Resultado: o card saía completo, com
+ * texto, avatar e assinatura, e sem a foto de fundo. Sem erro em lugar nenhum,
+ * e com a prévia na tela certinha, porque ali não há rasterização.
+ *
+ * Medido: a primeira rasterização de cada foto perde a imagem, a segunda e a
+ * terceira acertam. Dava para rasterizar duas vezes e ficar por isso mesmo —
+ * mas seria apostar num cache que ninguém documentou, e pagando o dobro do
+ * tempo em cada um dos 60 arquivos do pacote.
+ *
+ * Desenhar a foto aqui tira a aposta do caminho: `drawImage` é desenho, não
+ * carregamento. De quebra, o SVG deixa de carregar a foto inteira em base64.
+ *
+ * O que esta função faz é repetir, em canvas, exatamente o que o CSS do
+ * `<img>` faz na prévia: `object-fit: cover`, `object-position` e o
+ * `transform: scale()` em torno do mesmo ponto de foco.
+ */
+async function fotoNoCanvas(cx, c, fo){
+  const W=fo.w, H=fo.h, src=blobURL(c.foto);
+  if(!src) return;
+  const im=new Image();
+  try{ await new Promise((ok,er)=>{im.onload=ok;im.onerror=()=>er(new Error("foto"));im.src=src;}); }
+  catch(e){ return; }                       // sem a foto é melhor que sem o card
+  const iw=im.naturalWidth, ih=im.naturalHeight;
+  if(!iw||!ih) return;
+  const px=(c.posX==null?50:c.posX)/100, py=(c.posY==null?50:c.posY)/100;
+  const esc=(c.escala||100)/100;
+  // object-fit: cover — a menor ampliação que ainda cobre a caixa inteira
+  const k=Math.max(W/iw, H/ih), dw=iw*k, dh=ih*k;
+  // object-position: o que sobra é repartido na proporção pedida
+  const dx=(W-dw)*px, dy=(H-dh)*py;
+  cx.save();
+  cx.globalAlpha=opacidade(c.opac);
+  // transform: scale(esc) com transform-origin no mesmo ponto de foco
+  cx.translate(W*px, H*py); cx.scale(esc, esc); cx.translate(-W*px, -H*py);
+  // o object-fit recorta na caixa da imagem, que é do tamanho do slide
+  cx.beginPath(); cx.rect(0,0,W,H); cx.clip();
+  cx.drawImage(im, dx, dy, dw, dh);
+  cx.restore();
+}
 function dataURL(svg){
   const bytes=new TextEncoder().encode(svg);
   let bin="", CH=0x8000;
@@ -565,10 +611,9 @@ function dataURL(svg){
 async function slidePNG(c, fo){
   fo=fo||F(); const W=fo.w, H=fo.h;
   const A=await assets();
-  const foto = c.foto ? await fotoB64(c.foto) : null;
   await document.fonts.ready;
   const host=$("oculto");
-  host.innerHTML=slideHTML(c, foto, fo);
+  host.innerHTML=slideHTML(c, null, fo, {semFoto:true});
   const el=host.firstElementChild;
   el.style.boxSizing="border-box";
   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
@@ -585,8 +630,9 @@ async function slidePNG(c, fo){
   const img=new Image(); img.width=W; img.height=H;
   await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error("render"));img.src=dataURL(svg);});
   const cv=document.createElement("canvas"); cv.width=W; cv.height=H;
-  const cx=cv.getContext("2d"); cx.fillStyle="#0D1B3E"; cx.fillRect(0,0,W,H);
-  cx.drawImage(img,0,0,W,H);
+  const cx=cv.getContext("2d"); cx.fillStyle=NAVY; cx.fillRect(0,0,W,H);
+  if(c.foto) await fotoNoCanvas(cx, c, fo);   // a foto por baixo
+  cx.drawImage(img,0,0,W,H);                  // e o card por cima
   host.innerHTML="";
   const blob=await new Promise(r=>cv.toBlob(r,"image/png"));
   return new Uint8Array(await blob.arrayBuffer());
