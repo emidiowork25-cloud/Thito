@@ -67,10 +67,19 @@ export async function POST(req: Request) {
     }
 
     const orderResult = await client.query(
-      `INSERT INTO orders (store_id, customer_id, total_price, notes, status)
-       VALUES ($1, $2, $3, $4, 'pending')
+      `INSERT INTO orders (store_id, customer_id, total_price, notes, status,
+                           delivery_address, delivery_lat, delivery_lng)
+       VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7)
        RETURNING id, store_id, status, total_price, created_at`,
-      [parsed.storeId, auth.userId, totalPrice, parsed.notes || null]
+      [
+        parsed.storeId,
+        auth.userId,
+        totalPrice,
+        parsed.notes || null,
+        parsed.deliveryAddress ?? null,
+        parsed.deliveryLat ?? null,
+        parsed.deliveryLng ?? null,
+      ]
     );
 
     const order = orderResult.rows[0];

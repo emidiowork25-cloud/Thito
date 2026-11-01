@@ -95,12 +95,19 @@ export const createOrderSchema = z
       .min(1, 'O pedido precisa de pelo menos um item')
       .max(50, 'Pedido com itens demais'),
     notes: shortText.optional(),
+    deliveryAddress: z.string().trim().min(5, 'Endereço muito curto').max(300).optional(),
+    // Coordinates are optional: an order can be placed without them and the
+    // address geocoded later, but tracking only works once they exist.
+    deliveryLat: z.number().min(-90).max(90).optional(),
+    deliveryLng: z.number().min(-180).max(180).optional(),
   })
   .strict();
 
 export const updateOrderStatusSchema = z
   .object({
-    status: z.enum(['confirmed', 'preparing', 'ready', 'completed', 'cancelled']),
+    status: z.enum([
+      'confirmed', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled',
+    ]),
     estimatedTime: z.number().int().positive().max(600).optional(),
   })
   .strict();
@@ -109,3 +116,23 @@ export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateMenuItemInput = z.infer<typeof createMenuItemSchema>;
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+
+export const dispatchDeliverySchema = z
+  .object({
+    courierName: z.string().trim().min(2).max(100).optional(),
+  })
+  .strict();
+
+/*
+ * A position ping. Bounds are enforced here as well as by the table's check
+ * constraints, so a bad value is rejected before it reaches the database.
+ */
+export const locationPingSchema = z
+  .object({
+    lat: z.number().min(-90).max(90),
+    lng: z.number().min(-180).max(180),
+    accuracy: z.number().nonnegative().max(100000).optional(),
+    speed: z.number().nonnegative().max(200).optional(),
+    heading: z.number().min(0).max(360).optional(),
+  })
+  .strict();

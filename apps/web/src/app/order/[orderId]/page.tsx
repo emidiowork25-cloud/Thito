@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
-import { Flame, Clock, CheckCircle } from 'lucide-react';
+import { Flame, Clock, CheckCircle, Bike, WifiOff } from 'lucide-react';
+import DeliveryMap from '@/components/DeliveryMap';
 
 interface Order {
   id: string;
@@ -24,13 +25,29 @@ const statusMap = {
   confirmed: { label: 'Confirmado', color: 'text-blue-400' },
   preparing: { label: 'Preparando', color: 'text-orange-400' },
   ready: { label: 'Pronto!', color: 'text-green-400' },
+  out_for_delivery: { label: 'Saiu para Entrega', color: 'text-[#FFC107]' },
   completed: { label: 'Entregue', color: 'text-green-500' },
   cancelled: { label: 'Cancelado', color: 'text-red-400' },
 };
 
+interface Tracking {
+  tracking: boolean;
+  deliveryStatus?: string;
+  courierName?: string | null;
+  destination?: { lat: number; lng: number; address?: string } | null;
+  courier?: { lat: number; lng: number } | null;
+  trail?: Array<{ lat: number; lng: number }>;
+  staleSeconds?: number | null;
+  eta?: { etaMinutes: number; distanceMetres: number } | null;
+}
+
+// A ping lands every ~8s, so polling faster than that only burns battery.
+const TRACKING_POLL_MS = 8000;
+
 export default function OrderTrackingPage({ params }: { params: { orderId: string } }) {
   const { isAuthenticated } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
+  const [tracking, setTracking] = useState<Tracking | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -40,6 +57,18 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
     return () => clearInterval(interval);
   }, [params.orderId]);
 
+  // Tracking is only polled once the order is actually out for delivery, so
+  // a pending order does not hit this endpoint every few seconds for nothing.
+  useEffect(() => {
+    if (order?.status !== 'out_for_delivery') {
+      setTracking(null);
+      return;
+    }
+    loadTracking();
+    const interval = setInterval(loadTracking, TRACKING_POLL_MS);
+    return () => clearInterval(interval);
+  }, [order?.status, params.orderId]);
+
   const loadOrder = async () => {
     try {
       const response = await api.get(`/orders/${params.orderId}`);
@@ -48,6 +77,15 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
       setError(err.response?.data?.error?.message || 'Erro ao carregar pedido');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadTracking = async () => {
+    try {
+      const response = await api.get(`/orders/${params.orderId}/tracking`);
+      setTracking(response.data);
+    } catch {
+      // Tracking is supplementary; the order view stays usable without it.
     }
   };
 
@@ -109,12 +147,12 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
           {/* Timeline */}
           <div className="space-y-4 mb-8 pb-8 border-b border-gray-700">
-            {(['pending', 'confirmed', 'preparing', 'ready'] as const).map((status) => (
+            {(['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery'] as const).map((status) => (
               <div key={status} className="flex items-center gap-4">
                 <div
                   className={`w-3 h-3 rounded-full ${
-                    (['pending', 'confirmed', 'preparing', 'ready'].indexOf(status) <=
-                    ['pending', 'confirmed', 'preparing', 'ready'].indexOf(order.status as any))
+                    (['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery'].indexOf(status) <=
+                    ['pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery'].indexOf(order.status as any))
                       ? 'bg-green-500'
                       : 'bg-gray-700'
                   }`}
@@ -139,6 +177,65 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
             </div>
           )}
         </div>
+
+        {/* Live delivery tracking */}
+        {tracking?.tracking && (
+          <div className="card-highlight p-5 sm:p-8 mb-8">
+            <div className="flex items-center justify-between mb-5 gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Bike className="w-5 h-5 text-[#FFC107] shrink-0" />
+                <h3 className="text-lg sm:text-xl font-bold truncate">
+                  {tracking.courierName
+                    ? `${tracking.courierName} a caminho`
+                    : 'Pedido a caminho'}
+                </h3>
+              </div>
+              {tracking.eta && (
+                <div className="text-right shrink-0">
+                  <p className="text-2xl font-bold text-[#FFC107] leading-none">
+                    {tracking.eta.etaMinutes} min
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {(tracking.eta.distanceMetres / 1000).toFixed(1)} km
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {tracking.courier ? (
+              <DeliveryMap
+                courier={tracking.courier}
+                destination={tracking.destination ?? null}
+                trail={tracking.trail ?? []}
+                stale={(tracking.staleSeconds ?? 0) > 60}
+                className="h-72"
+              />
+            ) : (
+              <p className="text-gray-400 text-sm py-6 text-center">
+                Aguardando o entregador iniciar o rastreio...
+              </p>
+            )}
+
+            {/* The courier's phone stops reporting when it locks, so silence
+                is shown as silence rather than a pin frozen in place. */}
+            {tracking.courier && (tracking.staleSeconds ?? 0) > 60 && (
+              <div className="mt-4 flex items-start gap-2 text-sm text-gray-400">
+                <WifiOff className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Última posição há {Math.round((tracking.staleSeconds ?? 0) / 60)} min.
+                  O entregador pode estar com a tela bloqueada.
+                </span>
+              </div>
+            )}
+
+            {tracking.eta && (
+              <p className="text-xs text-gray-500 mt-4">
+                Tempo estimado por distância e velocidade média — não considera
+                trânsito.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Items */}
         <div className="card-highlight p-8">

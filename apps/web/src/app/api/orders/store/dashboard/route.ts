@@ -41,6 +41,7 @@ export async function GET(req: Request) {
       `SELECT o.id, o.customer_id AS "customerId", o.status,
               o.total_price AS "totalPrice", o.notes,
               o.estimated_time_minutes AS "estimatedTimeMinutes",
+              o.delivery_address AS "deliveryAddress",
               o.created_at AS "createdAt", o.updated_at AS "updatedAt",
               COALESCE(items.list, '[]'::json) AS items
        FROM orders o

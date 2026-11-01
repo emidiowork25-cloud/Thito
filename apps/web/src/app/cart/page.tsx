@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
-import { Flame, Trash2, Minus, Plus, ArrowLeft } from 'lucide-react';
+import { Flame, Trash2, Minus, Plus, ArrowLeft, MapPin, LocateFixed } from 'lucide-react';
 
 export default function CartPage() {
   const router = useRouter();
@@ -13,6 +13,12 @@ export default function CartPage() {
   const { items, storeId, removeItem, updateQuantity, clear, total } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [address, setAddress] = useState('');
+  // Coordinates come from the device rather than from geocoding the typed
+  // text: it is exact, needs no external service, and the address string
+  // stays as the human-readable version the courier reads.
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locating, setLocating] = useState(false);
 
   // Redirect from an effect, not from render: useAuth reports null until it
   // has read localStorage, so redirecting during render bounced signed-in
@@ -33,9 +39,33 @@ export default function CartPage() {
 
   if (!isAuthenticated) return null;
 
+  const useMyLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setError('Este aparelho não suporta geolocalização');
+      return;
+    }
+    setLocating(true);
+    setError('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocating(false);
+      },
+      () => {
+        setError('Não foi possível obter sua localização. Autorize no navegador.');
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  };
+
   const handleCheckout = async () => {
     if (!storeId || items.length === 0) {
       setError('Carrinho vazio ou loja não selecionada');
+      return;
+    }
+    if (address.trim().length < 5) {
+      setError('Informe o endereço de entrega');
       return;
     }
 
@@ -51,6 +81,8 @@ export default function CartPage() {
           notes: item.notes,
           customizations: item.customizations,
         })),
+        deliveryAddress: address.trim(),
+        ...(coords ? { deliveryLat: coords.lat, deliveryLng: coords.lng } : {}),
       });
 
       const orderId = response.data.orderId;
@@ -173,6 +205,46 @@ export default function CartPage() {
             {/* Summary */}
             <div className="card-highlight p-6 h-fit">
               <h3 className="text-xl font-bold mb-6">Resumo</h3>
+
+              {/* Delivery address */}
+              <div className="mb-6 pb-6 border-b border-gray-700">
+                <label
+                  htmlFor="delivery-address"
+                  className="flex items-center gap-2 text-sm font-semibold mb-2"
+                >
+                  <MapPin className="w-4 h-4 text-[#FFC107]" />
+                  Endereço de entrega
+                </label>
+                <textarea
+                  id="delivery-address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Rua, número, complemento e ponto de referência"
+                  rows={3}
+                  maxLength={300}
+                  className="w-full px-4 py-2 bg-gray-800 border border-[#FFC107]/30 rounded-lg focus:outline-none focus:border-[#FFC107] text-white placeholder-gray-500 resize-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={useMyLocation}
+                  disabled={locating}
+                  className="mt-3 w-full min-h-[44px] rounded-lg border border-[#FFC107]/40 text-[#FFC107] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#FFC107]/10 transition-all disabled:opacity-50"
+                >
+                  <LocateFixed className="w-4 h-4" />
+                  {locating
+                    ? 'Obtendo localização...'
+                    : coords
+                      ? 'Localização confirmada ✓'
+                      : 'Usar minha localização atual'}
+                </button>
+
+                <p className="text-xs text-gray-500 mt-2">
+                  {coords
+                    ? 'Você poderá acompanhar o entregador no mapa.'
+                    : 'Sem a localização o pedido funciona, mas não dá para acompanhar o entregador no mapa.'}
+                </p>
+              </div>
 
               <div className="space-y-3 mb-6 pb-6 border-b border-gray-700">
                 <div className="flex justify-between text-sm">

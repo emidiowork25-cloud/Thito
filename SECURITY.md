@@ -81,6 +81,23 @@ muitas contas, o segundo contém uma botnet convergindo numa só.
   redirecioná-las a uma tabela que controle.
 - Timeout de 15s por consulta.
 
+### Link de entrega
+O entregador não tem conta: o link **é** a credencial. Por isso:
+
+- Token de 32 bytes aleatórios. No banco fica só o **hash SHA-256** — quem
+  lesse a tabela não conseguiria se passar por entregador e injetar posições
+  falsas.
+- Expira em 6 horas. Um link vazado não vale para sempre.
+- Morre ao concluir a entrega.
+- Redespachar um pedido substitui o token, o que revoga o anterior.
+- Limite de 30 pings por minuto por entrega.
+- A página do entregador mostra só o destino e os itens daquela entrega —
+  nada da conta do cliente nem de outros pedidos.
+
+A posição do entregador só é visível para o cliente que fez aquele pedido e
+para a loja que o despachou. Uma entrega expõe endereço residencial e a
+localização de uma pessoa em tempo real.
+
 ### Erros
 Exceções não são devolvidas ao cliente. Cada uma recebe um `errorId` que
 aparece na resposta e no log — dá para correlacionar sem expor esquema, host

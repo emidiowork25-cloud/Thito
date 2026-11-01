@@ -6,6 +6,11 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 const SUPABASE_ORIGIN = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 
+// Leaflet fetches map tiles as images from OpenStreetMap's servers. Listed
+// explicitly rather than widening img-src, so this stays the only extra
+// origin the page may pull pictures from.
+const TILE_ORIGINS = 'https://*.tile.openstreetmap.org https://tile.openstreetmap.org';
+
 function contentSecurityPolicy(isDev: boolean) {
   const external = [SUPABASE_ORIGIN].filter(Boolean).join(' ');
 
@@ -26,7 +31,7 @@ function contentSecurityPolicy(isDev: boolean) {
      */
     `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: ${external}`,
+    `img-src 'self' data: blob: ${external} ${TILE_ORIGINS}`,
     "font-src 'self' data:",
     "media-src 'self'",
     // The exfiltration boundary: even a script that ran could not reach a

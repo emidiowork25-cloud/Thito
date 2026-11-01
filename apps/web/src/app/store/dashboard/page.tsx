@@ -18,6 +18,7 @@ interface MenuItem {
 interface Order {
   id: string;
   status: string;
+  deliveryAddress?: string | null;
   totalPrice: number;
   estimatedTimeMinutes?: number;
   createdAt: string;
@@ -34,6 +35,11 @@ export default function StoreDashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Courier links, kept per order id. The link is only readable at the
+  // moment it is created — the server stores a hash — so it is held here
+  // until the store copies it.
+  const [courierLinks, setCourierLinks] = useState<Record<string, string>>({});
+  const [dispatching, setDispatching] = useState<string | null>(null);
   const [showNewItemForm, setShowNewItemForm] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', price: '', description: '', category: '' });
 
@@ -95,6 +101,30 @@ export default function StoreDashboardPage() {
     } catch (err: any) {
       setError(err.response?.data?.error?.message || 'Erro ao criar item');
     }
+  };
+
+  const handleDispatch = async (orderId: string) => {
+    setDispatching(orderId);
+    try {
+      const { data } = await api.post(`/orders/${orderId}/dispatch`, {});
+      const link = `${window.location.origin}${data.courierPath}`;
+      setCourierLinks((prev) => ({ ...prev, [orderId]: link }));
+      if (!data.hasDestination) {
+        setError(
+          'Pedido sem coordenadas: o entregador aparece no mapa, mas não há tempo estimado.'
+        );
+      }
+      loadOrders();
+    } catch (err: any) {
+      setError(err.response?.data?.error?.message || 'Falha ao despachar');
+    } finally {
+      setDispatching(null);
+    }
+  };
+
+  const shareOnWhatsApp = (orderId: string, link: string) => {
+    const text = `Entrega Chapa Quente - pedido ${orderId.substring(0, 8)}\n\nAbra este link e toque em "Iniciar rastreio":\n${link}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   };
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -221,15 +251,24 @@ export default function StoreDashboardPage() {
                       order.status === 'confirmed' ? 'bg-blue-900/30 text-blue-400' :
                       order.status === 'preparing' ? 'bg-orange-900/30 text-orange-400' :
                       order.status === 'ready' ? 'bg-green-900/30 text-green-400' :
+                      order.status === 'out_for_delivery' ? 'bg-[#FFC107]/20 text-[#FFC107]' :
                       'bg-gray-700 text-gray-400'
                     }`}>
                       {order.status === 'pending' ? '⏳ Aguardando' :
                        order.status === 'confirmed' ? '✓ Confirmado' :
                        order.status === 'preparing' ? '👨‍🍳 Preparando' :
                        order.status === 'ready' ? '✨ Pronto' :
+                       order.status === 'out_for_delivery' ? '🛵 Saiu para entrega' :
                        '✅ Entregue'}
                     </div>
                   </div>
+
+                  {order.deliveryAddress && (
+                    <div className="mb-4 pb-4 border-b border-gray-700">
+                      <p className="text-sm text-gray-400 mb-1">Entregar em:</p>
+                      <p className="text-sm break-words">{order.deliveryAddress}</p>
+                    </div>
+                  )}
 
                   <div className="mb-4 pb-4 border-b border-gray-700">
                     <p className="text-sm text-gray-400 mb-2">Itens:</p>
@@ -281,14 +320,58 @@ export default function StoreDashboardPage() {
                       </button>
                     )}
                     {order.status === 'ready' && (
+                      <>
+                        <button
+                          onClick={() => handleDispatch(order.id)}
+                          disabled={dispatching === order.id}
+                          className="flex-1 px-4 min-h-[44px] bg-[#FFC107] hover:bg-[#FFD700] text-[#1a1a1a] rounded-lg text-sm font-bold transition-all disabled:opacity-60"
+                        >
+                          {dispatching === order.id ? 'Gerando...' : '🛵 Despachar'}
+                        </button>
+                        <button
+                          onClick={() => handleUpdateOrderStatus(order.id, 'completed')}
+                          className="flex-1 px-4 min-h-[44px] bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-semibold transition-all"
+                        >
+                          Retirado
+                        </button>
+                      </>
+                    )}
+                    {order.status === 'out_for_delivery' && (
                       <button
                         onClick={() => handleUpdateOrderStatus(order.id, 'completed')}
                         className="flex-1 px-4 min-h-[44px] bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-semibold transition-all"
                       >
-                        Entregue
+                        Marcar entregue
                       </button>
                     )}
                   </div>
+
+                  {courierLinks[order.id] && (
+                    <div className="mt-4 p-3 rounded-lg bg-[#FFC107]/10 border border-[#FFC107]/30">
+                      <p className="text-xs text-[#FFC107] font-semibold mb-2">
+                        Link do entregador — envie e peça para abrir
+                      </p>
+                      <p className="text-xs text-gray-400 break-all mb-3 font-mono">
+                        {courierLinks[order.id]}
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() =>
+                            navigator.clipboard?.writeText(courierLinks[order.id])
+                          }
+                          className="flex-1 min-h-[40px] rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-xs font-semibold"
+                        >
+                          Copiar
+                        </button>
+                        <button
+                          onClick={() => shareOnWhatsApp(order.id, courierLinks[order.id])}
+                          className="flex-1 min-h-[40px] rounded-lg bg-green-700 hover:bg-green-600 text-white text-xs font-semibold"
+                        >
+                          WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
